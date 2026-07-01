@@ -1,0 +1,35 @@
+{
+  "stores": [
+    {
+      "id": "mall",
+     
+      "files": [
+        {
+          "priority": 0,
+          "quality": "low",
+          "url": "/store-models/Jewerly Mall wireframe lowp compact (2).glb"
+        },
+
+        {
+          "priority": 1,
+          "quality": "high",
+          "url": "/store-models/main.glb"
+        }
+        
+      
+      ]
+    },
+    {
+      "id": "test",
+      
+     "files": [
+        {
+          "priority": 0,
+          "quality": "low",
+          "url": "/store-models/test/no-light.glb"
+        }
+      
+      ]
+    }
+  ]
+}
