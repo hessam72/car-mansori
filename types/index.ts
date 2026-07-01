@@ -22,20 +22,4 @@ export interface ScrollState {
   velocity: number;
 }
 
-export type JewelryCategory =
-  | "rings"
-  | "necklaces"
-  | "bracelets"
-  | "earrings"
-  | "exclusive";
-
-export interface MuseumChamber {
-  id: JewelryCategory;
-  label: string;
-  roomNumber: string;
-  description: string;
-  goldHue: string;
-  accentLight: string;
-}
-
 export type DeviceTier = "high" | "mid" | "low";

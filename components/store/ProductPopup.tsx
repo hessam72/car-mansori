@@ -3,8 +3,6 @@
 import { useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import type { ProductData } from './ProductInteraction'
-import ARButton from './ARButton'
-import type { Category } from '@/app/vto/models-config'
 
 const ProductViewer3D = dynamic(() => import('./ProductViewer3D'), {
   ssr: false,
@@ -36,8 +34,6 @@ export default function ProductPopup({ product, onClose }: ProductPopupProps) {
   }, [product, onClose])
 
   if (!product) return null
-
-  const vtoUrl = `/vto/${product.category}${product.variant !== 'default' ? `?model=${product.variant}` : ''}`
 
   return (
     <div
@@ -80,27 +76,7 @@ export default function ProductPopup({ product, onClose }: ProductPopupProps) {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="space-y-3">
-            {/* VTO Button */}
-            <a
-              href={vtoUrl}
-              style={{    padding: '.6rem',
-    marginTop: '.5rem'}}
-              className="block w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-slate-900 font-bold py-3 px-6 rounded-xl text-center transition-all duration-200 shadow-lg hover:shadow-amber-600/40 transform hover:scale-[1.02]"
-            >
-              پرو مجازی
-            </a>
-
-            {/* AR Button */}
-            {/* <div dir="ltr">
-              <ARButton
-                category={product.category as Category}
-                modelName={product.variant}
-                variant="secondary"
-              />
-            </div> */}
-          </div>
+          {/* Action Buttons removed - VTO/AR not applicable for cars */}
         </div>
       </div>
     </div>
