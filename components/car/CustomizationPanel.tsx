@@ -13,7 +13,11 @@ function preloadCategory(categoryId: string) {
   const parts = partsConfig[categoryId as keyof typeof partsConfig] || []
   parts.forEach((part: any) => {
     if (part.model_path) {
-      useLoader.preload(GLTFLoader, part.model_path)
+      try {
+        useLoader.preload(GLTFLoader, part.model_path)
+      } catch (error) {
+        console.warn(`[Preload] Failed to preload ${part.model_path}:`, error)
+      }
     }
   })
 }

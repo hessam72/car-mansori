@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import { useCarConfig } from '@/stores/carConfigStore'
 import { DynamicPart } from './DynamicPart'
+import { PartErrorBoundary } from './PartErrorBoundary'
 import * as THREE from 'three'
 
 interface ConfigurableCarProps {
@@ -149,11 +150,12 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
 
       {/* Render dynamic parts for each category */}
       {partCategories.map((category) => (
-        <DynamicPart
-          key={category}
-          category={category}
-          baseCarScene={carModel}
-        />
+        <PartErrorBoundary key={category}>
+          <DynamicPart
+            category={category}
+            baseCarScene={carModel}
+          />
+        </PartErrorBoundary>
       ))}
     </group>
   )
