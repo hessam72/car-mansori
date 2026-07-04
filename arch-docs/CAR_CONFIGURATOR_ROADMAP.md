@@ -2,20 +2,100 @@
 
 > **Last Updated**: 2026-07-01
 > **Status**: Planning Phase
-> **Estimated Timeline**: 7-10 days (core) | 9-14 days (with advanced features)
+> **Estimated Timeline**: 8-12 days (core) | 10-15 days (with advanced features)
 
 ---
 
 ## Table of Contents
 
-1. [Current State Analysis](#current-state-analysis)
-2. [Architecture Decisions](#architecture-decisions)
-3. [Implementation Phases](#implementation-phases)
-4. [Code Patterns & Examples](#code-patterns--examples)
-5. [Performance Optimization](#performance-optimization)
-6. [Open-Source References](#open-source-references)
-7. [File Structure](#file-structure)
-8. [Next Steps](#next-steps)
+1. [User Experience Flow](#user-experience-flow)
+2. [Current State Analysis](#current-state-analysis)
+3. [Architecture Decisions](#architecture-decisions)
+4. [Implementation Phases](#implementation-phases)
+5. [Code Patterns & Examples](#code-patterns--examples)
+6. [Performance Optimization](#performance-optimization)
+7. [Open-Source References](#open-source-references)
+8. [File Structure](#file-structure)
+9. [Next Steps](#next-steps)
+
+---
+
+## User Experience Flow
+
+### Two-Stage Experience
+
+**Stage 1: Car Showroom (Keep Existing System)**
+- ✅ FPS movement with WASD + virtual joystick
+- ✅ Physics-based collision (Rapier)
+- ✅ Gyro support for mobile
+- ✅ Walk around and explore multiple cars
+- 🆕 Click on any car to enter configurator
+
+**Stage 2: Car Configurator (New Page)**
+- 🆕 Dedicated page: `/car-configurator/[car-id]`
+- 🆕 OrbitControls (drag to rotate, scroll to zoom)
+- 🆕 Part swapping (wheels, spoilers, body kits)
+- 🆕 Material customization (paint color, metallic, roughness)
+- 🆕 UI controls (no joystick)
+- 🆕 Camera presets (front, rear, side, wheel views)
+
+### User Journey
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  SHOWROOM (/showroom)                                   │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │ • Walk with WASD/Joystick                         │  │
+│  │ • Explore multiple cars in 3D space               │  │
+│  │ • Physics collision with walls/objects            │  │
+│  │ • Click on Car A, B, or C                         │  │
+│  └───────────────────────────────────────────────────┘  │
+└────────────────────────┬────────────────────────────────┘
+                         │ Click Car
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│  CONFIGURATOR (/car-configurator/car-a)                 │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │ • Drag to rotate car 360°                         │  │
+│  │ • Scroll to zoom in/out                           │  │
+│  │ • Select parts via UI sidebar                     │  │
+│  │ • Change paint color/materials                    │  │
+│  │ • Camera presets (Front, Rear, Side, Wheel)      │  │
+│  │ • Save configuration & export screenshot          │  │
+│  └───────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Why This Architecture?
+
+**Advantages**:
+1. **Reuse Existing System**: Showroom uses proven jewelry store code (no rewrite)
+2. **Clear Separation**: Exploration vs customization are distinct experiences
+3. **Performance**: Only load configurator UI/logic when needed
+4. **Mobile UX**: Joystick for movement, drag for rotation (appropriate to context)
+5. **Scalability**: Easy to add more cars to showroom
+
+**Technical Benefits**:
+- ✅ No changes to existing Scene.tsx (showroom)
+- ✅ ProductInteraction.tsx handles car clicks (already works)
+- ✅ Physics stays in showroom (not needed in configurator)
+- ✅ OrbitControls isolated to configurator page
+
+### Feature Comparison
+
+| Feature | Showroom (Keep Existing) | Configurator (New Page) |
+|---------|--------------------------|-------------------------|
+| **Route** | `/showroom` | `/car-configurator/[carId]` |
+| **Camera** | POV (FPS) | OrbitControls |
+| **Controls** | WASD + Joystick | Drag to rotate, scroll to zoom |
+| **Physics** | ✅ Rapier collision | ❌ No physics |
+| **Movement** | Walk around freely | Static (car rotates) |
+| **Cars** | Multiple cars in scene | Single car focused |
+| **Interaction** | Click to select | UI sidebar controls |
+| **Purpose** | Exploration | Customization |
+| **State** | Local/none | Zustand (global) |
+| **Post-processing** | ✅ Bloom, N8AO | ✅ Bloom (simpler) |
+| **Mobile** | Virtual joystick | Touch gestures |
 
 ---
 
@@ -54,19 +134,33 @@
 
 ### Adaptability Assessment
 
-Your existing codebase is **extremely well-suited** for car customization:
+Your existing codebase is **extremely well-suited** for this two-stage architecture:
+
+**Showroom (No Changes Needed)**:
+
+| Feature | Status | Action |
+|---------|--------|--------|
+| FPS Movement | ✅ Working | Keep as-is |
+| Virtual Joystick | ✅ Working | Keep as-is |
+| Physics Collision | ✅ Working | Keep as-is |
+| Raycasting | ✅ Working | Extend for car clicks |
+| Config-driven loading | ✅ Working | Add cars to stores.json |
+
+**Configurator (New Page)**:
 
 | Feature Needed | Already Have | Adaptation Required |
 |----------------|--------------|---------------------|
-| Dynamic GLB loading | ✅ ModelLoader | Extend for part categories |
-| Config-driven data | ✅ stores.json | Create car-parts.json |
-| Material overrides | ✅ Emissive lights | Add clearcoat for paint |
-| Product selection | ✅ Raycasting | Replace with UI selector |
-| State management | ❌ Local only | Add Zustand |
-| Camera system | ⚠️ FPS POV | Replace with OrbitControls |
+| Dynamic GLB loading | ✅ ModelLoader | Reuse for parts |
+| Config-driven data | ✅ stores.json pattern | Create car-parts.json |
+| Material overrides | ✅ Emissive lights pattern | Add clearcoat for paint |
+| State management | ❌ Local only | Add Zustand (configurator only) |
+| Camera system | ✅ Three.js | New: OrbitControls (configurator only) |
 | Performance | ✅ DRACO + optimization | Add preloading |
 
-**Conclusion**: ~80% of architecture is reusable. Main additions: state management + UI controls.
+**Conclusion**:
+- **Showroom**: 95% reusable (just add car models to existing system)
+- **Configurator**: 70% reusable patterns (new page, new camera controls)
+- **Overall**: Minimal refactoring, mostly additive development
 
 ---
 
@@ -135,17 +229,29 @@ function applyCarPaint(object: Object3D, config: MaterialConfig) {
 }
 ```
 
-### 4. Camera System: **OrbitControls + Presets**
+### 4. Camera System: **Dual Camera Architecture**
 
-**Decision**: Replace FPS POV camera with OrbitControls
+**Decision**: Keep POV camera in showroom, add OrbitControls in configurator
+
+**Showroom Camera**:
+- ✅ Keep existing POV camera (FPS movement)
+- ✅ WASD controls + virtual joystick
+- ✅ Physics-based collision
+- ✅ Gyro support
+- **Use case**: Exploring multiple cars in 3D space
+
+**Configurator Camera**:
+- 🆕 OrbitControls (drag to rotate, scroll to zoom)
+- 🆕 Camera presets (front, rear, side, wheel, interior)
+- 🆕 Auto-rotate option
+- 🆕 Touch-friendly gestures
+- **Use case**: Detailed inspection of single car
 
 **Rationale**:
-- Standard for product configurators (360° rotation)
-- Easier preset system (front/rear/wheel/interior views)
-- Auto-rotate option
-- Touch-friendly for mobile
-
-**Rejected**: Keep POV camera - not suitable for static product viewing.
+- POV perfect for showroom exploration
+- OrbitControls standard for product configurators
+- Each camera type suited to its context
+- No conflicts (separate pages/scenes)
 
 ### 5. Performance Strategy
 
@@ -170,12 +276,186 @@ function applyCarPaint(object: Object3D, config: MaterialConfig) {
 
 ## Implementation Phases
 
-### Phase 1: State & Config (1-2 days)
+### Phase 0: Showroom Setup (1-2 days)
 
 **Goals**:
-- Install Zustand for global state
+- Extend existing jewelry store for car showroom
+- Add car models to showroom
+- Implement car click detection
+- Setup routing to configurator page
+
+**Tasks**:
+
+1. **Add Cars to Showroom Config** (`/public/config/stores.json`):
+   ```json
+   {
+     "models": [
+       {
+         "name": "Car_SportSedan",
+         "url": "/models/showroom/sport-sedan.glb",
+         "priority": 1,
+         "position": [5, 0, 0],
+         "rotation": [0, Math.PI / 4, 0]
+       },
+       {
+         "name": "Car_SUV",
+         "url": "/models/showroom/suv.glb",
+         "priority": 1,
+         "position": [-5, 0, 0],
+         "rotation": [0, -Math.PI / 4, 0]
+       },
+       {
+         "name": "Car_Supercar",
+         "url": "/models/showroom/supercar.glb",
+         "priority": 1,
+         "position": [0, 0, 8],
+         "rotation": [0, Math.PI, 0]
+       }
+     ]
+   }
+   ```
+
+2. **Create Car Database** (`/public/config/cars.json`):
+   ```json
+   {
+     "cars": [
+       {
+         "id": "sport-sedan",
+         "name": "Sport Sedan",
+         "model3d": "Car_SportSedan",
+         "basePrice": 35000,
+         "description": "Luxury sports sedan with high performance",
+         "thumbnail": "/thumbnails/sport-sedan.jpg"
+       },
+       {
+         "id": "suv",
+         "name": "Luxury SUV",
+         "model3d": "Car_SUV",
+         "basePrice": 50000,
+         "description": "Premium SUV with advanced features"
+       },
+       {
+         "id": "supercar",
+         "name": "Supercar",
+         "model3d": "Car_Supercar",
+         "basePrice": 150000,
+         "description": "High-performance exotic supercar"
+       }
+     ]
+   }
+   ```
+
+3. **Extend ProductInteraction for Cars** (`/components/store/CarInteraction.tsx`):
+   ```typescript
+   import { useRouter } from 'next/navigation'
+   import { useState } from 'react'
+   import { useFrame, useThree } from '@react-three/fiber'
+   import { Raycaster, Vector2 } from 'three'
+   import carsData from '@/public/config/cars.json'
+
+   export function CarInteraction() {
+     const router = useRouter()
+     const { scene, camera } = useThree()
+     const [hoveredCar, setHoveredCar] = useState<string | null>(null)
+
+     const handleClick = (event: MouseEvent) => {
+       const raycaster = new Raycaster()
+       const mouse = new Vector2(
+         (event.clientX / window.innerWidth) * 2 - 1,
+         -(event.clientY / window.innerHeight) * 2 + 1
+       )
+
+       raycaster.setFromCamera(mouse, camera)
+       const intersects = raycaster.intersectObjects(scene.children, true)
+
+       if (intersects.length > 0) {
+         const object = intersects[0].object
+
+         // Find car by name (matches model3d in cars.json)
+         const clickedCar = carsData.cars.find(car =>
+           object.parent?.name === car.model3d
+         )
+
+         if (clickedCar) {
+           // Redirect to configurator page
+           router.push(`/car-configurator/${clickedCar.id}`)
+         }
+       }
+     }
+
+     useEffect(() => {
+       window.addEventListener('click', handleClick)
+       return () => window.removeEventListener('click', handleClick)
+     }, [])
+
+     return null
+   }
+   ```
+
+4. **Add to Existing Scene.tsx**:
+   ```typescript
+   import { CarInteraction } from './CarInteraction'
+
+   export function Scene() {
+     return (
+       <Canvas>
+         {/* ... existing showroom setup ... */}
+         <CarInteraction />
+       </Canvas>
+     )
+   }
+   ```
+
+5. **Create Configurator Route** (`/app/car-configurator/[carId]/page.tsx`):
+   ```typescript
+   import { CarConfiguratorScene } from '@/components/car/CarConfiguratorScene'
+   import { ConfigPanel } from '@/components/car/ConfigPanel'
+   import carsData from '@/public/config/cars.json'
+   import { notFound } from 'next/navigation'
+
+   export default function ConfiguratorPage({ params }: { params: { carId: string } }) {
+     const car = carsData.cars.find(c => c.id === params.carId)
+
+     if (!car) return notFound()
+
+     return (
+       <main className="h-screen w-screen relative">
+         <CarConfiguratorScene carId={car.id} />
+         <ConfigPanel car={car} />
+
+         {/* Back to showroom button */}
+         <Link
+           href="/showroom"
+           className="fixed top-4 left-4 px-4 py-2 bg-white/90 rounded-lg"
+         >
+           ← Back to Showroom
+         </Link>
+       </main>
+     )
+   }
+   ```
+
+**Deliverables**:
+- ✅ Cars visible in existing showroom
+- ✅ Click detection working
+- ✅ Redirect to configurator page
+- ✅ No changes to existing POV camera/joystick
+
+**Success Criteria**:
+- Can walk around showroom (existing functionality intact)
+- Clicking car navigates to `/car-configurator/[car-id]`
+- Car ID passed correctly via URL params
+
+---
+
+### Phase 1: Configurator State & Config (1-2 days)
+
+**Goals**:
+- Install Zustand for configurator state
 - Create car parts configuration system
-- Add base car model
+- Setup base structure for configurator page
+
+**Note**: This phase is **only for the configurator page**, not the showroom.
 
 **Tasks**:
 
@@ -725,24 +1005,26 @@ function applyCarPaint(object: Object3D, config: MaterialConfig) {
 
 ---
 
-### Phase 5: Camera & Lighting (1-2 days)
+### Phase 5: Configurator Camera & Lighting (1-2 days)
 
 **Goals**:
-- Replace POV camera with OrbitControls
+- Add OrbitControls to configurator page (showroom keeps POV camera)
 - Implement camera presets (front, rear, wheel, interior)
-- Studio lighting setup
+- Studio lighting setup for configurator
 - Auto-rotate option
+
+**Note**: This is **only for the configurator page** (`/car-configurator/[carId]`). The showroom keeps its existing POV camera + joystick.
 
 **Implementation**:
 
-1. **Camera Setup** (`/components/car/CarScene.tsx`):
+1. **Configurator Scene Setup** (`/components/car/CarConfiguratorScene.tsx`):
    ```typescript
    import { Canvas } from '@react-three/fiber'
    import { OrbitControls, Environment, ContactShadows } from '@react-three/drei'
    import { CarModel } from './CarModel'
    import { CameraPresets } from './CameraPresets'
 
-   export function CarScene() {
+   export function CarConfiguratorScene({ carId }: { carId: string }) {
      return (
        <Canvas
          camera={{ position: [5, 2, 5], fov: 50 }}
@@ -750,7 +1032,7 @@ function applyCarPaint(object: Object3D, config: MaterialConfig) {
          gl={{ antialias: true, alpha: false }}
          dpr={[1, 2]}
        >
-         {/* Camera Controls */}
+         {/* OrbitControls - Drag to rotate, scroll to zoom */}
          <OrbitControls
            target={[0, 0.5, 0]}
            minDistance={3}
@@ -760,20 +1042,23 @@ function applyCarPaint(object: Object3D, config: MaterialConfig) {
            enablePan={false}
            autoRotate
            autoRotateSpeed={0.5}
+           // Touch gestures for mobile
+           enableDamping
+           dampingFactor={0.05}
          />
 
-         {/* Lighting */}
+         {/* Studio Lighting */}
          <Environment preset="studio" background={false} />
 
-         {/* Additional lights */}
+         {/* Additional lights for car details */}
          <directionalLight position={[5, 5, 5]} intensity={0.5} castShadow />
          <directionalLight position={[-5, 3, -5]} intensity={0.3} />
          <hemisphereLight intensity={0.5} />
 
-         {/* Car */}
-         <CarModel />
+         {/* Car Model with customizations */}
+         <CarModel carId={carId} />
 
-         {/* Ground */}
+         {/* Ground shadow */}
          <ContactShadows
            position={[0, 0, 0]}
            opacity={0.5}
@@ -781,13 +1066,17 @@ function applyCarPaint(object: Object3D, config: MaterialConfig) {
            blur={2}
            far={5}
          />
-
-         {/* Camera Presets UI */}
-         <CameraPresets />
        </Canvas>
      )
    }
    ```
+
+   **Key Differences from Showroom**:
+   - ✅ OrbitControls instead of POV camera
+   - ✅ No physics (static scene)
+   - ✅ No joystick
+   - ✅ Drag to rotate, scroll to zoom
+   - ✅ Touch-friendly damping
 
 2. **Camera Presets** (`/components/car/CameraPresets.tsx`):
    ```typescript
@@ -1420,12 +1709,23 @@ useEffect(() => {
 ```
 car-mansori/
 ├── app/
+│   ├── showroom/
+│   │   └── page.tsx                  # ✅ EXISTING - Showroom with POV camera
+│   │
 │   └── car-configurator/
-│       └── page.tsx                  # Main configurator route
+│       └── [carId]/
+│           └── page.tsx              # 🆕 NEW - Configurator route
 │
 ├── components/
-│   └── car/
-│       ├── CarScene.tsx              # Canvas + Camera + Lights + Controls
+│   ├── store/                        # ✅ EXISTING - Keep as-is
+│   │   ├── Scene.tsx                 # Showroom scene (POV camera + joystick)
+│   │   ├── ModelLoader.tsx           # GLTF loader with DRACO
+│   │   ├── ProductInteraction.tsx    # Raycasting system
+│   │   ├── CarInteraction.tsx        # 🆕 NEW - Extend for car clicks
+│   │   └── ...                       # Other existing components
+│   │
+│   └── car/                          # 🆕 NEW - Configurator components
+│       ├── CarConfiguratorScene.tsx  # Canvas + OrbitControls + Lights
 │       ├── CarModel.tsx              # Base car + DynamicParts composite
 │       ├── DynamicPart.tsx           # Part loader with material override
 │       ├── ConfigPanel.tsx           # Main UI sidebar
@@ -1437,34 +1737,54 @@ car-mansori/
 │       └── Loader.tsx                # Loading state component
 │
 ├── stores/
-│   └── carConfigStore.ts             # Zustand state management
+│   └── carConfigStore.ts             # 🆕 NEW - Zustand state (configurator only)
 │
 ├── public/
 │   ├── config/
-│   │   └── car-parts.json            # Parts database
+│   │   ├── stores.json               # ✅ EXISTING - Add showroom cars here
+│   │   ├── cars.json                 # 🆕 NEW - Car database (id, name, price)
+│   │   └── car-parts.json            # 🆕 NEW - Parts database (wheels, spoilers)
 │   │
-│   ├── car-models/
-│   │   ├── base.glb                  # Base car chassis
-│   │   ├── wheels/
+│   ├── models/
+│   │   └── showroom/                 # 🆕 NEW - Full car models for showroom
+│   │       ├── sport-sedan.glb
+│   │       ├── suv.glb
+│   │       └── supercar.glb
+│   │
+│   ├── car-models/                   # 🆕 NEW - Configurator parts
+│   │   ├── base/                     # Base car models (by car type)
+│   │   │   ├── sport-sedan-base.glb
+│   │   │   ├── suv-base.glb
+│   │   │   └── supercar-base.glb
+│   │   │
+│   │   ├── wheels/                   # Wheel variants
 │   │   │   ├── default.glb
 │   │   │   ├── sport-rims.glb
 │   │   │   └── chrome-rims.glb
-│   │   ├── spoilers/
+│   │   │
+│   │   ├── spoilers/                 # Spoiler variants
 │   │   │   ├── none.glb
 │   │   │   └── gt-wing.glb
-│   │   └── body-kits/
+│   │   │
+│   │   └── body-kits/                # Body kit variants
 │   │       └── racing-kit.glb
 │   │
-│   ├── thumbnails/                   # Part preview images
+│   ├── thumbnails/                   # 🆕 NEW - Part preview images
+│   │   ├── cars/
 │   │   ├── wheels/
 │   │   ├── spoilers/
 │   │   └── body-kits/
 │   │
-│   └── draco/                        # DRACO decoder (already exists)
+│   └── draco/                        # ✅ EXISTING - DRACO decoder
 │
 └── arch-docs/
     └── CAR_CONFIGURATOR_ROADMAP.md   # This document
 ```
+
+### Legend
+- ✅ **EXISTING**: Keep as-is, minimal or no changes
+- 🆕 **NEW**: Create from scratch
+- 🔧 **MODIFY**: Extend existing file
 
 ### File Size Guidelines
 
@@ -1753,7 +2073,43 @@ export function AssetPreloader() {
 
 ## Next Steps
 
-### Immediate Actions (Day 1)
+### Immediate Actions (Day 1 - Phase 0)
+
+**Goal**: Get showroom working with car click detection
+
+1. **Get Car Models for Showroom**:
+   - Download 2-3 free car GLB models from Sketchfab
+   - Place in `/public/models/showroom/`
+   - Test loading in existing showroom
+
+2. **Create Cars Database** (`/public/config/cars.json`):
+   - Copy example from Phase 0
+   - Add 2-3 cars with IDs, names, base prices
+   - Link to model names in stores.json
+
+3. **Extend stores.json**:
+   - Add car models to existing config
+   - Set positions in showroom (spread them out)
+   - Test that they load in existing Scene.tsx
+
+4. **Create CarInteraction Component**:
+   - Copy ProductInteraction.tsx as template
+   - Modify to detect car clicks
+   - Add router.push to configurator page
+
+5. **Create Configurator Route**:
+   - Create `/app/car-configurator/[carId]/page.tsx`
+   - Add basic page structure (placeholder for now)
+   - Test routing works when clicking car
+
+**Day 1 Success Criteria**:
+- ✅ Walk around showroom (existing functionality)
+- ✅ See 2-3 cars in showroom
+- ✅ Click car → redirect to configurator page
+
+---
+
+### Days 2-3: Phase 1 (Configurator State)
 
 1. **Install Zustand**:
    ```bash
@@ -1764,35 +2120,32 @@ export function AssetPreloader() {
    ```bash
    mkdir -p components/car
    mkdir -p stores
-   mkdir -p public/car-models/{wheels,spoilers,body-kits}
-   mkdir -p public/thumbnails/{wheels,spoilers,body-kits}
+   mkdir -p public/car-models/{base,wheels,spoilers,body-kits}
+   mkdir -p public/thumbnails/{cars,wheels,spoilers,body-kits}
    ```
 
 3. **Create car-parts.json**:
    - Copy example from Phase 1
    - Add 2-3 categories with sample data
-   - Use placeholder URLs initially
 
-4. **Get Base Car Model**:
-   - Download free car GLB from Sketchfab
-   - Or use simple box geometry for prototyping
-   - Place at `/public/car-models/base.glb`
-
-5. **Create Zustand Store**:
+4. **Create Zustand Store**:
    - Copy `carConfigStore.ts` from Phase 1
    - Test with React DevTools
 
+---
+
 ### Week 1 Goals
 
-- ✅ Phase 1: State & Config complete
-- ✅ Phase 2: Basic part swapping working
+- ✅ Phase 0: Showroom with car clicks
+- ✅ Phase 1: Configurator state & config
+- ✅ Phase 2: Basic part swapping
 - ⚠️ Phase 3: Material controls started
 
 ### Week 2 Goals
 
 - ✅ Phase 3: Material controls complete
 - ✅ Phase 4: UI polish
-- ✅ Phase 5: Camera presets
+- ✅ Phase 5: Camera presets (configurator)
 - ⚠️ Phase 6: Performance optimization
 
 ### Testing Checklist
@@ -1826,17 +2179,34 @@ export function AssetPreloader() {
 
 | Phase | Days | Blocker? | Can Parallelize? |
 |-------|------|----------|------------------|
-| Phase 1: State & Config | 1-2 | Yes | No |
+| **Phase 0: Showroom Setup** | 1-2 | Yes | No |
+| Phase 1: Configurator State | 1-2 | Yes | No |
 | Phase 2: Part Swapping | 2-3 | Yes | No |
 | Phase 3: Materials | 2 | No | Yes (with Phase 4) |
 | Phase 4: UI/UX | 2 | No | Yes (with Phase 3) |
-| Phase 5: Camera/Lighting | 1-2 | No | Yes (with Phase 6) |
+| Phase 5: Configurator Camera | 1-2 | No | Yes (with Phase 6) |
 | Phase 6: Performance | 1-2 | No | Continuous |
-| Phase 7: Advanced | 2-3 | No | Optional |
+| Phase 7: Advanced Features | 2-3 | No | Optional |
 
-**Total Core Timeline**: 7-10 days
-**With Advanced Features**: 9-14 days
-**With Parallelization**: 6-8 days
+**Total Core Timeline**: 8-12 days (with Phase 0)
+**With Advanced Features**: 10-15 days
+**With Parallelization**: 7-10 days
+
+### Phase Breakdown
+
+**Showroom (Phase 0)**:
+- Add cars to existing stores.json: 0.5 day
+- Create cars.json database: 0.5 day
+- Extend ProductInteraction for car clicks: 0.5 day
+- Create configurator route: 0.5 day
+
+**Configurator (Phases 1-6)**:
+- State & parts config: 1-2 days
+- Dynamic part loading: 2-3 days
+- Material customization: 2 days
+- UI polish: 2 days
+- Camera & lighting: 1-2 days
+- Performance optimization: 1-2 days
 
 ---
 
@@ -1924,31 +2294,62 @@ export function AssetPreloader() {
 
 ## Conclusion
 
-This roadmap provides a comprehensive, step-by-step guide to building a production-ready car configurator 3D experience. Your existing jewelry store implementation already contains ~80% of the required architecture, making this project highly feasible within the 7-10 day timeline.
+This roadmap provides a comprehensive, step-by-step guide to building a production-ready car showroom + configurator 3D experience using a **two-stage architecture**.
 
-**Key Advantages**:
-- ✅ R3F + Drei + Three.js already implemented
-- ✅ DRACO compression working
-- ✅ Config-driven model loading pattern
-- ✅ Material manipulation system
-- ✅ Mobile optimization considered
+### Architecture Summary
 
-**Main Additions**:
-- Zustand for state management (1 day)
-- Part swapping logic (2-3 days)
-- UI controls (2 days)
-- Camera presets (1 day)
+**Stage 1: Showroom** (95% reusable)
+- Keep existing POV camera + joystick
+- Add car models to stores.json
+- Extend ProductInteraction for car clicks
+- Route to configurator on click
 
-**Recommended Approach**:
-1. Start with Phase 1-2 to validate the architecture
-2. Parallelize Phase 3-4 for faster delivery
-3. Continuously optimize (Phase 6) throughout development
-4. Add advanced features (Phase 7) only if time permits
+**Stage 2: Configurator** (70% reusable patterns)
+- New page with OrbitControls
+- Zustand state management
+- Dynamic part swapping
+- Material customization UI
 
-**Next Immediate Step**: Install Zustand and create the Zustand store (`stores/carConfigStore.ts`) to begin Phase 1.
+### Timeline: 8-12 days
+
+**Phase 0** (1-2d): Showroom setup
+**Phases 1-6** (7-10d): Configurator implementation
+
+### Key Advantages
+
+**Showroom**:
+- ✅ Zero changes to existing Scene.tsx
+- ✅ POV camera + physics stay intact
+- ✅ Proven jewelry store code reused
+- ✅ Just add car models + click detection
+
+**Configurator**:
+- ✅ R3F + Drei patterns already proven
+- ✅ DRACO compression implemented
+- ✅ Material override system working
+- ✅ OrbitControls isolated (no conflicts)
+
+### Recommended Approach
+
+1. **Start with Phase 0**: Validate showroom + routing (1-2 days)
+2. **Build configurator incrementally**: Phases 1-2 first (state + parts)
+3. **Parallelize UI + materials**: Phases 3-4 together
+4. **Continuous optimization**: Phase 6 throughout
+5. **Advanced features optional**: Phase 7 if time permits
+
+### Next Immediate Step
+
+**Phase 0, Day 1**:
+1. Download 2-3 car GLB models for showroom
+2. Add to `/public/models/showroom/`
+3. Create `cars.json` database
+4. Test cars load in existing showroom
+5. Add click detection → route to `/car-configurator/[carId]`
+
+**Success**: Click car in showroom → see placeholder configurator page
 
 ---
 
-**Document Version**: 1.0
+**Document Version**: 2.0 (Updated for two-stage architecture)
 **Last Updated**: 2026-07-01
 **Status**: Ready for Implementation
