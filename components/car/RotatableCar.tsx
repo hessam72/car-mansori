@@ -15,9 +15,9 @@ export default function RotatableCar({ modelPath }: RotatableCarProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [previousPointer, setPreviousPointer] = useState({ x: 0, y: 0 })
 
-  // Target rotations
-  const targetRotationY = useRef(0)
-  const targetRotationX = useRef(0)
+  // Target positions
+  const targetPositionX = useRef(0)
+  const targetPositionY = useRef(0)
 
   // Load model with DRACO
   const gltf = useLoader(GLTFLoader, modelPath, (loader) => {
@@ -60,15 +60,15 @@ export default function RotatableCar({ modelPath }: RotatableCarProps) {
     const deltaX = e.clientX - previousPointer.x
     const deltaY = e.clientY - previousPointer.y
 
-    // Horizontal drag → Y-axis rotation (spin)
-    targetRotationY.current += deltaX * 0.01
+    // Horizontal drag → X-axis position (left/right movement)
+    targetPositionX.current += deltaX * 1
 
-    // Vertical drag → X-axis rotation (tilt) - clamped
-    const newRotationX = targetRotationX.current - deltaY * 0.01
-    targetRotationX.current = THREE.MathUtils.clamp(
-      newRotationX,
-      -Math.PI / 6, // -30°
-      Math.PI / 6   // +30°
+    // Vertical drag → Y-axis position (up/down movement) - clamped
+    const newPositionY = targetPositionY.current - deltaY * 0.05
+    targetPositionY.current = THREE.MathUtils.clamp(
+      newPositionY,
+      -2, // max down
+      2   // max up
     )
 
     setPreviousPointer({ x: e.clientX, y: e.clientY })
@@ -82,15 +82,15 @@ export default function RotatableCar({ modelPath }: RotatableCarProps) {
   useFrame(() => {
     if (!groupRef.current) return
 
-    groupRef.current.rotation.y = THREE.MathUtils.lerp(
-      groupRef.current.rotation.y,
-      targetRotationY.current,
+    groupRef.current.position.x = THREE.MathUtils.lerp(
+      groupRef.current.position.x,
+      targetPositionX.current,
       0.1
     )
 
-    groupRef.current.rotation.x = THREE.MathUtils.lerp(
-      groupRef.current.rotation.x,
-      targetRotationX.current,
+    groupRef.current.position.y = THREE.MathUtils.lerp(
+      groupRef.current.position.y,
+      targetPositionY.current,
       0.1
     )
   })
