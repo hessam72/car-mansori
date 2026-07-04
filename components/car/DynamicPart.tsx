@@ -75,10 +75,19 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
 
         const clone = gltf.scene.clone(true)
 
-        // Copy position/rotation from target node
-        clone.position.copy(targetNode.position)
-        clone.rotation.copy(targetNode.rotation)
-        clone.scale.copy(targetNode.scale)
+        // Use world transforms to account for parent hierarchy
+        const worldPos = new THREE.Vector3()
+        const worldQuat = new THREE.Quaternion()
+        const worldScale = new THREE.Vector3()
+
+        targetNode.getWorldPosition(worldPos)
+        targetNode.getWorldQuaternion(worldQuat)
+        targetNode.getWorldScale(worldScale)
+
+        clone.position.copy(worldPos)
+        // clone.position.copy(worldPos)
+        clone.quaternion.copy(worldQuat)
+        clone.scale.copy(worldScale)
 
         // Hide original node
         targetNode.visible = false
@@ -106,9 +115,20 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
       }
 
       const clone = gltf.scene.clone(true)
-      clone.position.copy(targetNode.position)
-      clone.rotation.copy(targetNode.rotation)
-      clone.scale.copy(targetNode.scale)
+
+      // Use world transforms to account for parent hierarchy
+      const worldPos = new THREE.Vector3()
+      const worldQuat = new THREE.Quaternion()
+      const worldScale = new THREE.Vector3()
+
+      targetNode.getWorldPosition(worldPos)
+      targetNode.getWorldQuaternion(worldQuat)
+      targetNode.getWorldScale(worldScale)
+
+      // clone.position.copy(new THREE.Vector3(0.829, -1.306, 0.370))
+      clone.position.copy(worldPos)
+      clone.quaternion.copy(worldQuat)
+      clone.scale.copy(worldScale)
 
       // Hide original node
       targetNode.visible = false
