@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { useFrame, useLoader } from '@react-three/fiber'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
@@ -12,11 +12,11 @@ interface RotatableCarProps {
 
 export default function RotatableCar({ modelPath }: RotatableCarProps) {
   const groupRef = useRef<THREE.Group>(null!)
-  const [isDragging, setIsDragging] = useState(false)
-  const [previousPointer, setPreviousPointer] = useState({ x: 0, y: 0 })
+  const isDragging = useRef(false)
+  const previousPointer = useRef({ x: 0, y: 0 })
 
-  // Target positions
-  const targetPositionX = useRef(0)
+  // Target rotation and position
+  const targetRotationY = useRef(0)
   const targetPositionY = useRef(0)
 
   // Load model with DRACO
@@ -49,19 +49,22 @@ export default function RotatableCar({ modelPath }: RotatableCarProps) {
   model.position.sub(center)
 
   const handlePointerDown = (e: any) => {
-    setIsDragging(true)
-    setPreviousPointer({ x: e.clientX, y: e.clientY })
+    isDragging.current = true
+    previousPointer.current = { x: e.clientX, y: e.clientY }
     e.stopPropagation()
+
+    document.addEventListener('pointermove', handlePointerMove)
+    document.addEventListener('pointerup', handlePointerUp)
   }
 
-  const handlePointerMove = (e: any) => {
-    if (!isDragging) return
+  const handlePointerMove = (e: PointerEvent | any) => {
+    if (!isDragging.current) return
 
-    const deltaX = e.clientX - previousPointer.x
-    const deltaY = e.clientY - previousPointer.y
+    const deltaX = e.clientX - previousPointer.current.x
+    const deltaY = e.clientY - previousPointer.current.y
 
-    // Horizontal drag → X-axis position (left/right movement)
-    targetPositionX.current += deltaX * 1
+    // Horizontal drag → Y-axis rotation (vitrine spin)
+    targetRotationY.current += deltaX * 0.01
 
     // Vertical drag → Y-axis position (up/down movement) - clamped
     const newPositionY = targetPositionY.current - deltaY * 0.05
@@ -71,20 +74,23 @@ export default function RotatableCar({ modelPath }: RotatableCarProps) {
       2   // max up
     )
 
-    setPreviousPointer({ x: e.clientX, y: e.clientY })
+    previousPointer.current = { x: e.clientX, y: e.clientY }
   }
 
   const handlePointerUp = () => {
-    setIsDragging(false)
+    isDragging.current = false
+
+    document.removeEventListener('pointermove', handlePointerMove)
+    document.removeEventListener('pointerup', handlePointerUp)
   }
 
   // Smooth damping
   useFrame(() => {
     if (!groupRef.current) return
 
-    groupRef.current.position.x = THREE.MathUtils.lerp(
-      groupRef.current.position.x,
-      targetPositionX.current,
+    groupRef.current.rotation.y = THREE.MathUtils.lerp(
+      groupRef.current.rotation.y,
+      targetRotationY.current,
       0.1
     )
 
@@ -99,9 +105,6 @@ export default function RotatableCar({ modelPath }: RotatableCarProps) {
     <group
       ref={groupRef}
       onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerUp}
     >
       <primitive object={model} />
     </group>
