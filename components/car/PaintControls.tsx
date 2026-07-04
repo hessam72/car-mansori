@@ -1,6 +1,12 @@
 'use client'
 
-import { useCarConfig } from '@/stores/carConfigStore'
+import { useCarConfig, type PaintZone } from '@/stores/carConfigStore'
+
+const ZONES: { id: PaintZone; name: string; icon: string }[] = [
+  { id: 'body', name: 'Body', icon: '🚗' },
+  { id: 'trim', name: 'Trim', icon: '✨' },
+  { id: 'interior', name: 'Interior', icon: '🪑' },
+]
 
 const PRESETS = [
   { id: 'gloss-red', name: 'Gloss Red', color: '#ff0000', metalness: 0.9, roughness: 0.3, clearcoat: 1.0 },
@@ -13,23 +19,61 @@ const PRESETS = [
 
 export default function PaintControls() {
   const paintConfig = useCarConfig((s) => s.paintConfig)
+  const activeZone = useCarConfig((s) => s.activeZone)
+  const setActiveZone = useCarConfig((s) => s.setActiveZone)
   const setPaintConfig = useCarConfig((s) => s.setPaintConfig)
+  const copyZoneToAll = useCarConfig((s) => s.copyZoneToAll)
+
+  // Get active zone config
+  const activeConfig = paintConfig[activeZone]
 
   return (
     <div className="space-y-6">
+      {/* Zone Selector */}
+      <div>
+        <label className="block text-sm font-medium mb-2">Paint Zone</label>
+        <div className="flex gap-2">
+          {ZONES.map((zone) => (
+            <button
+              key={zone.id}
+              onClick={() => setActiveZone(zone.id)}
+              className={`
+                flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                ${
+                  activeZone === zone.id
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }
+              `}
+            >
+              <span className="mr-1">{zone.icon}</span>
+              {zone.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Copy to All Zones Button */}
+      <button
+        onClick={() => copyZoneToAll(activeZone)}
+        className="w-full px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+      >
+        Copy {ZONES.find((z) => z.id === activeZone)?.name} to All Zones
+      </button>
+
       {/* Color Picker */}
       <div>
         <label className="block text-sm font-medium mb-2">Color</label>
         <div className="flex items-center gap-3">
           <input
             type="color"
-            value={paintConfig.color}
+            value={activeConfig.color}
             onChange={(e) => setPaintConfig({ color: e.target.value })}
             className="w-16 h-16 rounded-lg border-2 border-gray-300 cursor-pointer"
           />
           <input
             type="text"
-            value={paintConfig.color}
+            value={activeConfig.color}
             onChange={(e) => setPaintConfig({ color: e.target.value })}
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg uppercase font-mono text-sm"
             placeholder="#ff0000"
@@ -40,14 +84,14 @@ export default function PaintControls() {
       {/* Metalness Slider */}
       <div>
         <label className="block text-sm font-medium mb-2">
-          Metalness: {paintConfig.metalness.toFixed(2)}
+          Metalness: {activeConfig.metalness.toFixed(2)}
         </label>
         <input
           type="range"
           min="0"
           max="1"
           step="0.01"
-          value={paintConfig.metalness}
+          value={activeConfig.metalness}
           onChange={(e) => setPaintConfig({ metalness: parseFloat(e.target.value) })}
           className="w-full"
         />
@@ -56,14 +100,14 @@ export default function PaintControls() {
       {/* Roughness Slider */}
       <div>
         <label className="block text-sm font-medium mb-2">
-          Roughness: {paintConfig.roughness.toFixed(2)}
+          Roughness: {activeConfig.roughness.toFixed(2)}
         </label>
         <input
           type="range"
           min="0"
           max="1"
           step="0.01"
-          value={paintConfig.roughness}
+          value={activeConfig.roughness}
           onChange={(e) => setPaintConfig({ roughness: parseFloat(e.target.value) })}
           className="w-full"
         />
@@ -72,14 +116,14 @@ export default function PaintControls() {
       {/* Clearcoat Slider */}
       <div>
         <label className="block text-sm font-medium mb-2">
-          Clearcoat: {paintConfig.clearcoat.toFixed(2)}
+          Clearcoat: {activeConfig.clearcoat.toFixed(2)}
         </label>
         <input
           type="range"
           min="0"
           max="1"
           step="0.01"
-          value={paintConfig.clearcoat}
+          value={activeConfig.clearcoat}
           onChange={(e) => setPaintConfig({ clearcoat: parseFloat(e.target.value) })}
           className="w-full"
         />

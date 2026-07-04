@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
+export type PaintZone = 'body' | 'trim' | 'interior'
+
 export interface PaintConfig {
   color: string
   metalness: number
@@ -8,20 +10,39 @@ export interface PaintConfig {
   clearcoat: number
 }
 
+export type MultiZonePaintConfig = Record<PaintZone, PaintConfig>
+
 export interface CarConfigState {
   selectedParts: Record<string, string>
-  paintConfig: PaintConfig
+  paintConfig: MultiZonePaintConfig
+  activeZone: PaintZone
   selectPart: (category: string, partId: string) => void
-  setPaintConfig: (config: Partial<PaintConfig>) => void
+  setPaintConfig: (config: Partial<PaintConfig>, zone?: PaintZone) => void
+  setActiveZone: (zone: PaintZone) => void
+  copyZoneToAll: (sourceZone: PaintZone) => void
   getTotalPrice: () => number
   resetConfig: (defaultParts?: Record<string, string>) => void
 }
 
-const defaultPaintConfig: PaintConfig = {
-  color: '#ff0000',
-  metalness: 0.9,
-  roughness: 0.3,
-  clearcoat: 1.0,
+const defaultPaintConfig: MultiZonePaintConfig = {
+  body: {
+    color: '#ff0000',
+    metalness: 0.9,
+    roughness: 0.3,
+    clearcoat: 1.0,
+  },
+  trim: {
+    color: '#000000',
+    metalness: 0.5,
+    roughness: 0.7,
+    clearcoat: 0.3,
+  },
+  interior: {
+    color: '#1a1a1a',
+    metalness: 0.1,
+    roughness: 0.9,
+    clearcoat: 0.0,
+  },
 }
 
 export const useCarConfig = create<CarConfigState>()(
@@ -29,16 +50,38 @@ export const useCarConfig = create<CarConfigState>()(
     (set, get) => ({
       selectedParts: {},
       paintConfig: defaultPaintConfig,
+      activeZone: 'body',
 
       selectPart: (category, partId) =>
         set((state) => ({
           selectedParts: { ...state.selectedParts, [category]: partId },
         })),
 
-      setPaintConfig: (config) =>
-        set((state) => ({
-          paintConfig: { ...state.paintConfig, ...config },
-        })),
+      setPaintConfig: (config, zone) =>
+        set((state) => {
+          const targetZone = zone || state.activeZone
+          return {
+            paintConfig: {
+              ...state.paintConfig,
+              [targetZone]: { ...state.paintConfig[targetZone], ...config },
+            },
+          }
+        }),
+
+      setActiveZone: (zone) =>
+        set({ activeZone: zone }),
+
+      copyZoneToAll: (sourceZone) =>
+        set((state) => {
+          const sourceConfig = state.paintConfig[sourceZone]
+          return {
+            paintConfig: {
+              body: { ...sourceConfig },
+              trim: { ...sourceConfig },
+              interior: { ...sourceConfig },
+            },
+          }
+        }),
 
       getTotalPrice: () => {
         // Will be implemented with part price lookup from car-parts.json
@@ -51,6 +94,7 @@ export const useCarConfig = create<CarConfigState>()(
         set({
           selectedParts: defaultParts,
           paintConfig: defaultPaintConfig,
+          activeZone: 'body',
         }),
     }),
     { name: 'CarConfigStore' }

@@ -44,12 +44,16 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
           child.name?.toLowerCase().includes('body')
 
         if (isPaintable || nameMatch) {
+          // Get paint zone from userData, fallback to 'body'
+          const zone = (child.userData.paintZone as 'body' | 'trim' | 'interior') || 'body'
+          const zoneConfig = paintConfig[zone]
+
           const mat = child.material as any
-          mat.color.set(paintConfig.color)
-          mat.metalness = paintConfig.metalness
-          mat.roughness = paintConfig.roughness
+          mat.color.set(zoneConfig.color)
+          mat.metalness = zoneConfig.metalness
+          mat.roughness = zoneConfig.roughness
           if (mat.clearcoat !== undefined) {
-            mat.clearcoat = paintConfig.clearcoat
+            mat.clearcoat = zoneConfig.clearcoat
             mat.clearcoatRoughness = 0.1
           }
           mat.needsUpdate = true

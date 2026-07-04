@@ -108,11 +108,36 @@ exhaust: 'exhaust-stock'
 5. **Hide**: Set original node `visible = false`
 6. **Render**: Add as `<primitive object={clone} />`
 
-### Paint System
-- Targets meshes with `userData.paintable === true` (set in Blender)
-- Fallback: Name matching (`body`, `paint` in material/mesh name)
-- Applies: `color`, `metalness`, `roughness`, `clearcoat` (if supported)
-- Real-time updates via `mat.needsUpdate = true`
+### Paint System - Multi-Zone Support
+**3 Independent Paint Zones:**
+- **Body**: Exterior panels (doors, hood, bumpers, fenders)
+- **Trim**: Exterior accents (grilles, mirror caps, side trim)
+- **Interior**: Seats, dashboard, door panels
+
+**Zone Detection:**
+- Primary: `userData.paintZone = "body"` / `"trim"` / `"interior"` (set in Blender)
+- Fallback: Defaults to "body" if no zone specified
+- Legacy: `userData.paintable === true` flag still required
+
+**Material Properties per Zone:**
+- `color` (hex string)
+- `metalness` (0-1)
+- `roughness` (0-1)
+- `clearcoat` (0-1, if material supports)
+
+**Example Logic:**
+```typescript
+const zone = child.userData.paintZone || 'body'
+const config = paintConfig[zone]
+mat.color.set(config.color)
+mat.metalness = config.metalness
+```
+
+**UI Features:**
+- Zone selector tabs (Body/Trim/Interior)
+- "Copy to All Zones" utility button
+- Independent color pickers + sliders per zone
+- Presets apply to active zone only
 
 ### Performance Optimizations
 **Category-Scoped Preloading**:
@@ -168,20 +193,39 @@ requestIdleCallback(() => {
 **Side Skirts**: `Skirt_L`, `Skirt_R`
 
 ## Blender Workflow
-1. Export base car with named nodes matching above list
-2. Set `userData.paintable = 1` on body meshes (Object Properties → Custom Properties)
-3. Export individual parts with same pivot/scale as target nodes
-4. Enable DRACO compression (installed at `/public/draco/`)
+
+### Multi-Zone Paint Setup
+1. **Select paintable mesh** (e.g., car hood)
+2. **Object Properties panel** → Custom Properties
+3. **Add property**: `paintable` = 1 (Integer)
+4. **Add property**: `paintZone` = "body" (String)
+   - Options: `"body"`, `"trim"`, `"interior"`
+5. **Repeat** for all paintable meshes:
+   - Body panels → `paintZone = "body"`
+   - Trim/grilles/accents → `paintZone = "trim"`
+   - Seats/dashboard → `paintZone = "interior"`
+
+### Model Export
+1. Export base car with named nodes matching node list (Wheel_FL, Hood, etc.)
+2. Export individual parts with same pivot/scale as target nodes
+3. Enable DRACO compression (decoder at `/public/draco/`)
+
+**Note**: userData properties auto-export with GLB format
 
 ## Testing Checklist
 - [x] Build successful (TypeScript validation)
 - [ ] Test all 7 part categories swap correctly
-- [ ] Verify paint applies to body only
+- [ ] Verify multi-zone paint applies correctly:
+  - [ ] Body zone paints exterior panels
+  - [ ] Trim zone paints accents independently
+  - [ ] Interior zone paints seats/dashboard
+  - [ ] Zone selector tabs switch correctly
+  - [ ] "Copy to All Zones" button works
 - [ ] Check memory usage stays <500MB after 20+ swaps
 - [ ] Confirm preloading works (Network tab shows requests on tab change)
 - [ ] Test idle prefetch (wait 2s, check Network tab)
 - [ ] Validate total price calculation updates
-- [ ] Test reset button restores stock config
+- [ ] Test reset button restores stock config (all 3 zones)
 - [ ] Verify drag rotation still works with parts attached
 
 ## Dependencies Added
