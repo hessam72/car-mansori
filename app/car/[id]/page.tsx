@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useParams } from 'next/navigation'
+import CustomizationPanel from '@/components/car/CustomizationPanel'
+import { useCarConfig } from '@/stores/carConfigStore'
 
 const CarTuningScene = dynamic(() => import('@/components/car/CarTuningScene'), {
   ssr: false,
@@ -25,6 +27,7 @@ export default function CarPage() {
   const params = useParams()
   const [car, setCar] = useState<Car | null>(null)
   const [loading, setLoading] = useState(true)
+  const resetConfig = useCarConfig((s) => s.resetConfig)
 
   useEffect(() => {
     fetch('/config/cars.json')
@@ -33,12 +36,25 @@ export default function CarPage() {
         const foundCar = cars.find((c) => c.id === params.id)
         setCar(foundCar || null)
         setLoading(false)
+
+        // Initialize default parts (stock parts)
+        if (foundCar) {
+          resetConfig({
+            wheels: 'wheel-stock',
+            spoilers: 'spoiler-stock',
+            hoods: 'hood-stock',
+            bumpers: 'bumper-front-stock',
+            mirrors: 'mirror-stock',
+            exhaust: 'exhaust-stock',
+            'side-skirts': 'skirts-none',
+          })
+        }
       })
       .catch((err) => {
         console.error('Failed to load car config:', err)
         setLoading(false)
       })
-  }, [params.id])
+  }, [params.id, resetConfig])
 
   if (loading) {
     return (
@@ -61,13 +77,13 @@ export default function CarPage() {
       <CarTuningScene modelPath={car.model_path} />
 
       {/* Car Info Overlay */}
-      <div className="absolute top-8 left-8 text-white pointer-events-none">
+      <div className="absolute top-8 left-8 text-white pointer-events-none z-5">
         <h1 className="text-4xl font-bold mb-2">{car.name}</h1>
         <p className="text-xl text-gray-300">{car.name_fa}</p>
       </div>
 
       {/* Specs Overlay */}
-      <div className="absolute bottom-8 right-8 text-white bg-black/50 p-6 rounded-lg backdrop-blur-sm">
+      <div className="absolute bottom-8 left-8 text-white bg-black/50 p-6 rounded-lg backdrop-blur-sm z-5">
         <h2 className="text-xl font-bold mb-4">Specifications</h2>
         <div className="space-y-2 text-sm">
           <div>
@@ -84,6 +100,9 @@ export default function CarPage() {
           </div>
         </div>
       </div>
+
+      {/* Customization Panel */}
+      <CustomizationPanel />
     </div>
   )
 }

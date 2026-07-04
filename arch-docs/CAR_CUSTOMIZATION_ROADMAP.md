@@ -1,5 +1,25 @@
 # Car Customization System - Implementation Roadmap
 
+## Implementation Status
+
+**Completed:**
+- ✅ Parts configuration JSON created (`public/config/car-parts.json`)
+- ✅ Floor positioning adjusted (Y: -0.8)
+- ✅ Horizontal drag rotation (Y-axis vitrine spin)
+- ✅ Smooth lerp damping for drag interactions
+- ✅ Vertical drag movement (Y-axis position, clamped 0 to 1.5) - *Modified from spec*
+- ✅ Document-level event listeners for continuous drag
+
+**Pending:**
+- ⏳ Zustand store setup
+- ⏳ ConfigurableCar.tsx component
+- ⏳ DynamicPart.tsx component
+- ⏳ CustomizationPanel.tsx UI
+- ⏳ PartsGrid.tsx UI
+- ⏳ PaintControls.tsx UI
+- ⏳ Part swapping system implementation
+- ⏳ Paint customization system
+
 ## Overview
 
 Implementation of a full car customization system for the car tuning page, allowing users to swap parts (wheels, spoilers, hoods, etc.) and customize paint/materials in real-time 3D.
@@ -162,7 +182,7 @@ const selectPart = useCarConfig(s => s.selectPart)
 
 ---
 
-### 3. Create Parts Configuration
+### 3. Create Parts Configuration ✅
 
 **File:** `public/config/car-parts.json`
 
@@ -1479,9 +1499,9 @@ car-mansori/
   - [ ] Changes visible in real-time
 
 - [ ] **Drag Rotation**
-  - [ ] Horizontal drag rotates Y-axis
-  - [ ] Vertical drag tilts X-axis (clamped ±30°)
-  - [ ] Smooth damping (no jitter)
+  - [x] Horizontal drag rotates Y-axis
+  - [ ] Vertical drag tilts X-axis (clamped ±30°) - Modified: vertical drag moves car up/down instead
+  - [x] Smooth damping (no jitter)
   - [ ] Works with parts attached
 
 - [ ] **UI/UX**
@@ -1509,6 +1529,12 @@ car-mansori/
   - [ ] Check Chrome DevTools Memory profiler
   - [ ] Verify `useGLTF.clear()` is called on unmount
   - [ ] Geometry/material disposal working
+
+### Current Configuration Notes
+
+- Floor position: Y = -0.8 (ReflectiveFloor.tsx)
+- Vertical movement range: 0 to 1.5 (prevents floor penetration)
+- Drag sensitivity: 0.01 (rotation), 0.05 (vertical movement)
 
 ### Edge Cases
 

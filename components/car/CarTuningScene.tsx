@@ -6,7 +6,7 @@ import { ACESFilmicToneMapping } from 'three'
 import { ReflectiveFloor } from '@/components/store/ReflectiveFloor'
 import { PostProcessing } from '@/components/store/PostProcessing'
 import CarLighting from './CarLighting'
-import RotatableCar from './RotatableCar'
+import ConfigurableCar from './ConfigurableCar'
 
 interface CarTuningSceneProps {
   modelPath: string
@@ -42,8 +42,8 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
         {/* Reflective Floor */}
         <ReflectiveFloor />
 
-        {/* Rotatable Car */}
-        <RotatableCar modelPath={modelPath} />
+        {/* Configurable Car with Part Swapping */}
+        <ConfigurableCar modelPath={modelPath} />
 
         {/* Post Processing */}
         <PostProcessing />

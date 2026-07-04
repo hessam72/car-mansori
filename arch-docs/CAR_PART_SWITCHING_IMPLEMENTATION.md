@@ -1,0 +1,200 @@
+# Car Part Switching Implementation
+
+## Overview
+Real-time car part customization system with paint controls, node-based part swapping, and memory-optimized preloading.
+
+## Files Created
+
+### State Management
+**`stores/carConfigStore.ts`**
+- Zustand store for customization state
+- `selectedParts: Record<string, string>` - Category → Part ID mapping
+- `paintConfig: { color, metalness, roughness, clearcoat }`
+- Actions: `selectPart()`, `setPaintConfig()`, `resetConfig()`
+- Devtools integration enabled
+
+### Core 3D Components
+**`components/car/ConfigurableCar.tsx`**
+- Replaces `RotatableCar` with customization support
+- Loads base car model via `useGLTF`
+- Applies paint config to body meshes (checks `userData.paintable` flag + name matching)
+- Renders `<DynamicPart>` for 7 categories
+- Maintains drag rotation + vertical pan controls
+
+**`components/car/DynamicPart.tsx`**
+- Handles 3 part swap strategies from car-parts.json:
+  1. **attachNodes** (wheels): Clone to multiple named nodes (Wheel_FL, Wheel_FR, etc.)
+  2. **replaceNode** (hood/bumpers): Replace single named node
+  3. **hideNodes** (none options): Hide original nodes without loading model
+- Memory management: `useGLTF.clear()` on unmount + geometry/material disposal
+- Recursive node finder (case-insensitive)
+
+### UI Components
+**`components/car/CustomizationPanel.tsx`**
+- Fixed right sidebar (384px width)
+- 8 category tabs (Paint + 7 part categories)
+- Total price calculator
+- Category-scoped preloading on tab change
+- Idle prefetch via `requestIdleCallback` (2s timeout)
+- Reset button
+
+**`components/car/PartsGrid.tsx`**
+- Grid layout (2 cols mobile, 3 cols desktop)
+- Thumbnail images with fallback
+- Price display (Stock vs $XXX)
+- Selected state with checkmark indicator
+- Click → `selectPart()` action
+
+**`components/car/PaintControls.tsx`**
+- Color picker (hex input + color wheel)
+- 3 sliders: Metalness (0-1), Roughness (0-1), Clearcoat (0-1)
+- 6 presets: Gloss Red, Satin Black, Matte Gray, Chrome, Gloss Blue, Pearl White
+
+## Files Modified
+
+**`components/car/CarTuningScene.tsx`**
+- Changed import: `RotatableCar` → `ConfigurableCar`
+
+**`app/car/[id]/page.tsx`**
+- Added `CustomizationPanel` import + render
+- Initialize default stock parts on car load via `resetConfig()`
+- Moved specs overlay to bottom-left (avoid sidebar overlap)
+
+## Data Structure
+
+### car-parts.json Schema
+```json
+{
+  "category": [
+    {
+      "id": "part-id",
+      "name": "Display Name",
+      "category": "category",
+      "model_path": "/models/parts/category/file.glb",
+      "price": 0,
+      "thumbnail": "/images/parts/category/file.jpg",
+
+      // Strategy 1: Attach to multiple nodes (wheels, mirrors)
+      "attachNodes": ["Node_1", "Node_2"],
+
+      // Strategy 2: Replace single node (hood, exhaust)
+      "replaceNode": "Node_Name",
+
+      // Strategy 3: Hide nodes (none options)
+      "hideNodes": ["Node_To_Hide"]
+    }
+  ]
+}
+```
+
+### Default Parts (Stock Config)
+```typescript
+wheels: 'wheel-stock'
+spoilers: 'spoiler-stock'
+hoods: 'hood-stock'
+bumpers: 'bumper-front-stock'
+mirrors: 'mirror-stock'
+exhaust: 'exhaust-stock'
+'side-skirts': 'skirts-none'
+```
+
+## Key Features
+
+### Part Swapping Logic
+1. **Load**: `useGLTF(partConfig.model_path)` with DRACO support
+2. **Find**: Recursive search for named nodes in base car scene
+3. **Clone**: Deep clone part model with `scene.clone(true)`
+4. **Position**: Copy position/rotation/scale from target node
+5. **Hide**: Set original node `visible = false`
+6. **Render**: Add as `<primitive object={clone} />`
+
+### Paint System
+- Targets meshes with `userData.paintable === true` (set in Blender)
+- Fallback: Name matching (`body`, `paint` in material/mesh name)
+- Applies: `color`, `metalness`, `roughness`, `clearcoat` (if supported)
+- Real-time updates via `mat.needsUpdate = true`
+
+### Performance Optimizations
+**Category-Scoped Preloading**:
+```typescript
+// Immediate: Load current category on tab change
+useEffect(() => {
+  if (activeTab !== 'paint') {
+    preloadCategory(activeTab)
+  }
+}, [activeTab])
+
+// Deferred: Prefetch other categories during idle
+requestIdleCallback(() => {
+  categories.forEach(cat => preloadCategory(cat))
+}, { timeout: 2000 })
+```
+
+**Memory Management**:
+- Clear GLTF cache: `useGLTF.clear(url)` on component unmount
+- Dispose geometries: `mesh.geometry?.dispose()`
+- Dispose materials: `mesh.material?.dispose()`
+
+### UI/UX Flow
+1. User opens `/car/sample-car`
+2. Stock parts initialize automatically
+3. User clicks category tab (e.g., "Wheels")
+4. Parts grid loads + preloads wheel models
+5. User clicks part → `selectPart('wheels', 'wheel-chrome')`
+6. `DynamicPart` re-renders with new part
+7. Old part disposed, new part cloned to 4 wheel nodes
+8. Adjacent categories prefetch during browser idle time
+
+## Categories
+
+| Category | attachNodes | replaceNode | hideNodes |
+|----------|-------------|-------------|-----------|
+| Wheels | ✓ (4x) | | |
+| Spoilers | ✓ | | ✓ |
+| Hoods | | ✓ | |
+| Bumpers | | ✓ | |
+| Mirrors | ✓ (2x) | | ✓ |
+| Exhaust | | ✓ | |
+| Side Skirts | ✓ (2x) | | |
+
+## Known Node Names (Required in Base Car GLB)
+
+**Wheels**: `Wheel_FL`, `Wheel_FR`, `Wheel_RL`, `Wheel_RR`
+**Spoilers**: `Spoiler_Mount`, `Stock_Spoiler`
+**Hoods**: `Hood`
+**Bumpers**: `Front_Bumper`, `Rear_Bumper`
+**Mirrors**: `Mirror_L`, `Mirror_R`
+**Exhaust**: `Exhaust`
+**Side Skirts**: `Skirt_L`, `Skirt_R`
+
+## Blender Workflow
+1. Export base car with named nodes matching above list
+2. Set `userData.paintable = 1` on body meshes (Object Properties → Custom Properties)
+3. Export individual parts with same pivot/scale as target nodes
+4. Enable DRACO compression (installed at `/public/draco/`)
+
+## Testing Checklist
+- [x] Build successful (TypeScript validation)
+- [ ] Test all 7 part categories swap correctly
+- [ ] Verify paint applies to body only
+- [ ] Check memory usage stays <500MB after 20+ swaps
+- [ ] Confirm preloading works (Network tab shows requests on tab change)
+- [ ] Test idle prefetch (wait 2s, check Network tab)
+- [ ] Validate total price calculation updates
+- [ ] Test reset button restores stock config
+- [ ] Verify drag rotation still works with parts attached
+
+## Dependencies Added
+```json
+"zustand": "^5.0.2" (installed with --legacy-peer-deps)
+```
+
+## Next Steps (Not Implemented)
+- Camera presets (front/rear/side views)
+- OrbitControls upgrade (professional camera system)
+- Save/share configuration (URL params or database)
+- Mobile optimization (bottom sheet UI)
+- Loading states for part swaps
+- Part swap animation (fade/scale transition)
+- Performance overlay (FPS counter)
+- Mobile GPU detection (`useDetectGPU`)
