@@ -70,17 +70,17 @@ export default function CustomizationPanel() {
   }, [activeTab])
 
   return (
-    <div className="fixed right-0 top-0 h-full w-96 bg-white shadow-2xl z-10 flex flex-col">
+    <div className="fixed right-0 top-0 h-full w-96 bg-gray-900 shadow-2xl z-10 flex flex-col">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Customize Car</h2>
-        <div className="text-sm text-gray-600">
-          Total: <span className="text-xl font-bold text-blue-600">${totalPrice.toLocaleString()}</span>
+      <div className="p-6 border-b border-gray-700">
+        <h2 className="text-2xl font-bold text-white mb-2">Customize Car</h2>
+        <div className="text-sm text-gray-400">
+          Total: <span className="text-xl font-bold text-blue-400">${totalPrice.toLocaleString()}</span>
         </div>
       </div>
 
       {/* Category Tabs */}
-      <div className="flex overflow-x-auto border-b border-gray-200 bg-gray-50">
+      <div className="flex overflow-x-auto border-b border-gray-700 bg-gray-800">
         {CATEGORIES.map((cat) => (
           <button
             key={cat.id}
@@ -89,8 +89,8 @@ export default function CustomizationPanel() {
               flex-shrink-0 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap
               ${
                 activeTab === cat.id
-                  ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-gray-900 text-blue-400 border-b-2 border-blue-400'
+                  : 'text-gray-400 hover:text-gray-200'
               }
             `}
           >
@@ -110,10 +110,10 @@ export default function CustomizationPanel() {
       </div>
 
       {/* Footer */}
-      <div className="p-6 border-t border-gray-200 bg-gray-50">
+      <div className="p-6 border-t border-gray-700 bg-gray-800">
         <button
           onClick={() => useCarConfig.getState().resetConfig()}
-          className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+          className="w-full px-4 py-2 bg-gray-700 text-gray-200 rounded-lg hover:bg-gray-600 transition-colors font-medium"
         >
           Reset to Default
         </button>

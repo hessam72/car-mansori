@@ -1,5 +1,13 @@
 {
   "wheels": [
+     {
+      "id": "wheel-none",
+      "name": "None",
+      "category": "wheels",
+      "price": 0,
+      "thumbnail": "/images/parts/wheels/none.jpeg",
+      "hideNodes": ["Stock_Wheel_FL", "Stock_Wheel_FR", "Stock_Wheel_RL", "Stock_Wheel_RR"]
+    },
     {
       "id": "wheel-stock",
       "name": "Stock Wheels",
