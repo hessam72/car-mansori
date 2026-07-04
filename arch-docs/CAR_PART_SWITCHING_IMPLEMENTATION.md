@@ -195,6 +195,8 @@ requestIdleCallback(() => {
 ## Blender Workflow
 
 ### Multi-Zone Paint Setup
+
+**Option 1: Blender Custom Properties (Flat Structure)**
 1. **Select paintable mesh** (e.g., car hood)
 2. **Object Properties panel** → Custom Properties
 3. **Add property**: `paintable` = 1 (Integer)
@@ -204,6 +206,18 @@ requestIdleCallback(() => {
    - Body panels → `paintZone = "body"`
    - Trim/grilles/accents → `paintZone = "trim"`
    - Seats/dashboard → `paintZone = "interior"`
+
+**Option 2: Three.js Editor (Nested Structure)**
+1. **Open model in Three.js Editor** (threejs.org/editor)
+2. **Select mesh** → Right panel → Object → User Data
+3. **Add to `userdata` object**:
+   - `paintable: true`
+   - `paintZone: "body" | "trim" | "interior"`
+4. **Export as GLB**
+
+**Code Support**: Both structures supported via `getUserData()` helper:
+- Flat: `userData.paintable`, `userData.paintZone`
+- Nested: `userData.userdata.paintable`, `userData.userdata.paintZone`
 
 ### Model Export
 1. Export base car with named nodes matching node list (Wheel_FL, Hood, etc.)

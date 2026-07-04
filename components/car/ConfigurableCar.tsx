@@ -30,6 +30,11 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
   const carModel = useMemo(() => {
     const clone = gltf.scene.clone(true)
 
+    // Helper: Support both flat userData and nested userData.userdata
+    const getUserData = (mesh: any, key: string) => {
+      return mesh.userData?.userdata?.[key] ?? mesh.userData?.[key]
+    }
+
     // Apply paint to body meshes
     clone.traverse((child) => {
       if (child instanceof THREE.Mesh) {
@@ -37,7 +42,7 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
         child.receiveShadow = true
 
         // Check if mesh is paintable (userData flag OR name matching)
-        const isPaintable = child.userData.paintable === true
+        const isPaintable = getUserData(child, 'paintable') === true
         const nameMatch =
           child.material?.name?.toLowerCase().includes('body') ||
           child.material?.name?.toLowerCase().includes('paint') ||
@@ -45,7 +50,7 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
 
         if (isPaintable || nameMatch) {
           // Get paint zone from userData, fallback to 'body'
-          const zone = (child.userData.paintZone as 'body' | 'trim' | 'interior') || 'body'
+          const zone = (getUserData(child, 'paintZone') as 'body' | 'trim' | 'interior') || 'body'
           const zoneConfig = paintConfig[zone]
 
           const mat = child.material as any
