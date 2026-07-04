@@ -6,34 +6,7 @@
       "category": "wheels",
       "model_path": "/models/parts/wheels/stock.glb",
       "price": 0,
-      "thumbnail": "/images/parts/wheels/stock.jpg",
-      "attachNodes": ["Wheel_FL", "Wheel_FR", "Wheel_RL", "Wheel_RR"]
-    },
-    {
-      "id": "wheel-sport-rims",
-      "name": "Sport Rims",
-      "category": "wheels",
-      "model_path": "/models/parts/wheels/sport-rims.glb",
-      "price": 1200,
-      "thumbnail": "/images/parts/wheels/sport-rims.jpg",
-      "attachNodes": ["Wheel_FL", "Wheel_FR", "Wheel_RL", "Wheel_RR"]
-    },
-    {
-      "id": "wheel-chrome",
-      "name": "Chrome Rims",
-      "category": "wheels",
-      "model_path": "/models/parts/wheels/chrome.glb",
-      "price": 1800,
-      "thumbnail": "/images/parts/wheels/chrome.jpg",
-      "attachNodes": ["Wheel_FL", "Wheel_FR", "Wheel_RL", "Wheel_RR"]
-    },
-    {
-      "id": "wheel-racing",
-      "name": "Racing Wheels",
-      "category": "wheels",
-      "model_path": "/models/parts/wheels/racing.glb",
-      "price": 2500,
-      "thumbnail": "/images/parts/wheels/racing.jpg",
+      "thumbnail": "/images/parts/wheels/stock.jpeg",
       "attachNodes": ["Wheel_FL", "Wheel_FR", "Wheel_RL", "Wheel_RR"]
     }
   ],
@@ -43,7 +16,7 @@
       "name": "None",
       "category": "spoilers",
       "price": 0,
-      "thumbnail": "/images/parts/spoilers/none.jpg",
+      "thumbnail": "/images/parts/spoilers/none.jpeg",
       "hideNodes": ["Stock_Spoiler"]
     },
     {
@@ -52,28 +25,8 @@
       "category": "spoilers",
       "model_path": "/models/parts/spoilers/stock.glb",
       "price": 0,
-      "thumbnail": "/images/parts/spoilers/stock.jpg",
+      "thumbnail": "/images/parts/spoilers/stock.jpeg",
       "attachNodes": ["Spoiler_Mount"]
-    },
-    {
-      "id": "spoiler-gt-wing",
-      "name": "GT Wing",
-      "category": "spoilers",
-      "model_path": "/models/parts/spoilers/gt-wing.glb",
-      "price": 800,
-      "thumbnail": "/images/parts/spoilers/gt-wing.jpg",
-      "attachNodes": ["Spoiler_Mount"],
-      "hideNodes": ["Stock_Spoiler"]
-    },
-    {
-      "id": "spoiler-duck-tail",
-      "name": "Duck Tail",
-      "category": "spoilers",
-      "model_path": "/models/parts/spoilers/duck-tail.glb",
-      "price": 650,
-      "thumbnail": "/images/parts/spoilers/duck-tail.jpg",
-      "attachNodes": ["Spoiler_Mount"],
-      "hideNodes": ["Stock_Spoiler"]
     }
   ],
   "hoods": [
@@ -83,25 +36,7 @@
       "category": "hoods",
       "model_path": "/models/parts/hoods/stock.glb",
       "price": 0,
-      "thumbnail": "/images/parts/hoods/stock.jpg",
-      "replaceNode": "Hood"
-    },
-    {
-      "id": "hood-carbon-fiber",
-      "name": "Carbon Fiber Hood",
-      "category": "hoods",
-      "model_path": "/models/parts/hoods/carbon-fiber.glb",
-      "price": 1500,
-      "thumbnail": "/images/parts/hoods/carbon-fiber.jpg",
-      "replaceNode": "Hood"
-    },
-    {
-      "id": "hood-vented",
-      "name": "Vented Hood",
-      "category": "hoods",
-      "model_path": "/models/parts/hoods/vented.glb",
-      "price": 1200,
-      "thumbnail": "/images/parts/hoods/vented.jpg",
+      "thumbnail": "/images/parts/hoods/stock.jpeg",
       "replaceNode": "Hood"
     }
   ],
@@ -110,37 +45,10 @@
       "id": "bumper-front-stock",
       "name": "Stock Front Bumper",
       "category": "bumpers",
-      "model_path": "/models/parts/bumpers/front-stock.glb",
+      "model_path": "/models/parts/bumpers/stock.glb",
       "price": 0,
-      "thumbnail": "/images/parts/bumpers/front-stock.jpg",
+      "thumbnail": "/images/parts/bumpers/stock.jpeg",
       "replaceNode": "Front_Bumper"
-    },
-    {
-      "id": "bumper-front-aggressive",
-      "name": "Aggressive Front Bumper",
-      "category": "bumpers",
-      "model_path": "/models/parts/bumpers/front-aggressive.glb",
-      "price": 900,
-      "thumbnail": "/images/parts/bumpers/front-aggressive.jpg",
-      "replaceNode": "Front_Bumper"
-    },
-    {
-      "id": "bumper-rear-stock",
-      "name": "Stock Rear Bumper",
-      "category": "bumpers",
-      "model_path": "/models/parts/bumpers/rear-stock.glb",
-      "price": 0,
-      "thumbnail": "/images/parts/bumpers/rear-stock.jpg",
-      "replaceNode": "Rear_Bumper"
-    },
-    {
-      "id": "bumper-rear-diffuser",
-      "name": "Rear Diffuser Bumper",
-      "category": "bumpers",
-      "model_path": "/models/parts/bumpers/rear-diffuser.glb",
-      "price": 1100,
-      "thumbnail": "/images/parts/bumpers/rear-diffuser.jpg",
-      "replaceNode": "Rear_Bumper"
     }
   ],
   "mirrors": [
@@ -150,26 +58,10 @@
       "category": "mirrors",
       "model_path": "/models/parts/mirrors/stock.glb",
       "price": 0,
-      "thumbnail": "/images/parts/mirrors/stock.jpg",
+      "thumbnail": "/images/parts/mirrors/stock.jpeg",
       "attachNodes": ["Mirror_L", "Mirror_R"]
-    },
-    {
-      "id": "mirror-carbon",
-      "name": "Carbon Fiber Mirrors",
-      "category": "mirrors",
-      "model_path": "/models/parts/mirrors/carbon.glb",
-      "price": 400,
-      "thumbnail": "/images/parts/mirrors/carbon.jpg",
-      "attachNodes": ["Mirror_L", "Mirror_R"]
-    },
-    {
-      "id": "mirror-none",
-      "name": "None (Track Only)",
-      "category": "mirrors",
-      "price": 0,
-      "thumbnail": "/images/parts/mirrors/none.jpg",
-      "hideNodes": ["Mirror_L", "Mirror_R"]
     }
+  
   ],
   "exhaust": [
     {
@@ -178,25 +70,7 @@
       "category": "exhaust",
       "model_path": "/models/parts/exhaust/stock.glb",
       "price": 0,
-      "thumbnail": "/images/parts/exhaust/stock.jpg",
-      "replaceNode": "Exhaust"
-    },
-    {
-      "id": "exhaust-dual-tip",
-      "name": "Dual Tip Exhaust",
-      "category": "exhaust",
-      "model_path": "/models/parts/exhaust/dual-tip.glb",
-      "price": 700,
-      "thumbnail": "/images/parts/exhaust/dual-tip.jpg",
-      "replaceNode": "Exhaust"
-    },
-    {
-      "id": "exhaust-titanium",
-      "name": "Titanium Sport Exhaust",
-      "category": "exhaust",
-      "model_path": "/models/parts/exhaust/titanium.glb",
-      "price": 1800,
-      "thumbnail": "/images/parts/exhaust/titanium.jpg",
+      "thumbnail": "/images/parts/exhaust/stock.jpeg",
       "replaceNode": "Exhaust"
     }
   ],
@@ -206,25 +80,7 @@
       "name": "None",
       "category": "side-skirts",
       "price": 0,
-      "thumbnail": "/images/parts/side-skirts/none.jpg"
-    },
-    {
-      "id": "skirts-sport",
-      "name": "Sport Side Skirts",
-      "category": "side-skirts",
-      "model_path": "/models/parts/side-skirts/sport.glb",
-      "price": 600,
-      "thumbnail": "/images/parts/side-skirts/sport.jpg",
-      "attachNodes": ["Skirt_L", "Skirt_R"]
-    },
-    {
-      "id": "skirts-aggressive",
-      "name": "Aggressive Side Skirts",
-      "category": "side-skirts",
-      "model_path": "/models/parts/side-skirts/aggressive.glb",
-      "price": 850,
-      "thumbnail": "/images/parts/side-skirts/aggressive.jpg",
-      "attachNodes": ["Skirt_L", "Skirt_R"]
+      "thumbnail": "/images/parts/side-skirts/none.jpeg"
     }
   ]
 }
