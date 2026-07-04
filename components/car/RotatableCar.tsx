@@ -70,8 +70,8 @@ export default function RotatableCar({ modelPath }: RotatableCarProps) {
     const newPositionY = targetPositionY.current - deltaY * 0.05
     targetPositionY.current = THREE.MathUtils.clamp(
       newPositionY,
-      -2, // max down
-      2   // max up
+      0,   // floor level (prevent going through floor at -0.8)
+      1.5  // max up
     )
 
     previousPointer.current = { x: e.clientX, y: e.clientY }
