@@ -22,6 +22,8 @@ public/hdr/Jew HDRI 3.exr
 public/hdr/Jew HDRI 1.exr
 # production
 /build
+Car Tuning Web Platform-sample
+/models
 
 # misc
 .DS_Store
