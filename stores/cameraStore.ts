@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import * as THREE from 'three'
 
-export type PresetName = 'front' | 'rear' | 'sideLeft' | 'sideRight' | 'top' | 'detail'
+export type PresetName = 'home' | 'front' | 'rear' | 'sideLeft' | 'sideRight' | 'top' | 'detail'
 
 export interface CameraPreset {
   position: [number, number, number]
@@ -12,6 +12,12 @@ export interface CameraPreset {
 }
 
 export const CAMERA_PRESETS: Record<PresetName, CameraPreset> = {
+  home: {
+    position: [5, 2, 5],
+    target: [0, 0.5, 0],
+    name: 'home',
+    label: 'Home'
+  },
   front: {
     position: [0, 1.2, 5],
     target: [0, 0.5, 0],
