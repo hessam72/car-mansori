@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, Suspense } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { useCarConfig } from '@/stores/carConfigStore'
 import { DynamicPart } from './DynamicPart'
@@ -96,12 +96,14 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
 
       {/* Render dynamic parts for each category */}
       {partCategories.map((category) => (
-        <PartErrorBoundary key={category} category={category} onError={handlePartError}>
-          <DynamicPart
-            category={category}
-            baseCarScene={carModel}
-          />
-        </PartErrorBoundary>
+        <Suspense key={category} fallback={null}>
+          <PartErrorBoundary category={category} onError={handlePartError}>
+            <DynamicPart
+              category={category}
+              baseCarScene={carModel}
+            />
+          </PartErrorBoundary>
+        </Suspense>
       ))}
     </group>
   )
