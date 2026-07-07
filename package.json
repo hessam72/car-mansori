@@ -12,6 +12,7 @@
     "deploy": "npm run build && npm run pm2-start"
   },
   "dependencies": {
+    "@react-spring/three": "^10.1.2",
     "@react-three/drei": "9.114.3",
     "@react-three/fiber": "8.17.10",
     "@react-three/postprocessing": "2.16.3",
@@ -20,6 +21,7 @@
     "framer-motion": "^11.15.0",
     "gsap": "^3.12.5",
     "lenis": "^1.1.14",
+    "lucide-react": "^1.23.0",
     "next": "14.2.18",
     "nipplejs": "^1.0.4",
     "postprocessing": "6.36.4",

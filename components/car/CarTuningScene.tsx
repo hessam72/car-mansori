@@ -7,6 +7,8 @@ import { ReflectiveFloor } from '@/components/store/ReflectiveFloor'
 import { PostProcessing } from '@/components/store/PostProcessing'
 import CarLighting from './CarLighting'
 import ConfigurableCar from './ConfigurableCar'
+import CameraControls from './CameraControls'
+import CameraPresets from './CameraPresets'
 
 interface CarTuningSceneProps {
   modelPath: string
@@ -47,7 +49,13 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
 
         {/* Post Processing */}
         <PostProcessing />
+
+        {/* Camera Controls */}
+        <CameraControls />
       </Canvas>
+
+      {/* Camera Presets UI */}
+      <CameraPresets />
     </div>
   )
 }
