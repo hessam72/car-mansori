@@ -2,6 +2,8 @@
 
 import { useCarConfig } from '@/stores/carConfigStore'
 import partsConfig from '@/public/config/car-parts.json'
+import { IoCheckmark } from 'react-icons/io5'
+import { MdImageNotSupported } from 'react-icons/md'
 
 interface PartsGridProps {
   category: string
@@ -15,14 +17,15 @@ export default function PartsGrid({ category }: PartsGridProps) {
 
   if (parts.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        No parts available for this category
+      <div className="text-center py-12">
+        <MdImageNotSupported className="text-gray-600 text-5xl mx-auto mb-3" />
+        <p className="text-gray-400 text-sm">No parts available for this category</p>
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {parts.map((part: any) => {
         const isSelected = selectedParts[category] === part.id
 
@@ -31,16 +34,16 @@ export default function PartsGrid({ category }: PartsGridProps) {
             key={part.id}
             onClick={() => selectPart(category, part.id)}
             className={`
-              group relative p-3 rounded-lg border-2 transition-all
+              group relative p-3 rounded-xl border-2 transition-all
               ${
                 isSelected
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-300 hover:border-gray-400 bg-white'
+                  ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20'
+                  : 'border-gray-700 hover:border-gray-600 bg-gray-800/50 hover:bg-gray-800'
               }
             `}
           >
             {/* Thumbnail */}
-            <div className="aspect-square mb-2 bg-gray-100 rounded-lg overflow-hidden">
+            <div className="aspect-square mb-2 bg-gray-900 rounded-lg overflow-hidden">
               {part.thumbnail ? (
                 <img
                   src={part.thumbnail}
@@ -48,38 +51,27 @@ export default function PartsGrid({ category }: PartsGridProps) {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                  No Image
+                <div className="w-full h-full flex flex-col items-center justify-center text-gray-600">
+                  <MdImageNotSupported className="text-3xl mb-1" />
+                  <span className="text-xs">No Image</span>
                 </div>
               )}
             </div>
 
             {/* Name */}
-            <div className="text-sm font-medium text-gray-900 mb-1">
+            <div className="text-xs md:text-sm font-medium text-gray-200 mb-1 line-clamp-1">
               {part.name}
             </div>
 
             {/* Price */}
-            <div className="text-xs font-semibold text-blue-600">
+            <div className={`text-xs font-bold ${part.price === 0 ? 'text-green-400' : 'text-blue-400'}`}>
               {part.price === 0 ? 'Stock' : `$${part.price.toLocaleString()}`}
             </div>
 
             {/* Selected indicator */}
             {isSelected && (
-              <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-4 h-4 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
+              <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                <IoCheckmark className="text-white text-base" />
               </div>
             )}
           </button>
