@@ -34,7 +34,7 @@ export default function PaintControls() {
     <div className="space-y-5">
       {/* Zone Selector */}
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-3">Paint Zone</label>
+        <label className="block text-sm font-medium text-gray-200 mb-3">Paint Zone</label>
         <div className="flex gap-2">
           {ZONES.map((zone) => {
             const IconComponent = zone.icon
@@ -43,12 +43,12 @@ export default function PaintControls() {
                 key={zone.id}
                 onClick={() => setActiveZone(zone.id)}
                 className={`
-                  flex-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
-                  flex items-center justify-center gap-2
+                  flex-1 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
+                  flex items-center justify-center gap-2 backdrop-blur-sm
                   ${
                     activeZone === zone.id
-                      ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
-                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700'
+                      ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-[0_4px_16px_rgba(59,130,246,0.4)] border border-blue-400/30'
+                      : 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10'
                   }
                 `}
               >
@@ -63,26 +63,26 @@ export default function PaintControls() {
       {/* Copy to All Zones Button */}
       <button
         onClick={() => copyZoneToAll(activeZone)}
-        className="w-full px-3 py-2.5 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-all text-sm font-medium border border-gray-700"
+        className="w-full px-3 py-2.5 bg-white/5 text-gray-300 rounded-xl hover:bg-white/10 transition-all text-sm font-medium border border-white/10 backdrop-blur-sm"
       >
         Copy {ZONES.find((z) => z.id === activeZone)?.name} to All Zones
       </button>
 
       {/* Color Picker */}
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-3">Color</label>
+        <label className="block text-sm font-medium text-gray-200 mb-3">Color</label>
         <div className="flex items-center gap-3">
           <input
             type="color"
             value={activeConfig.color}
             onChange={(e) => setPaintConfig({ color: e.target.value })}
-            className="w-16 h-16 rounded-lg border-2 border-gray-700 cursor-pointer bg-gray-800"
+            className="w-16 h-16 rounded-xl border-2 border-white/20 cursor-pointer bg-white/5 backdrop-blur-sm shadow-inner"
           />
           <input
             type="text"
             value={activeConfig.color}
             onChange={(e) => setPaintConfig({ color: e.target.value })}
-            className="flex-1 px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg uppercase font-mono text-sm text-gray-200 focus:border-blue-500 focus:outline-none transition-colors"
+            className="flex-1 px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl uppercase font-mono text-sm text-gray-200 focus:border-blue-400 focus:outline-none transition-all backdrop-blur-sm focus:bg-white/10"
             placeholder="#ff0000"
           />
         </div>
@@ -90,9 +90,9 @@ export default function PaintControls() {
 
       {/* Metalness Slider */}
       <div>
-        <label className="flex justify-between text-sm font-medium text-gray-300 mb-3">
+        <label className="flex justify-between text-sm font-medium text-gray-200 mb-3">
           <span>Metalness</span>
-          <span className="text-blue-400 font-mono">{activeConfig.metalness.toFixed(2)}</span>
+          <span className="text-blue-400 font-mono bg-white/5 px-2 py-0.5 rounded-lg">{activeConfig.metalness.toFixed(2)}</span>
         </label>
         <input
           type="range"
@@ -101,15 +101,15 @@ export default function PaintControls() {
           step="0.01"
           value={activeConfig.metalness}
           onChange={(e) => setPaintConfig({ metalness: parseFloat(e.target.value) })}
-          className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb"
+          className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer slider-thumb backdrop-blur-sm"
         />
       </div>
 
       {/* Roughness Slider */}
       <div>
-        <label className="flex justify-between text-sm font-medium text-gray-300 mb-3">
+        <label className="flex justify-between text-sm font-medium text-gray-200 mb-3">
           <span>Roughness</span>
-          <span className="text-blue-400 font-mono">{activeConfig.roughness.toFixed(2)}</span>
+          <span className="text-blue-400 font-mono bg-white/5 px-2 py-0.5 rounded-lg">{activeConfig.roughness.toFixed(2)}</span>
         </label>
         <input
           type="range"
@@ -118,15 +118,15 @@ export default function PaintControls() {
           step="0.01"
           value={activeConfig.roughness}
           onChange={(e) => setPaintConfig({ roughness: parseFloat(e.target.value) })}
-          className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb"
+          className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer slider-thumb backdrop-blur-sm"
         />
       </div>
 
       {/* Clearcoat Slider */}
       <div>
-        <label className="flex justify-between text-sm font-medium text-gray-300 mb-3">
+        <label className="flex justify-between text-sm font-medium text-gray-200 mb-3">
           <span>Clearcoat</span>
-          <span className="text-blue-400 font-mono">{activeConfig.clearcoat.toFixed(2)}</span>
+          <span className="text-blue-400 font-mono bg-white/5 px-2 py-0.5 rounded-lg">{activeConfig.clearcoat.toFixed(2)}</span>
         </label>
         <input
           type="range"
@@ -135,22 +135,22 @@ export default function PaintControls() {
           step="0.01"
           value={activeConfig.clearcoat}
           onChange={(e) => setPaintConfig({ clearcoat: parseFloat(e.target.value) })}
-          className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb"
+          className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer slider-thumb backdrop-blur-sm"
         />
       </div>
 
       {/* Presets */}
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-3">Presets</label>
+        <label className="block text-sm font-medium text-gray-200 mb-3">Presets</label>
         <div className="grid grid-cols-2 gap-2">
           {PRESETS.map((preset) => (
             <button
               key={preset.id}
               onClick={() => setPaintConfig(preset)}
-              className="flex items-center gap-2 p-2.5 border border-gray-700 bg-gray-800 rounded-lg hover:bg-gray-700 hover:border-blue-500 transition-all text-sm text-gray-200"
+              className="flex items-center gap-2 p-2.5 border border-white/10 bg-white/5 rounded-xl hover:bg-white/10 hover:border-blue-400/50 transition-all text-sm text-gray-200 backdrop-blur-sm hover:shadow-[0_4px_12px_rgba(59,130,246,0.2)]"
             >
               <div
-                className="w-8 h-8 rounded border-2 border-gray-600 shadow-inner"
+                className="w-8 h-8 rounded-lg border-2 border-white/20 shadow-[inset_0_2px_8px_rgba(0,0,0,0.3)]"
                 style={{ backgroundColor: preset.color }}
               />
               <span className="text-xs">{preset.name}</span>

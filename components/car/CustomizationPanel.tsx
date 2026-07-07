@@ -89,8 +89,13 @@ export default function CustomizationPanel() {
         onClick={() => setIsExpanded(true)}
         className={`
           fixed bottom-6 right-6 z-50 md:hidden
-          w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-600
-          shadow-lg hover:shadow-xl
+          w-14 h-14 rounded-full
+          bg-gradient-to-br from-blue-500 to-blue-600
+          hover:from-blue-600 hover:to-blue-700
+          shadow-[0_8px_24px_rgba(59,130,246,0.4)]
+          hover:shadow-[0_12px_32px_rgba(59,130,246,0.5)]
+          border border-blue-400/30
+          backdrop-blur-xl
           flex items-center justify-center
           transition-all duration-300
           ${isExpanded ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}
@@ -111,8 +116,11 @@ export default function CustomizationPanel() {
       {/* Main Panel */}
       <div
         className={` cmpanel
-          fixed z-50 bg-gray-900/95 backdrop-blur-xl shadow-2xl flex flex-col
+          fixed z-50 flex flex-col
           transition-all duration-300 ease-in-out
+          bg-white/10 backdrop-blur-3xl
+          border-l border-white/20
+          shadow-[0_8px_32px_rgba(0,0,0,0.3)]
 
           ${isExpanded
             ? 'bottom-0 left-0 right-0 max-h-[85vh] rounded-t-3xl md:rounded-none'
@@ -130,7 +138,8 @@ export default function CustomizationPanel() {
 
         {/* Header */}
         <div className={`
-          p-4 border-b border-gray-700/50
+          p-4 border-b border-white/10
+          bg-gradient-to-b from-white/5 to-transparent
           ${isExpanded ? 'md:p-6' : 'md:p-0 md:border-0'}
         `}>
           <div className="flex items-center justify-between">
@@ -149,20 +158,20 @@ export default function CustomizationPanel() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setIsExpanded(false)}
-                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+                    className="p-2 hover:bg-white/10 rounded-xl transition-all backdrop-blur-sm"
                     aria-label="Minimize panel"
                   >
-                    <IoClose className="text-gray-400 hover:text-white text-xl" />
+                    <IoClose className="text-gray-300 hover:text-white text-xl" />
                   </button>
                 </div>
               </>
             ) : (
               <button
                 onClick={() => setIsExpanded(true)}
-                className="hidden md:flex w-full py-6 items-center justify-center hover:bg-gray-800 transition-colors"
+                className="hidden md:flex w-full py-6 items-center justify-center hover:bg-white/10 transition-all backdrop-blur-sm"
                 aria-label="Expand panel"
               >
-                <IoChevronBack className="text-gray-400 hover:text-white text-xl" />
+                <IoChevronBack className="text-gray-300 hover:text-white text-xl" />
               </button>
             )}
           </div>
@@ -170,7 +179,7 @@ export default function CustomizationPanel() {
 
         {/* Category Tabs - Only show when expanded */}
         {isExpanded && (
-          <div className="flex overflow-x-auto border-b border-gray-700/50 bg-gray-800/50 scrollbar-hide">
+          <div className="flex overflow-x-auto border-b border-white/10 bg-white/5 scrollbar-hide">
             {CATEGORIES.map((cat) => {
               const IconComponent = cat.icon
               return (
@@ -180,11 +189,11 @@ export default function CustomizationPanel() {
                   className={`
                     flex-shrink-0 px-3 md:px-4 py-3 text-xs md:text-sm font-medium
                     transition-all duration-200 whitespace-nowrap
-                    flex items-center gap-2
+                    flex items-center gap-2 relative
                     ${
                       activeTab === cat.id
-                        ? 'bg-gray-900 text-blue-400 border-b-2 border-blue-400'
-                        : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/30'
+                        ? 'text-blue-400 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-gradient-to-r after:from-blue-400 after:to-blue-500 after:shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+                        : 'text-gray-300 hover:text-white hover:bg-white/5'
                     }
                   `}
                 >
@@ -209,10 +218,10 @@ export default function CustomizationPanel() {
 
         {/* Footer - Only show when expanded */}
         {isExpanded && (
-          <div className="p-4 md:p-6 border-t border-gray-700/50 bg-gray-800/50">
+          <div className="p-4 md:p-6 border-t border-white/10 bg-gradient-to-t from-white/5 to-transparent">
             <button
               onClick={() => setShowResetConfirm(true)}
-              className="w-full px-4 py-3 bg-gray-700 text-gray-200 rounded-lg hover:bg-gray-600 transition-all font-medium text-sm md:text-base hover:shadow-lg"
+              className="w-full px-4 py-3 bg-white/10 text-gray-200 rounded-xl hover:bg-white/15 transition-all font-medium text-sm md:text-base hover:shadow-[0_4px_16px_rgba(255,255,255,0.1)] backdrop-blur-sm border border-white/10"
             >
               Reset to Default
             </button>
@@ -224,19 +233,19 @@ export default function CustomizationPanel() {
       {showResetConfirm && (
         <>
           <div
-            className="fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm"
+            className="fixed inset-0 bg-black/40 z-[60] backdrop-blur-md"
             onClick={() => setShowResetConfirm(false)}
           />
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] w-[90%] max-w-md">
-            <div className="bg-gray-800 rounded-2xl p-6 shadow-2xl border border-gray-700">
+            <div className="bg-white/10 backdrop-blur-3xl rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/20">
               <h3 className="text-xl font-bold text-white mb-2">Reset Configuration?</h3>
-              <p className="text-gray-400 text-sm mb-6">
+              <p className="text-gray-300 text-sm mb-6">
                 This will reset all customizations to default. This action cannot be undone.
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowResetConfirm(false)}
-                  className="flex-1 px-4 py-2.5 bg-gray-700 text-gray-200 rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                  className="flex-1 px-4 py-2.5 bg-white/10 text-gray-200 rounded-xl hover:bg-white/15 transition-all font-medium border border-white/10 backdrop-blur-sm"
                 >
                   Cancel
                 </button>
@@ -245,7 +254,7 @@ export default function CustomizationPanel() {
                     useCarConfig.getState().resetConfig()
                     setShowResetConfirm(false)
                   }}
-                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all font-medium shadow-[0_4px_16px_rgba(239,68,68,0.4)]"
                 >
                   Reset
                 </button>
