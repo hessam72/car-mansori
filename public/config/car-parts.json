@@ -16,6 +16,15 @@
       "price": 0,
       "thumbnail": "/images/parts/wheels/stock.jpeg",
       "attachNodes": ["Wheel_FL", "Wheel_FR", "Wheel_RL", "Wheel_RR"]
+    }, 
+    {
+      "id": "wheel-stock2",
+      "name": "Stock Wheels2",
+      "category": "wheels",
+      "model_path": "/models/parts/wheels/scene (9).glb",
+      "price": 1400,
+      "thumbnail": "/images/parts/wheels/stock.jpeg",
+      "attachNodes": ["Wheel_FL", "Wheel_FR", "Wheel_RL", "Wheel_RR"]
     }
   ],
   "spoilers": [

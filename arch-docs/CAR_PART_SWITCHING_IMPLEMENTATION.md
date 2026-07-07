@@ -226,6 +226,63 @@ requestIdleCallback(() => {
 
 **Note**: userData properties auto-export with GLB format
 
+## Phase 2: Coordinate Space Fix (July 2026)
+
+### Problem Identified
+Parts were appearing at incorrect positions despite correct position values being copied. Root cause: **coordinate space mismatch**.
+
+**Original Implementation:**
+```typescript
+// useMemo returned instances
+const clone = gltf.scene.clone(true)
+clone.position.copy(targetNode.position) // Local position
+return instances // Rendered via <primitive> in <group> wrapper
+```
+
+**Issue:**
+- `targetNode.position` = local position relative to parent in baseCarScene hierarchy
+- Clones rendered in React `<group>` wrapper = different coordinate space
+- Local coordinates interpreted as world coordinates = wrong final position
+
+**Debug Output:**
+```javascript
+[DynamicPart] targetNode: Wheel_FL { x: 0.829, y: -1.306, z: 0.370 }
+[DynamicPart] clone assigned: { x: 0.829, y: -1.306, z: 0.370 }
+// Values correct, but wheel appeared far from expected location
+```
+
+### Solution Implemented
+**Changed from React rendering to direct scene manipulation:**
+
+```typescript
+// useEffect adds clones directly to targetNode.parent
+useEffect(() => {
+  const clone = gltf.scene.clone(true)
+  clone.position.copy(targetNode.position)
+  targetNode.parent?.add(clone) // Same parent = same coordinate space
+  // Cleanup on unmount
+}, [gltf, partConfig, baseCarScene])
+
+return null // No React rendering
+```
+
+**Key Changes:**
+1. Switched from `useMemo` to `useEffect` (side effects)
+2. Add clones via `targetNode.parent.add()` instead of React `<primitive>`
+3. Maintain same parent hierarchy = correct coordinate space
+4. Return `null` - component only handles logic, scene manipulation in THREE.js
+5. Cleanup removes clones + disposes geometries/materials
+
+**Files Modified:**
+- [components/car/DynamicPart.tsx:46-146](components/car/DynamicPart.tsx#L46-L146)
+- Removed `import { useMemo }`
+- Removed `<primitive>` render logic
+
+**Result:**
+- Parts now position correctly at target node locations
+- Local coordinates interpreted in correct parent space
+- No coordinate transformation needed
+
 ## Testing Checklist
 - [x] Build successful (TypeScript validation)
 - [ ] Test all 7 part categories swap correctly
