@@ -34,9 +34,10 @@ export default function CameraControls() {
     }
   }, [targetPosition, targetLookAt, api, clearTransition])
 
-  // Apply animated values to camera and controls
+  // Apply animated values to camera and controls only during transitions
   useFrame(() => {
-    if (controlsRef.current) {
+    if (controlsRef.current && (targetPosition || targetLookAt)) {
+      // Only override during preset transitions
       // @ts-ignore - react-spring animated values
       camera.position.set(...position.get())
       // @ts-ignore
