@@ -72,22 +72,15 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
           console.warn(`[DynamicPart] attachNode not found: ${nodeName}`)
           return
         }
+        console.log('[DynamicPart] targetNode:', nodeName, targetNode.position)
 
         const clone = gltf.scene.clone(true)
 
-        // Use world transforms to account for parent hierarchy
-        const worldPos = new THREE.Vector3()
-        const worldQuat = new THREE.Quaternion()
-        const worldScale = new THREE.Vector3()
+        clone.position.copy(targetNode.position)
+        clone.quaternion.copy(targetNode.quaternion)
+        clone.scale.copy(targetNode.scale)
 
-        targetNode.getWorldPosition(worldPos)
-        targetNode.getWorldQuaternion(worldQuat)
-        targetNode.getWorldScale(worldScale)
-
-        clone.position.copy(worldPos)
-        // clone.position.copy(worldPos)
-        clone.quaternion.copy(worldQuat)
-        clone.scale.copy(worldScale)
+        console.log('[DynamicPart] clone assigned:', clone.position)
 
         // Hide original node
         targetNode.visible = false
@@ -114,21 +107,15 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
         return null
       }
 
+      console.log('[DynamicPart] replaceNode targetNode:', partConfig.replaceNode, targetNode.position)
+
       const clone = gltf.scene.clone(true)
 
-      // Use world transforms to account for parent hierarchy
-      const worldPos = new THREE.Vector3()
-      const worldQuat = new THREE.Quaternion()
-      const worldScale = new THREE.Vector3()
+      clone.position.copy(targetNode.position)
+      clone.quaternion.copy(targetNode.quaternion)
+      clone.scale.copy(targetNode.scale)
 
-      targetNode.getWorldPosition(worldPos)
-      targetNode.getWorldQuaternion(worldQuat)
-      targetNode.getWorldScale(worldScale)
-
-      // clone.position.copy(new THREE.Vector3(0.829, -1.306, 0.370))
-      clone.position.copy(worldPos)
-      clone.quaternion.copy(worldQuat)
-      clone.scale.copy(worldScale)
+      console.log('[DynamicPart] replaceNode clone assigned:', clone.position)
 
       // Hide original node
       targetNode.visible = false
