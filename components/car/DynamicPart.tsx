@@ -76,7 +76,13 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
     const transition = transitionRef.current
     if (!transition.isTransitioning) return
 
-    transition.progress += delta * 3.0 // 3x speed = ~333ms duration
+    // Wait 1-2 frames before animating to ensure initial state renders
+    if (transition.progress < 0) {
+      transition.progress = Math.min(0, transition.progress + delta * 3.0)
+      return
+    }
+
+    transition.progress += delta * 1.5 // ~667ms duration
 
     if (transition.progress >= 1) {
       // Transition complete
@@ -122,7 +128,7 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
       const scaleProgress = Math.pow(fadeProgress, 0.5) // Ease-out scale
       const targetScale = part.userData.originalScale || new THREE.Vector3(1, 1, 1)
       part.scale.lerpVectors(
-        new THREE.Vector3(0.8, 0.8, 0.8).multiply(targetScale),
+        new THREE.Vector3(0.6, 0.6, 0.6).multiply(targetScale),
         targetScale,
         scaleProgress
       )
@@ -251,9 +257,9 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
       targetNode.visible = false
     }
 
-    // Start transition animation
+    // Start transition animation with frame delay
     transition.newParts = addedClones
-    transition.progress = 0
+    transition.progress = -0.1 // Start negative for 2-frame delay
     transition.isTransitioning = addedClones.length > 0
 
     // Cleanup - called when component unmounts or dependencies change
