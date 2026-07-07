@@ -14,8 +14,14 @@ interface ConfigurableCarProps {
 export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
   const groupRef = useRef<THREE.Group>(null!)
 
-  // Get paint config from store
+  // Get paint config and error handler from store
   const paintConfig = useCarConfig((s) => s.paintConfig)
+  const setPartError = useCarConfig((s) => s.setPartError)
+
+  // Handle part loading errors
+  const handlePartError = (category: string, error: Error) => {
+    setPartError(category, error.message)
+  }
 
   // Load base car model with DRACO (useGLTF has built-in DRACO support)
   const gltf = useGLTF(modelPath)
@@ -90,7 +96,7 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
 
       {/* Render dynamic parts for each category */}
       {partCategories.map((category) => (
-        <PartErrorBoundary key={category}>
+        <PartErrorBoundary key={category} category={category} onError={handlePartError}>
           <DynamicPart
             category={category}
             baseCarScene={carModel}

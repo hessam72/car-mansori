@@ -16,10 +16,14 @@ export interface CarConfigState {
   selectedParts: Record<string, string>
   paintConfig: MultiZonePaintConfig
   activeZone: PaintZone
+  loadingParts: Record<string, boolean>
+  partLoadErrors: Record<string, string>
   selectPart: (category: string, partId: string) => void
   setPaintConfig: (config: Partial<PaintConfig>, zone?: PaintZone) => void
   setActiveZone: (zone: PaintZone) => void
   copyZoneToAll: (sourceZone: PaintZone) => void
+  setPartLoading: (category: string, isLoading: boolean) => void
+  setPartError: (category: string, error: string | null) => void
   getTotalPrice: () => number
   resetConfig: (defaultParts?: Record<string, string>) => void
 }
@@ -51,10 +55,26 @@ export const useCarConfig = create<CarConfigState>()(
       selectedParts: {},
       paintConfig: defaultPaintConfig,
       activeZone: 'body',
+      loadingParts: {},
+      partLoadErrors: {},
 
       selectPart: (category, partId) =>
         set((state) => ({
           selectedParts: { ...state.selectedParts, [category]: partId },
+        })),
+
+      setPartLoading: (category, isLoading) =>
+        set((state) => ({
+          loadingParts: { ...state.loadingParts, [category]: isLoading },
+        })),
+
+      setPartError: (category, error) =>
+        set((state) => ({
+          partLoadErrors: error
+            ? { ...state.partLoadErrors, [category]: error }
+            : Object.fromEntries(
+                Object.entries(state.partLoadErrors).filter(([k]) => k !== category)
+              ),
         })),
 
       setPaintConfig: (config, zone) =>
@@ -95,6 +115,8 @@ export const useCarConfig = create<CarConfigState>()(
           selectedParts: defaultParts,
           paintConfig: defaultPaintConfig,
           activeZone: 'body',
+          loadingParts: {},
+          partLoadErrors: {},
         }),
     }),
     { name: 'CarConfigStore' }

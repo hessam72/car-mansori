@@ -5,6 +5,8 @@ import { Component, ReactNode } from 'react'
 interface Props {
   children: ReactNode
   fallback?: ReactNode
+  category?: string
+  onError?: (category: string, error: Error) => void
 }
 
 interface State {
@@ -23,14 +25,35 @@ export class PartErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    // Log to console but don't crash the app
-    console.warn('[PartErrorBoundary] Failed to load part:', error.message)
+    console.error('[PartErrorBoundary] Failed to load part:', error.message, errorInfo)
+
+    // Notify parent component of error
+    if (this.props.onError && this.props.category) {
+      this.props.onError(this.props.category, error)
+    }
+  }
+
+  resetErrorBoundary = () => {
+    this.setState({ hasError: false, error: undefined })
   }
 
   render() {
     if (this.state.hasError) {
-      // Return null to hide the part silently, or return custom fallback
-      return this.props.fallback || null
+      // Return custom fallback or default error UI
+      if (this.props.fallback) {
+        return this.props.fallback
+      }
+
+      // Default error UI with retry button
+      return (
+        <group>
+          {/* Invisible placeholder to prevent scene corruption */}
+          <mesh position={[0, 0, 0]} visible={false}>
+            <boxGeometry args={[0.1, 0.1, 0.1]} />
+            <meshBasicMaterial transparent opacity={0} />
+          </mesh>
+        </group>
+      )
     }
 
     return this.props.children

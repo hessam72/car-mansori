@@ -49,6 +49,9 @@ export default function CustomizationPanel() {
   const [isExpanded, setIsExpanded] = useState(true)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const selectedParts = useCarConfig((s) => s.selectedParts)
+  const loadingParts = useCarConfig((s) => s.loadingParts)
+  const partLoadErrors = useCarConfig((s) => s.partLoadErrors)
+  const setPartError = useCarConfig((s) => s.setPartError)
 
   // Calculate total price
   const totalPrice = Object.entries(selectedParts).reduce((total, [category, partId]) => {
@@ -154,6 +157,12 @@ export default function CustomizationPanel() {
                       ${totalPrice.toLocaleString()}
                     </span>
                   </div>
+                  {Object.entries(loadingParts).some(([_, isLoading]) => isLoading) && (
+                    <div className="mt-2 flex items-center gap-2 text-xs text-blue-400">
+                      <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                      <span>Loading part...</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -182,6 +191,7 @@ export default function CustomizationPanel() {
           <div className="flex overflow-x-auto border-b border-white/10 bg-white/5 scrollbar-hide">
             {CATEGORIES.map((cat) => {
               const IconComponent = cat.icon
+              const isLoading = loadingParts[cat.id]
               return (
                 <button
                   key={cat.id}
@@ -197,7 +207,11 @@ export default function CustomizationPanel() {
                     }
                   `}
                 >
-                  <IconComponent className="text-base md:text-lg" />
+                  {isLoading ? (
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <IconComponent className="text-base md:text-lg" />
+                  )}
                   <span className="hidden sm:inline">{cat.name}</span>
                 </button>
               )
@@ -208,6 +222,24 @@ export default function CustomizationPanel() {
         {/* Content Area - Only show when expanded */}
         {isExpanded && (
           <div className="flex-1 overflow-y-auto p-4 md:p-6 overscroll-contain" style={{ scrollBehavior: 'smooth' }}>
+            {/* Error Banner */}
+            {partLoadErrors[activeTab] && (
+              <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-red-400 mb-1">Failed to load part</h4>
+                    <p className="text-xs text-red-300/80">{partLoadErrors[activeTab]}</p>
+                  </div>
+                  <button
+                    onClick={() => setPartError(activeTab, null)}
+                    className="px-3 py-1 text-xs font-medium bg-red-500/20 text-red-300 hover:bg-red-500/30 rounded-lg transition-all"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'paint' ? (
               <PaintControls />
             ) : (
