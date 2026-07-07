@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { useCarConfig } from '@/stores/carConfigStore'
 import * as THREE from 'three'
@@ -43,9 +43,11 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
     }
   }, [partConfig?.model_path])
 
-  // Process part placement
-  const partInstances = useMemo(() => {
-    if (!partConfig) return null
+  // Process part placement - add directly to baseCarScene
+  useEffect(() => {
+    if (!partConfig) return
+
+    const addedClones: THREE.Object3D[] = []
 
     // Strategy 1: hideNodes only (e.g., "None" options)
     if (partConfig.hideNodes && !partConfig.model_path) {
@@ -57,15 +59,13 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
           console.warn(`[DynamicPart] hideNode not found: ${nodeName}`)
         }
       })
-      return null
+      return
     }
 
-    if (!gltf) return null
+    if (!gltf) return
 
     // Strategy 2: attachNodes (multiple instances, e.g., wheels)
     if (partConfig.attachNodes) {
-      const instances: THREE.Group[] = []
-
       partConfig.attachNodes.forEach((nodeName: string) => {
         const targetNode = findNodeByName(baseCarScene, nodeName)
         if (!targetNode) {
@@ -82,10 +82,12 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
 
         console.log('[DynamicPart] clone assigned:', clone.position)
 
+        // Add to same parent to maintain coordinate space
+        targetNode.parent?.add(clone)
+        addedClones.push(clone)
+
         // Hide original node
         targetNode.visible = false
-
-        instances.push(clone)
       })
 
       // Hide nodes if specified
@@ -95,8 +97,6 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
           if (node) node.visible = false
         })
       }
-
-      return instances
     }
 
     // Strategy 3: replaceNode (single instance, e.g., hood)
@@ -104,7 +104,7 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
       const targetNode = findNodeByName(baseCarScene, partConfig.replaceNode)
       if (!targetNode) {
         console.warn(`[DynamicPart] replaceNode not found: ${partConfig.replaceNode}`)
-        return null
+        return
       }
 
       console.log('[DynamicPart] replaceNode targetNode:', partConfig.replaceNode, targetNode.position)
@@ -117,20 +117,19 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
 
       console.log('[DynamicPart] replaceNode clone assigned:', clone.position)
 
+      // Add to same parent to maintain coordinate space
+      targetNode.parent?.add(clone)
+      addedClones.push(clone)
+
       // Hide original node
       targetNode.visible = false
-
-      return [clone]
     }
 
-    return null
-  }, [gltf, partConfig, baseCarScene])
-
-  // Dispose geometries/materials when instances change
-  useEffect(() => {
+    // Cleanup
     return () => {
-      partInstances?.forEach((instance) => {
-        instance.traverse((child: any) => {
+      addedClones.forEach((clone) => {
+        clone.parent?.remove(clone)
+        clone.traverse((child: any) => {
           if (child instanceof THREE.Mesh) {
             child.geometry?.dispose()
             if (Array.isArray(child.material)) {
@@ -142,15 +141,7 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
         })
       })
     }
-  }, [partInstances])
+  }, [gltf, partConfig, baseCarScene])
 
-  if (!partInstances) return null
-
-  return (
-    <group>
-      {partInstances.map((instance, i) => (
-        <primitive key={i} object={instance} />
-      ))}
-    </group>
-  )
+  return null
 }
