@@ -2,7 +2,24 @@
 
 import { useState } from 'react'
 import { useCameraStore, CAMERA_PRESETS, PresetName } from '@/stores/cameraStore'
-import { Camera, RotateCcw, Home, ChevronRight, ChevronLeft } from 'lucide-react'
+import { RotateCcw, Home, ChevronRight, ChevronLeft } from 'lucide-react'
+import {
+  MdOutlineViewInAr,
+  MdOutlineZoomIn,
+  MdArrowUpward
+} from 'react-icons/md'
+import { TbCarSuv } from 'react-icons/tb'
+import { IoCarSportOutline } from 'react-icons/io5'
+
+const presetIcons: Record<PresetName, React.ComponentType<{ className?: string }>> = {
+  front: () => <IoCarSportOutline className="w-5 h-5" style={{ transform: 'rotate(0deg)' }} />,
+  rear: () => <IoCarSportOutline className="w-5 h-5" style={{ transform: 'rotate(180deg)' }} />,
+  sideLeft: () => <TbCarSuv className="w-5 h-5" style={{ transform: 'scaleX(-1)' }} />,
+  sideRight: () => <TbCarSuv className="w-5 h-5" />,
+  top: () => <MdArrowUpward className="w-5 h-5" />,
+  detail: () => <MdOutlineZoomIn className="w-5 h-5" />,
+  home: () => <MdOutlineViewInAr className="w-5 h-5" />
+}
 
 export default function CameraPresets() {
   const { activePreset, setPreset, autoRotate, setAutoRotate } = useCameraStore()
@@ -30,7 +47,7 @@ export default function CameraPresets() {
         `}
         aria-label="Open camera controls"
       >
-        <Camera className="text-white text-xl" />
+        <MdOutlineViewInAr className="text-white text-2xl" />
       </button>
 
       {/* Mobile Backdrop */}
@@ -51,12 +68,12 @@ export default function CameraPresets() {
           shadow-[0_8px_32px_rgba(0,0,0,0.3)]
 
           ${isExpanded
-            ? 'bottom-0 left-0 right-0 max-h-[70vh] rounded-t-3xl md:rounded-none'
+            ? 'bottom-0 left-0 right-0 max-h-[70vh] rounded-t-3xl md:rounded-none md:max-h-none'
             : 'bottom-[-100%] left-0 right-0'
           }
 
           md:top-0 md:bottom-0 md:h-screen md:right-auto md:left-0
-          ${isExpanded ? 'md:w-20' : 'md:w-12'}
+          ${isExpanded ? 'md:w-48' : 'md:w-12'}
         `}
       >
         {/* Mobile Drag Handle */}
@@ -114,23 +131,26 @@ export default function CameraPresets() {
 
             {/* Camera Presets */}
             <div className="grid grid-cols-2 gap-3">
-              {presets.map((preset) => (
-                <button
-                  key={preset}
-                  onClick={() => {
-                    setPreset(preset)
-                    setIsExpanded(false)
-                  }}
-                  className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                    activePreset === preset
-                      ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/50'
-                      : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
-                  }`}
-                >
-                  <Camera className="w-5 h-5" />
-                  {CAMERA_PRESETS[preset].label}
-                </button>
-              ))}
+              {presets.map((preset) => {
+                const IconComponent = presetIcons[preset]
+                return (
+                  <button
+                    key={preset}
+                    onClick={() => {
+                      setPreset(preset)
+                      setIsExpanded(false)
+                    }}
+                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                      activePreset === preset
+                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/50'
+                        : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
+                    }`}
+                  >
+                    <IconComponent />
+                    {CAMERA_PRESETS[preset].label}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -138,43 +158,53 @@ export default function CameraPresets() {
           <div className="hidden md:flex flex-col gap-2">
             {/* Auto Rotate */}
             <button
+            style={{display:'grid' , justifyContent:'center' , alignItems:'center'}}
               onClick={() => setAutoRotate(!autoRotate)}
-              className={`p-3 rounded-lg transition-all ${
+              className={`px-3 py-2.5 rounded-lg transition-all ${
                 autoRotate
                   ? 'bg-blue-500 text-white'
                   : 'bg-white/10 text-white/60 hover:bg-white/20'
-              }`}
+              } ${isExpanded ? 'flex items-center gap-3' : ''}`}
               title="Auto Rotate"
             >
-              <RotateCcw className="w-5 h-5 mx-auto" />
+              <RotateCcw className={`w-5 h-5 ${isExpanded ? '' : 'mx-auto'}`} />
+              {isExpanded && <span className="text-sm font-medium">Auto Rotate</span>}
             </button>
 
             {/* Reset */}
             <button
+            style={{display:'grid' , justifyContent:'center' , alignItems:'center'}}
               onClick={() => setPreset('home')}
-              className="p-3 rounded-lg bg-white/10 text-white/80 hover:bg-white/20 hover:text-white transition-all"
+              className={`px-3 py-2.5 rounded-lg bg-white/10 text-white/80 hover:bg-white/20 hover:text-white transition-all ${isExpanded ? 'flex items-center gap-3' : ''}`}
               title="Reset Camera"
             >
-              <Home className="w-5 h-5 mx-auto" />
+              <Home className={`w-5 h-5 ${isExpanded ? '' : 'mx-auto'}`} />
+              {isExpanded && <span className="text-sm font-medium">Reset</span>}
             </button>
 
             <div className="my-2 h-px bg-white/10" />
 
             {/* Camera Presets */}
-            {presets.map((preset) => (
-              <button
-                key={preset}
-                onClick={() => setPreset(preset)}
-                className={`p-3 rounded-lg transition-all ${
-                  activePreset === preset
-                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/50'
-                    : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
-                }`}
-                title={CAMERA_PRESETS[preset].label}
-              >
-                <Camera className="w-5 h-5 mx-auto" />
-              </button>
-            ))}
+            {presets.map((preset) => {
+              const IconComponent = presetIcons[preset]
+              return (
+                <button
+                  key={preset}
+                  onClick={() => setPreset(preset)}
+                  className={`px-3 py-2.5 rounded-lg transition-all ${
+                    activePreset === preset
+                      ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/50'
+                      : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
+                  } ${isExpanded ? 'flex items-center gap-3' : ''}`}
+                  title={CAMERA_PRESETS[preset].label}
+                >
+                  <div style={{display:'grid' , justifyContent:'center' , alignItems:'center'}} className={isExpanded ? '' : 'mx-auto'}>
+                    <IconComponent />
+                  </div>
+                  {isExpanded && <span className="text-sm font-medium">{CAMERA_PRESETS[preset].label}</span>}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
