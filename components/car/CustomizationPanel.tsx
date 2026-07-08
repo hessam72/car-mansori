@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useLoader } from '@react-three/fiber'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { useGLTF } from '@react-three/drei'
 import PaintControls from './PaintControls'
 import PartsGrid from './PartsGrid'
 import partsConfig from '@/public/config/car-parts.json'
 import { useCarConfig } from '@/stores/carConfigStore'
-import './customizationPanel.css'
+import './CustomizationPanel.css'
 import {
    IoColorPalette, IoCarSport, IoClose, IoChevronBack
 } from 'react-icons/io5'
@@ -19,13 +18,13 @@ import {
 import { TbCarSuv } from 'react-icons/tb'
 import { MdTune } from 'react-icons/md'
 
-// Preload all parts in a category
+// Preload all parts in a category into the same drei cache the scene reads from
 function preloadCategory(categoryId: string) {
   const parts = partsConfig[categoryId as keyof typeof partsConfig] || []
   parts.forEach((part: any) => {
     if (part.model_path) {
       try {
-        useLoader.preload(GLTFLoader, part.model_path)
+        useGLTF.preload(part.model_path)
       } catch (error) {
         console.warn(`[Preload] Failed to preload ${part.model_path}:`, error)
       }

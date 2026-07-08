@@ -5,6 +5,7 @@ interface ReflectiveFloorProps {
   blur?: number
   roughness?: number
   opacity?: number
+  resolution?: number
 }
 
 export function ReflectiveFloor({
@@ -13,6 +14,7 @@ export function ReflectiveFloor({
   blur = 0.85,
   roughness = 0.62,
   opacity = 1,
+  resolution = 1080,
 }: ReflectiveFloorProps) {
   return (
     <mesh
@@ -22,7 +24,7 @@ export function ReflectiveFloor({
     >
       <planeGeometry args={[size, size]} />
       <MeshReflectorMaterial
-        resolution={1080}
+        resolution={resolution}
         mixBlur={0}
         mixStrength={mixStrength * 34}
         mirror={.8}

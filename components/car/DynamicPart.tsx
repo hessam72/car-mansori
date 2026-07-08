@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { Suspense, useEffect, useRef } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import { useCarConfig } from '@/stores/carConfigStore'
 import * as THREE from 'three'
@@ -24,11 +24,111 @@ function findNodeByName(parent: THREE.Object3D, name: string): THREE.Object3D | 
   return null
 }
 
+// Hide the given nodes, returning the ones that were visible so callers can restore them
+function hideNodes(baseCarScene: THREE.Object3D, names: string[]): THREE.Object3D[] {
+  const hidden: THREE.Object3D[] = []
+  names.forEach((nodeName) => {
+    const node = findNodeByName(baseCarScene, nodeName)
+    if (node) {
+      if (node.visible) {
+        node.visible = false
+        hidden.push(node)
+      }
+    } else {
+      console.warn(`[DynamicPart] node not found: ${nodeName}`)
+    }
+  })
+  return hidden
+}
+
+// Clone a part for placement. Geometries stay shared with the drei cache;
+// materials are cloned per instance so fade transitions never touch the cache.
+function clonePartAt(gltfScene: THREE.Object3D, targetNode: THREE.Object3D): THREE.Object3D {
+  const clone = gltfScene.clone(true)
+
+  clone.position.copy(targetNode.position)
+  clone.quaternion.copy(targetNode.quaternion)
+  clone.scale.copy(targetNode.scale)
+
+  // Store original scale for animation
+  clone.userData.originalScale = targetNode.scale.clone()
+
+  // Per-clone materials, initialized for the fade-in transition
+  clone.traverse((child: any) => {
+    if (child instanceof THREE.Mesh && child.material) {
+      const mat = (child.material as THREE.Material).clone() as THREE.MeshStandardMaterial
+      mat.transparent = true
+      mat.opacity = 0
+      child.material = mat
+    }
+  })
+
+  return clone
+}
+
+// Dispose only what we own: the cloned materials. Geometries belong to the drei cache.
+function disposeClone(clone: THREE.Object3D) {
+  clone.parent?.remove(clone)
+  clone.traverse((child: any) => {
+    if (child instanceof THREE.Mesh) {
+      if (Array.isArray(child.material)) {
+        child.material.forEach((mat: any) => mat.dispose())
+      } else {
+        child.material?.dispose()
+      }
+    }
+  })
+}
+
+// Reports part-loading state while the part GLB suspends
+function LoadingFlag({ category }: { category: string }) {
+  const setPartLoading = useCarConfig((s) => s.setPartLoading)
+  useEffect(() => {
+    setPartLoading(category, true)
+    return () => setPartLoading(category, false)
+  }, [category, setPartLoading])
+  return null
+}
+
 export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
-  // Get selected part ID and actions from store
   const selectedPartId = useCarConfig((s) => s.selectedParts[category])
+  const invalidate = useThree((s) => s.invalidate)
+
+  const parts = partsConfig[category as keyof typeof partsConfig] || []
+  const partConfig: any = parts.find((p: any) => p.id === selectedPartId)
+
+  // Strategy 1: hideNodes only (e.g., "None" options) — no model to load
+  useEffect(() => {
+    if (!partConfig || partConfig.model_path || !partConfig.hideNodes) return
+    const hidden = hideNodes(baseCarScene, partConfig.hideNodes)
+    invalidate()
+    return () => {
+      hidden.forEach((node) => (node.visible = true))
+      invalidate()
+    }
+  }, [partConfig, baseCarScene, invalidate])
+
+  // useGLTF must be called unconditionally, so model-backed parts live in a
+  // child component that only mounts when a model path exists
+  if (!partConfig?.model_path) return null
+
+  return (
+    <Suspense fallback={<LoadingFlag category={category} />}>
+      <ModeledPart category={category} partConfig={partConfig} baseCarScene={baseCarScene} />
+    </Suspense>
+  )
+}
+
+interface ModeledPartProps {
+  category: string
+  partConfig: any
+  baseCarScene: THREE.Group
+}
+
+function ModeledPart({ category, partConfig, baseCarScene }: ModeledPartProps) {
   const setPartLoading = useCarConfig((s) => s.setPartLoading)
   const setPartError = useCarConfig((s) => s.setPartError)
+  const invalidate = useThree((s) => s.invalidate)
 
   // Track transition state
   const transitionRef = useRef<{
@@ -43,38 +143,21 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
     isTransitioning: false
   })
 
-  // Find part config
-  const parts = partsConfig[category as keyof typeof partsConfig] || []
-  const partConfig: any = parts.find((p: any) => p.id === selectedPartId)
+  // Suspends until loaded; cached by drei so reselecting a part is instant
+  const gltf: any = useGLTF(partConfig.model_path)
 
-  // Load part model (useGLTF suspends until loaded)
-  const gltf: any = partConfig?.model_path ? useGLTF(partConfig.model_path) : null
-
-  // Track loading state - mark as loading when part changes, clear when gltf available
   useEffect(() => {
-    if (partConfig?.model_path && !gltf) {
-      // Loading started
-      setPartLoading(category, true)
-    } else if (gltf || !partConfig?.model_path) {
-      // Loading complete or no model needed
-      setPartLoading(category, false)
-      setPartError(category, null)
-    }
-  }, [partConfig?.model_path, gltf, category, setPartLoading, setPartError])
-
-  // Memory management: clear from cache on unmount
-  useEffect(() => {
-    return () => {
-      if (partConfig?.model_path) {
-        useGLTF.clear(partConfig.model_path)
-      }
-    }
-  }, [partConfig?.model_path])
+    setPartLoading(category, false)
+    setPartError(category, null)
+  }, [gltf, category, setPartLoading, setPartError])
 
   // Animate transitions
   useFrame((_, delta) => {
     const transition = transitionRef.current
     if (!transition.isTransitioning) return
+
+    // Keep frames coming while animating (frameloop="demand")
+    invalidate()
 
     // Wait 1-2 frames before animating to ensure initial state renders
     if (transition.progress < 0) {
@@ -89,20 +172,7 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
       transition.progress = 1
       transition.isTransitioning = false
 
-      // Remove old parts
-      transition.oldParts.forEach((part) => {
-        part.parent?.remove(part)
-        part.traverse((child: any) => {
-          if (child instanceof THREE.Mesh) {
-            child.geometry?.dispose()
-            if (Array.isArray(child.material)) {
-              child.material.forEach((mat: any) => mat.dispose())
-            } else {
-              child.material?.dispose()
-            }
-          }
-        })
-      })
+      transition.oldParts.forEach(disposeClone)
       transition.oldParts = []
     }
 
@@ -113,12 +183,7 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
     transition.oldParts.forEach((part) => {
       part.traverse((child: any) => {
         if (child instanceof THREE.Mesh && child.material) {
-          const mat = child.material as THREE.MeshStandardMaterial
-          if (!mat.transparent) {
-            mat.transparent = true
-            mat.needsUpdate = true
-          }
-          mat.opacity = 1 - fadeProgress
+          child.material.opacity = 1 - fadeProgress
         }
       })
     })
@@ -135,12 +200,7 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
 
       part.traverse((child: any) => {
         if (child instanceof THREE.Mesh && child.material) {
-          const mat = child.material as THREE.MeshStandardMaterial
-          if (!mat.transparent) {
-            mat.transparent = true
-            mat.needsUpdate = true
-          }
-          mat.opacity = fadeProgress
+          child.material.opacity = fadeProgress
         }
       })
     })
@@ -148,34 +208,14 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
 
   // Process part placement - add directly to baseCarScene
   useEffect(() => {
-    if (!partConfig) return
-
     const addedClones: THREE.Object3D[] = []
+    const hiddenNodes: THREE.Object3D[] = []
     const transition = transitionRef.current
 
     // Store old parts for fade-out transition
     if (transition.newParts.length > 0) {
       transition.oldParts = [...transition.newParts]
     }
-
-    // Strategy 1: hideNodes only (e.g., "None" options)
-    if (partConfig.hideNodes && !partConfig.model_path) {
-      partConfig.hideNodes.forEach((nodeName: string) => {
-        const node = findNodeByName(baseCarScene, nodeName)
-        if (node) {
-          node.visible = false
-        } else {
-          console.warn(`[DynamicPart] hideNode not found: ${nodeName}`)
-        }
-      })
-
-      // Clear transition state for "None" options
-      transition.newParts = []
-      transition.isTransitioning = false
-      return
-    }
-
-    if (!gltf) return
 
     // Strategy 2: attachNodes (multiple instances, e.g., wheels)
     if (partConfig.attachNodes) {
@@ -186,39 +226,21 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
           return
         }
 
-        const clone = gltf.scene.clone(true)
-
-        clone.position.copy(targetNode.position)
-        clone.quaternion.copy(targetNode.quaternion)
-        clone.scale.copy(targetNode.scale)
-
-        // Store original scale for animation
-        clone.userData.originalScale = targetNode.scale.clone()
-
-        // Initialize materials for transition
-        clone.traverse((child: any) => {
-          if (child instanceof THREE.Mesh && child.material) {
-            const mat = child.material as THREE.MeshStandardMaterial
-            mat.transparent = true
-            mat.opacity = 0
-            mat.needsUpdate = true
-          }
-        })
+        const clone = clonePartAt(gltf.scene, targetNode)
 
         // Add to same parent to maintain coordinate space
         targetNode.parent?.add(clone)
         addedClones.push(clone)
 
         // Hide original node
-        targetNode.visible = false
+        if (targetNode.visible) {
+          targetNode.visible = false
+          hiddenNodes.push(targetNode)
+        }
       })
 
-      // Hide nodes if specified
       if (partConfig.hideNodes) {
-        partConfig.hideNodes.forEach((nodeName: string) => {
-          const node = findNodeByName(baseCarScene, nodeName)
-          if (node) node.visible = false
-        })
+        hiddenNodes.push(...hideNodes(baseCarScene, partConfig.hideNodes))
       }
     }
 
@@ -230,62 +252,40 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
         return
       }
 
-      const clone = gltf.scene.clone(true)
-
-      clone.position.copy(targetNode.position)
-      clone.quaternion.copy(targetNode.quaternion)
-      clone.scale.copy(targetNode.scale)
-
-      // Store original scale for animation
-      clone.userData.originalScale = targetNode.scale.clone()
-
-      // Initialize materials for transition
-      clone.traverse((child: any) => {
-        if (child instanceof THREE.Mesh && child.material) {
-          const mat = child.material as THREE.MeshStandardMaterial
-          mat.transparent = true
-          mat.opacity = 0
-          mat.needsUpdate = true
-        }
-      })
+      const clone = clonePartAt(gltf.scene, targetNode)
 
       // Add to same parent to maintain coordinate space
       targetNode.parent?.add(clone)
       addedClones.push(clone)
 
       // Hide original node
-      targetNode.visible = false
+      if (targetNode.visible) {
+        targetNode.visible = false
+        hiddenNodes.push(targetNode)
+      }
     }
 
     // Start transition animation with frame delay
     transition.newParts = addedClones
     transition.progress = -0.1 // Start negative for 2-frame delay
     transition.isTransitioning = addedClones.length > 0
+    invalidate()
 
     // Cleanup - called when component unmounts or dependencies change
     return () => {
-      // Clean up transition state
       const allParts = [...transition.oldParts, ...transition.newParts]
-      allParts.forEach((clone) => {
-        clone.parent?.remove(clone)
-        clone.traverse((child: any) => {
-          if (child instanceof THREE.Mesh) {
-            child.geometry?.dispose()
-            if (Array.isArray(child.material)) {
-              child.material.forEach((mat: any) => mat.dispose())
-            } else {
-              child.material?.dispose()
-            }
-          }
-        })
-      })
+      allParts.forEach(disposeClone)
+
+      // Restore nodes this part hid, so switching selections can't strand them
+      hiddenNodes.forEach((node) => (node.visible = true))
 
       // Reset transition state
       transition.oldParts = []
       transition.newParts = []
       transition.isTransitioning = false
+      invalidate()
     }
-  }, [gltf, partConfig, baseCarScene])
+  }, [gltf, partConfig, baseCarScene, invalidate])
 
   return null
 }

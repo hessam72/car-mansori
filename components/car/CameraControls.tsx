@@ -11,6 +11,7 @@ import * as THREE from 'three'
 export default function CameraControls() {
   const controlsRef = useRef<OrbitControlsImpl>(null!)
   const { camera } = useThree()
+  const invalidate = useThree((s) => s.invalidate)
 
   const { targetPosition, targetLookAt, autoRotate, autoRotateSpeed, clearTransition } = useCameraStore()
 
@@ -43,6 +44,8 @@ export default function CameraControls() {
       // @ts-ignore
       controlsRef.current.target.set(...lookAt.get())
       controlsRef.current.update()
+      // Keep frames coming until the spring settles (frameloop="demand")
+      invalidate()
     }
   })
 
@@ -52,6 +55,7 @@ export default function CameraControls() {
   return (
     <OrbitControls
       ref={controlsRef}
+      regress
       enableDamping
       dampingFactor={0.05}
       minDistance={2}
