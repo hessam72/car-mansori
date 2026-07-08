@@ -15,6 +15,9 @@ interface CarTuningSceneProps {
 }
 
 export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+  const initialPosition: [number, number, number] = isMobile ? [8, 3.2, 8] : [5, 2, 5]
+
   return (
     <div className="w-full h-screen">
       <Canvas
@@ -25,7 +28,7 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
           toneMappingExposure: 1.0,
         }}
         camera={{
-          position: [5, 2, 5],
+          position: initialPosition,
           fov: 50,
           near: 0.1,
           far: 1000,

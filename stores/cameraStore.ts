@@ -11,6 +11,19 @@ export interface CameraPreset {
   label: string
 }
 
+const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768
+
+const MOBILE_DISTANCE_MULTIPLIER = 1.6
+
+const scaleCameraPosition = (pos: [number, number, number]): [number, number, number] => {
+  if (!isMobile()) return pos
+  return [
+    pos[0] * MOBILE_DISTANCE_MULTIPLIER,
+    pos[1] * MOBILE_DISTANCE_MULTIPLIER,
+    pos[2] * MOBILE_DISTANCE_MULTIPLIER
+  ]
+}
+
 export const CAMERA_PRESETS: Record<PresetName, CameraPreset> = {
   home: {
     position: [5, 2, 5],
@@ -81,9 +94,10 @@ export const useCameraStore = create<CameraState>()(
 
       setPreset: (preset: PresetName) => {
         const config = CAMERA_PRESETS[preset]
+        const scaledPosition = scaleCameraPosition(config.position)
         set({
           activePreset: preset,
-          targetPosition: new THREE.Vector3(...config.position),
+          targetPosition: new THREE.Vector3(...scaledPosition),
           targetLookAt: new THREE.Vector3(...config.target)
         })
       },

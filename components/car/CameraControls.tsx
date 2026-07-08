@@ -46,13 +46,16 @@ export default function CameraControls() {
     }
   })
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+  const maxDistance = isMobile ? 20 : 12
+
   return (
     <OrbitControls
       ref={controlsRef}
       enableDamping
       dampingFactor={0.05}
       minDistance={2}
-      maxDistance={12}
+      maxDistance={maxDistance}
       maxPolarAngle={Math.PI / 2}
       autoRotate={autoRotate}
       autoRotateSpeed={autoRotateSpeed}
