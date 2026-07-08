@@ -96,7 +96,7 @@ export default function CarPage() {
       </div>
 
       {/* Specs Overlay */}
-      <div className="absolute bottom-8 left-8 text-white bg-black/50 p-4 rounded-lg backdrop-blur-sm z-5">
+      {/* <div className="absolute bottom-8 left-8 text-white bg-black/50 p-4 rounded-lg backdrop-blur-sm z-5">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xl font-bold">Specifications</h2>
           <button
@@ -129,7 +129,7 @@ export default function CarPage() {
             </div>
           </div>
         )}
-      </div>
+      </div> */}
 
       {/* Customization Panel */}
       <CustomizationPanel />
