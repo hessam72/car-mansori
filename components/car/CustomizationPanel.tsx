@@ -46,7 +46,7 @@ const CATEGORIES = [
 
 export default function CustomizationPanel() {
   const [activeTab, setActiveTab] = useState('paint')
-  const [isExpanded, setIsExpanded] = useState(true)
+  const [isExpanded, setIsExpanded] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const selectedParts = useCarConfig((s) => s.selectedParts)
   const loadingParts = useCarConfig((s) => s.loadingParts)

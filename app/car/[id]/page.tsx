@@ -35,6 +35,7 @@ export default function CarPage() {
   const [loading, setLoading] = useState(true)
   const [showAR, setShowAR] = useState(false)
   const [arSupported, setArSupported] = useState(false)
+  const [specsMinimized, setSpecsMinimized] = useState(true)
   const resetConfig = useCarConfig((s) => s.resetConfig)
 
   useEffect(() => {
@@ -95,22 +96,39 @@ export default function CarPage() {
       </div>
 
       {/* Specs Overlay */}
-      <div className="absolute bottom-8 left-8 text-white bg-black/50 p-6 rounded-lg backdrop-blur-sm z-5">
-        <h2 className="text-xl font-bold mb-4">Specifications</h2>
-        <div className="space-y-2 text-sm">
-          <div>
-            <span className="text-gray-400">Engine:</span> {car.specs.engine}
-          </div>
-          <div>
-            <span className="text-gray-400">Power:</span> {car.specs.horsepower} HP
-          </div>
-          <div>
-            <span className="text-gray-400">Torque:</span> {car.specs.torque}
-          </div>
-          <div>
-            <span className="text-gray-400">Top Speed:</span> {car.specs.top_speed}
-          </div>
+      <div className="absolute bottom-8 left-8 text-white bg-black/50 p-4 rounded-lg backdrop-blur-sm z-5">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xl font-bold">Specifications</h2>
+          <button
+            onClick={() => setSpecsMinimized(!specsMinimized)}
+            className="ml-4 p-1 hover:bg-white/10 rounded transition-colors"
+          >
+            <svg
+              className={`w-5 h-5 transition-transform ${specsMinimized ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
         </div>
+        {!specsMinimized && (
+          <div className="space-y-2 text-sm">
+            <div>
+              <span className="text-gray-400">Engine:</span> {car.specs.engine}
+            </div>
+            <div>
+              <span className="text-gray-400">Power:</span> {car.specs.horsepower} HP
+            </div>
+            <div>
+              <span className="text-gray-400">Torque:</span> {car.specs.torque}
+            </div>
+            <div>
+              <span className="text-gray-400">Top Speed:</span> {car.specs.top_speed}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Customization Panel */}
