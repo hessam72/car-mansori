@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { useThree } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 
 interface InteriorLookControlsProps {
@@ -19,7 +19,21 @@ export default function InteriorLookControls({
   const isDragging = useRef(false)
   const previousPosition = useRef({ x: 0, y: 0 })
   const rotation = useRef({ yaw: 0, pitch: 0 })
-  const baseDirection = useRef(new THREE.Vector3(0, 0, 1)) // Forward
+
+  // Apply camera rotation on every frame to maintain orientation
+  useFrame(() => {
+    // Calculate look direction from current rotation
+    const direction = new THREE.Vector3()
+    direction.x = Math.sin(rotation.current.yaw) * Math.cos(rotation.current.pitch)
+    direction.y = Math.sin(rotation.current.pitch)
+    direction.z = Math.cos(rotation.current.yaw) * Math.cos(rotation.current.pitch)
+    direction.normalize()
+
+    // Update camera lookAt target
+    const lookAtTarget = new THREE.Vector3()
+    lookAtTarget.addVectors(camera.position, direction.multiplyScalar(5))
+    camera.lookAt(lookAtTarget)
+  })
 
   useEffect(() => {
     const domElement = gl.domElement
@@ -45,18 +59,6 @@ export default function InteriorLookControls({
       // Apply limits
       rotation.current.pitch = Math.max(-pitchLimit, Math.min(pitchLimit, rotation.current.pitch))
       rotation.current.yaw = Math.max(-yawLimit, Math.min(yawLimit, rotation.current.yaw))
-
-      // Calculate new look direction
-      const direction = new THREE.Vector3()
-      direction.x = Math.sin(rotation.current.yaw) * Math.cos(rotation.current.pitch)
-      direction.y = Math.sin(rotation.current.pitch)
-      direction.z = Math.cos(rotation.current.yaw) * Math.cos(rotation.current.pitch)
-      direction.normalize()
-
-      // Update camera lookAt target
-      const lookAtTarget = new THREE.Vector3()
-      lookAtTarget.addVectors(camera.position, direction.multiplyScalar(5))
-      camera.lookAt(lookAtTarget)
 
       previousPosition.current = { x: point.clientX, y: point.clientY }
     }

@@ -34,10 +34,18 @@ export default function CameraControls() {
     }
   }, [targetPosition, targetLookAt, api, clearTransition])
 
+  // Force clear transition for interior mode
+  useEffect(() => {
+    if (activePreset === 'interior' && targetPosition) {
+      const timer = setTimeout(() => clearTransition(), 300)
+      return () => clearTimeout(timer)
+    }
+  }, [activePreset, targetPosition, clearTransition])
+
   // Apply animated values to camera and controls only during transitions
   useFrame(() => {
     if (controlsRef.current && (targetPosition || targetLookAt)) {
-      // Only override during preset transitions
+      // Apply spring animation for all presets (including interior)
       // @ts-ignore - react-spring animated values
       camera.position.set(...position.get())
       // @ts-ignore
