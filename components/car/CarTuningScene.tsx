@@ -9,6 +9,8 @@ import CarLighting from './CarLighting'
 import ConfigurableCar from './ConfigurableCar'
 import CameraControls from './CameraControls'
 import CameraPresets from './CameraPresets'
+import InteriorLookControls from './InteriorLookControls'
+import { useCameraStore } from '@/stores/cameraStore'
 
 interface CarTuningSceneProps {
   modelPath: string
@@ -17,6 +19,7 @@ interface CarTuningSceneProps {
 export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   const initialPosition: [number, number, number] = isMobile ? [8, 3.2, 8] : [5, 2, 5]
+  const { activePreset } = useCameraStore()
 
   return (
     <div className="w-full h-screen">
@@ -55,6 +58,9 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
 
         {/* Camera Controls */}
         <CameraControls />
+
+        {/* Interior Look Controls */}
+        {activePreset === 'interior' && <InteriorLookControls />}
       </Canvas>
 
       {/* Camera Presets UI */}

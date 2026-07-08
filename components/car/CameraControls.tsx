@@ -12,7 +12,7 @@ export default function CameraControls() {
   const controlsRef = useRef<OrbitControlsImpl>(null!)
   const { camera } = useThree()
 
-  const { targetPosition, targetLookAt, autoRotate, autoRotateSpeed, clearTransition } = useCameraStore()
+  const { targetPosition, targetLookAt, autoRotate, autoRotateSpeed, clearTransition, activePreset } = useCameraStore()
 
   // Animated camera transition with react-spring
   const [{ position, lookAt }, api] = useSpring(() => ({
@@ -48,6 +48,7 @@ export default function CameraControls() {
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   const maxDistance = isMobile ? 20 : 12
+  const isInteriorMode = activePreset === 'interior'
 
   return (
     <OrbitControls
@@ -57,9 +58,12 @@ export default function CameraControls() {
       minDistance={2}
       maxDistance={maxDistance}
       maxPolarAngle={Math.PI / 2}
-      autoRotate={autoRotate}
+      autoRotate={autoRotate && !isInteriorMode}
       autoRotateSpeed={autoRotateSpeed}
       target={[0, 0.5, 0]}
+      enableRotate={!isInteriorMode}
+      enablePan={!isInteriorMode}
+      enableZoom={!isInteriorMode}
     />
   )
 }
