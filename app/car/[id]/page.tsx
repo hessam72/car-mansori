@@ -5,8 +5,13 @@ import dynamic from 'next/dynamic'
 import { useParams } from 'next/navigation'
 import CustomizationPanel from '@/components/car/CustomizationPanel'
 import { useCarConfig } from '@/stores/carConfigStore'
+import { isARCapable } from '@/lib/device-utils'
 
 const CarTuningScene = dynamic(() => import('@/components/car/CarTuningScene'), {
+  ssr: false,
+})
+
+const ARCarViewer = dynamic(() => import('@/components/car/ARCarViewer'), {
   ssr: false,
 })
 
@@ -15,6 +20,7 @@ interface Car {
   name: string
   name_fa: string
   model_path: string
+  usdz_path: string
   specs: {
     engine: string
     horsepower: number
@@ -27,7 +33,13 @@ export default function CarPage() {
   const params = useParams()
   const [car, setCar] = useState<Car | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showAR, setShowAR] = useState(false)
+  const [arSupported, setArSupported] = useState(false)
   const resetConfig = useCarConfig((s) => s.resetConfig)
+
+  useEffect(() => {
+    setArSupported(isARCapable())
+  }, [])
 
   useEffect(() => {
     fetch('/config/cars.json')
@@ -103,6 +115,40 @@ export default function CarPage() {
 
       {/* Customization Panel */}
       <CustomizationPanel />
+
+      {/* AR Button */}
+      {arSupported && (
+        <button
+          onClick={() => setShowAR(true)}
+          className="fixed bottom-32 right-8 px-6 py-3 bg-white hover:bg-gray-100 text-black font-semibold rounded-xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 z-10"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+            />
+          </svg>
+          View in AR
+        </button>
+      )}
+
+      {/* AR Viewer Modal */}
+      {showAR && (
+        <ARCarViewer
+          glbPath={car.model_path}
+          usdzPath={car.usdz_path}
+          carName={car.name}
+          carNameFa={car.name_fa}
+          onClose={() => setShowAR(false)}
+        />
+      )}
     </div>
   )
 }

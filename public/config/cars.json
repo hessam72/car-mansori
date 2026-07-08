@@ -4,6 +4,7 @@
     "name": "Sample Car",
     "name_fa": "خودرو نمونه",
     "model_path": "/models/car/car.glb",
+    "usdz_path": "/models/car/car.usdz",
     "specs": {
       "engine": "V6 Turbo",
       "horsepower": 350,
