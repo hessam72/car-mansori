@@ -7,26 +7,30 @@ import * as THREE from 'three'
 interface InteriorLookControlsProps {
   sensitivity?: number
   pitchLimit?: number
-  yawLimit?: number
 }
 
 export default function InteriorLookControls({
-  sensitivity = 0.002,
-  pitchLimit = Math.PI / 3, // 60 degrees
-  yawLimit = Math.PI * 2 / 3 // 120 degrees
+  sensitivity = 0.003,
+  pitchLimit = Math.PI / 3 // 60 degrees
 }: InteriorLookControlsProps) {
   const { camera, gl } = useThree()
   const isDragging = useRef(false)
   const previousPosition = useRef({ x: 0, y: 0 })
   const rotation = useRef({ yaw: 0, pitch: 0 })
+  const smoothedRotation = useRef({ yaw: 0, pitch: 0 })
 
-  // Apply camera rotation on every frame to maintain orientation
+  // Apply camera rotation on every frame with smooth lerping
   useFrame(() => {
-    // Calculate look direction from current rotation
+    // Lerp for smooth camera movement
+    const lerpFactor = 0.15
+    smoothedRotation.current.yaw += (rotation.current.yaw - smoothedRotation.current.yaw) * lerpFactor
+    smoothedRotation.current.pitch += (rotation.current.pitch - smoothedRotation.current.pitch) * lerpFactor
+
+    // Calculate look direction from smoothed rotation
     const direction = new THREE.Vector3()
-    direction.x = Math.sin(rotation.current.yaw) * Math.cos(rotation.current.pitch)
-    direction.y = Math.sin(rotation.current.pitch)
-    direction.z = Math.cos(rotation.current.yaw) * Math.cos(rotation.current.pitch)
+    direction.x = Math.sin(smoothedRotation.current.yaw) * Math.cos(smoothedRotation.current.pitch)
+    direction.y = Math.sin(smoothedRotation.current.pitch)
+    direction.z = Math.cos(smoothedRotation.current.yaw) * Math.cos(smoothedRotation.current.pitch)
     direction.normalize()
 
     // Update camera lookAt target
@@ -52,13 +56,12 @@ export default function InteriorLookControls({
       const deltaX = point.clientX - previousPosition.current.x
       const deltaY = point.clientY - previousPosition.current.y
 
-      // Update rotation
-      rotation.current.yaw -= deltaX * sensitivity
-      rotation.current.pitch -= deltaY * sensitivity
+      // Update rotation (reversed: drag left = look right, drag up = look down)
+      rotation.current.yaw += deltaX * sensitivity
+      rotation.current.pitch += deltaY * sensitivity
 
-      // Apply limits
+      // Apply pitch limit only (allow 360° yaw)
       rotation.current.pitch = Math.max(-pitchLimit, Math.min(pitchLimit, rotation.current.pitch))
-      rotation.current.yaw = Math.max(-yawLimit, Math.min(yawLimit, rotation.current.yaw))
 
       previousPosition.current = { x: point.clientX, y: point.clientY }
     }
@@ -92,7 +95,7 @@ export default function InteriorLookControls({
       domElement.removeEventListener('touchmove', handlePointerMove)
       domElement.removeEventListener('touchend', handlePointerUp)
     }
-  }, [camera, gl, sensitivity, pitchLimit, yawLimit])
+  }, [camera, gl, sensitivity, pitchLimit])
 
   return null
 }
