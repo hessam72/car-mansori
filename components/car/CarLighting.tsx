@@ -8,8 +8,11 @@ export default function CarLighting() {
         angle={0.5}
         penumbra={0.5}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-near={3}
+        shadow-camera-far={25}
+        shadow-bias={-0.0001}
       />
 
       {/* Fill Light - Soften shadows from left */}

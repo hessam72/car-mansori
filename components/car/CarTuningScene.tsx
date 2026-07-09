@@ -1,7 +1,7 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
-import { Environment } from '@react-three/drei'
+import { Environment, AdaptiveDpr } from '@react-three/drei'
 import { ACESFilmicToneMapping } from 'three'
 import { ReflectiveFloor } from '@/components/store/ReflectiveFloor'
 import { PostProcessing } from '@/components/store/PostProcessing'
@@ -25,6 +25,14 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
   const { activePreset } = useCameraStore()
 
   return (
+    <div className="w-full h-screen">
+      <Canvas
+        shadows
+        // Static studio scene: only render when something changes (camera,
+        // paint, part transitions). Interaction sources call invalidate().
+        frameloop="demand"
+        dpr={[1, 1.75]}
+        gl={{
     <>
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -53,6 +61,9 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
           far: 1000,
         }}
       >
+        {/* Drops DPR while the camera moves (OrbitControls regress), restores when idle */}
+        <AdaptiveDpr pixelated />
+
         {/* HDRI Environment */}
         <Environment
           files="/hdr/main_hdr.exr"
@@ -64,7 +75,7 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
         <CarLighting />
 
         {/* Reflective Floor */}
-        <ReflectiveFloor />
+        <ReflectiveFloor resolution={isMobile ? 256 : 512} />
 
         {/* Configurable Car with Part Swapping */}
         <ConfigurableCar modelPath={modelPath} />
