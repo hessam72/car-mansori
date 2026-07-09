@@ -18,12 +18,16 @@ export interface CarConfigState {
   activeZone: PaintZone
   loadingParts: Record<string, boolean>
   partLoadErrors: Record<string, string>
+  openParts: Record<string, boolean>
   selectPart: (category: string, partId: string) => void
   setPaintConfig: (config: Partial<PaintConfig>, zone?: PaintZone) => void
   setActiveZone: (zone: PaintZone) => void
   copyZoneToAll: (sourceZone: PaintZone) => void
   setPartLoading: (category: string, isLoading: boolean) => void
   setPartError: (category: string, error: string | null) => void
+  togglePart: (partName: string) => void
+  openAllParts: () => void
+  closeAllParts: () => void
   getTotalPrice: () => number
   resetConfig: (defaultParts?: Record<string, string>) => void
 }
@@ -57,6 +61,14 @@ export const useCarConfig = create<CarConfigState>()(
       activeZone: 'body',
       loadingParts: {},
       partLoadErrors: {},
+      openParts: {
+        car_door_left: false,
+        car_door_right: false,
+        car_door_back_left: false,
+        car_door_back_right: false,
+        car_caput: false,
+        car_trunk: false,
+      },
 
       selectPart: (category, partId) =>
         set((state) => ({
@@ -103,6 +115,28 @@ export const useCarConfig = create<CarConfigState>()(
           }
         }),
 
+      togglePart: (partName) =>
+        set((state) => ({
+          openParts: {
+            ...state.openParts,
+            [partName]: !state.openParts[partName],
+          },
+        })),
+
+      openAllParts: () =>
+        set((state) => ({
+          openParts: Object.fromEntries(
+            Object.keys(state.openParts).map((key) => [key, true])
+          ),
+        })),
+
+      closeAllParts: () =>
+        set((state) => ({
+          openParts: Object.fromEntries(
+            Object.keys(state.openParts).map((key) => [key, false])
+          ),
+        })),
+
       getTotalPrice: () => {
         // Will be implemented with part price lookup from car-parts.json
         const { selectedParts } = get()
@@ -117,6 +151,14 @@ export const useCarConfig = create<CarConfigState>()(
           activeZone: 'body',
           loadingParts: {},
           partLoadErrors: {},
+          openParts: {
+            car_door_left: false,
+            car_door_right: false,
+            car_door_back_left: false,
+            car_door_back_right: false,
+            car_caput: false,
+            car_trunk: false,
+          },
         }),
     }),
     { name: 'CarConfigStore' }

@@ -10,6 +10,8 @@ import ConfigurableCar from './ConfigurableCar'
 import CameraControls from './CameraControls'
 import CameraPresets from './CameraPresets'
 import InteriorLookControls from './InteriorLookControls'
+import PartClickDetector from './PartClickDetector'
+import PartsTogglePanel from './PartsTogglePanel'
 import { useCameraStore } from '@/stores/cameraStore'
 
 interface CarTuningSceneProps {
@@ -61,10 +63,16 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
 
         {/* Interior Look Controls */}
         {activePreset === 'interior' && <InteriorLookControls />}
+
+        {/* Part Click Detection */}
+        <PartClickDetector />
       </Canvas>
 
       {/* Camera Presets UI */}
       <CameraPresets />
+
+      {/* Parts Toggle Panel */}
+      <PartsTogglePanel />
     </div>
   )
 }

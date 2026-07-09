@@ -1,10 +1,11 @@
 'use client'
 
-import { useRef, useMemo, Suspense } from 'react'
+import { useRef, useMemo, Suspense, useEffect } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { useCarConfig } from '@/stores/carConfigStore'
 import { DynamicPart } from './DynamicPart'
 import { PartErrorBoundary } from './PartErrorBoundary'
+import { DoorController } from '@/lib/DoorController'
 import * as THREE from 'three'
 
 interface ConfigurableCarProps {
@@ -13,10 +14,12 @@ interface ConfigurableCarProps {
 
 export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
   const groupRef = useRef<THREE.Group>(null!)
+  const doorControllerRef = useRef<DoorController | null>(null)
 
   // Get paint config and error handler from store
   const paintConfig = useCarConfig((s) => s.paintConfig)
   const setPartError = useCarConfig((s) => s.setPartError)
+  const openParts = useCarConfig((s) => s.openParts)
 
   // Handle part loading errors
   const handlePartError = (category: string, error: Error) => {
@@ -84,6 +87,41 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
 
     return clone
   }, [gltf.scene, paintConfig])
+
+  // Initialize DoorController after car model loads
+  useEffect(() => {
+    if (!carModel) return
+
+    try {
+      doorControllerRef.current = new DoorController(carModel, {
+        doorAngleDeg: 70,
+        hoodAngleDeg: 45,
+        trunkAngleDeg: 80,
+        durationSec: 1.2,
+      })
+      console.log('[DoorController] Initialized successfully')
+    } catch (error) {
+      console.error('[DoorController] Initialization failed:', error)
+    }
+
+    return () => {
+      doorControllerRef.current = null
+    }
+  }, [carModel])
+
+  // React to openParts state changes
+  useEffect(() => {
+    if (!doorControllerRef.current) return
+
+    const controller = doorControllerRef.current
+
+    controller.openLeftFrontDoor(openParts.car_door_left)
+    controller.openRightFrontDoor(openParts.car_door_right)
+    controller.openLeftBackDoor(openParts.car_door_back_left)
+    controller.openRightBackDoor(openParts.car_door_back_right)
+    controller.openHood(openParts.car_caput)
+    controller.openTrunk(openParts.car_trunk)
+  }, [openParts])
 
   // Part categories to render
   const partCategories = [

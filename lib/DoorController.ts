@@ -1,0 +1,291 @@
+import * as THREE from 'three'
+import { gsap } from 'gsap'
+
+export class DoorController {
+  public leftDoorPivot: THREE.Object3D
+  public rightDoorPivot: THREE.Object3D
+  public leftBackDoorPivot: THREE.Object3D
+  public rightBackDoorPivot: THREE.Object3D
+  public hoodPivot: THREE.Object3D
+  public trunkPivot: THREE.Object3D
+
+  private pivotBasePositions: Map<THREE.Object3D, THREE.Vector3> = new Map()
+  private leftDoorMax: number
+  private rightDoorMax: number
+  private hoodMax: number
+  private trunkMax: number
+  private duration: number
+
+  constructor(
+    private scene: THREE.Scene,
+    options: {
+      doorAngleDeg?: number
+      hoodAngleDeg?: number
+      trunkAngleDeg?: number
+      durationSec?: number
+    } = {}
+  ) {
+    const {
+      doorAngleDeg = 70,
+      hoodAngleDeg = 45,
+      trunkAngleDeg = 80,
+      durationSec = 1.2,
+    } = options
+
+    // Get meshes by name (adjust to match your car model's mesh names)
+    const leftFrontDoor = scene.getObjectByName('car_door_left') as THREE.Mesh
+    const rightFrontDoor = scene.getObjectByName('car_door_right') as THREE.Mesh
+    const leftBackDoor = scene.getObjectByName('car_door_back_left') as THREE.Mesh
+    const rightBackDoor = scene.getObjectByName('car_door_back_right') as THREE.Mesh
+    const hood = scene.getObjectByName('car_caput') as THREE.Mesh
+    const trunk = scene.getObjectByName('car_trunk') as THREE.Mesh
+
+    if (!leftFrontDoor || !rightFrontDoor || !hood || !trunk) {
+      console.warn('DoorController: one or more parts not found by name')
+    }
+
+    // Create pivot (hinge) objects for each part
+    this.leftDoorPivot = this.createHingePivot(
+      scene,
+      leftFrontDoor,
+      'left',
+      'car_window_left',
+      ['door_left_attach', 'door_left_attach_2', 'door_dside_f']
+    )
+
+    this.rightDoorPivot = this.createHingePivot(
+      scene,
+      rightFrontDoor,
+      'right',
+      'car_window_right',
+      ['door_right_attach', 'door_right_attach_2', 'door_dside_f001']
+    )
+
+    this.leftBackDoorPivot = this.createHingePivot(
+      scene,
+      leftBackDoor,
+      'left',
+      'car_window_back_left',
+      ['door_left_back_attach']
+    )
+
+    this.rightBackDoorPivot = this.createHingePivot(
+      scene,
+      rightBackDoor,
+      'right',
+      'car_window_back_right',
+      ['door_right_back_attach']
+    )
+
+    this.hoodPivot = this.createHingePivot(
+      scene,
+      hood,
+      'hood',
+      '',
+      ['caput_attach']
+    )
+
+    this.trunkPivot = this.createHingePivot(
+      scene,
+      trunk,
+      'trunk',
+      'car_window_back',
+      ['back_attach', 'back_attach_2', 'back_attach_3']
+    )
+
+    // Store base positions for movement animations
+    [
+      this.leftDoorPivot,
+      this.rightDoorPivot,
+      this.leftBackDoorPivot,
+      this.rightBackDoorPivot,
+      this.hoodPivot,
+      this.trunkPivot,
+    ].forEach((pivot) => {
+      if (pivot) this.pivotBasePositions.set(pivot, pivot.position.clone())
+    })
+
+    // Convert angles to radians
+    this.leftDoorMax = THREE.MathUtils.degToRad(doorAngleDeg)
+    this.rightDoorMax = THREE.MathUtils.degToRad(doorAngleDeg)
+    this.hoodMax = THREE.MathUtils.degToRad(hoodAngleDeg)
+    this.trunkMax = THREE.MathUtils.degToRad(trunkAngleDeg)
+    this.duration = durationSec
+  }
+
+  private createHingePivot(
+    carModel: any,
+    mesh: THREE.Mesh,
+    part: 'left' | 'right' | 'hood' | 'trunk',
+    windowName: string | null = null,
+    handleNames: string | string[] = []
+  ): THREE.Object3D {
+    if (!mesh) {
+      console.warn(`DoorController: mesh for ${part} not found`)
+      return new THREE.Object3D()
+    }
+
+    const handles = Array.isArray(handleNames)
+      ? handleNames
+      : handleNames
+      ? [handleNames]
+      : []
+
+    mesh.geometry.computeBoundingBox()
+    const bbox = mesh.geometry.boundingBox!
+    const hingeLocal = new THREE.Vector3()
+
+    switch (part) {
+      case 'left':
+        hingeLocal.x = bbox.min.x
+        hingeLocal.y = bbox.min.y
+        hingeLocal.z = (bbox.min.z + bbox.max.z) / 2
+        break
+
+      case 'right':
+        hingeLocal.x = bbox.min.x
+        hingeLocal.y = bbox.min.y
+        hingeLocal.z = (bbox.min.z + bbox.max.z) / 2
+        break
+
+      case 'hood':
+        hingeLocal.x = (bbox.min.x + bbox.max.x) / 2
+        hingeLocal.y = bbox.max.y
+        hingeLocal.z = bbox.min.z
+        break
+
+      case 'trunk':
+        hingeLocal.x = (bbox.min.x + bbox.max.x) / 2
+        hingeLocal.y = bbox.max.y
+        hingeLocal.z = (bbox.min.z + bbox.max.z) / 2
+        break
+    }
+
+    // World ↔ parent local conversion
+    const hingeWorld = mesh.localToWorld(hingeLocal.clone())
+    const parent = mesh.parent!
+    const hingeParent = parent.worldToLocal(hingeWorld.clone())
+
+    // Build pivot
+    const pivot = new THREE.Object3D()
+    parent.add(pivot)
+    pivot.position.copy(hingeParent)
+
+    // Attach the door
+    pivot.attach(mesh)
+
+    // Optional: attach the window
+    if (windowName) {
+      const winMesh = carModel.getObjectByName(windowName) as THREE.Mesh
+      if (winMesh) {
+        winMesh.updateMatrixWorld(true)
+        pivot.attach(winMesh)
+      } else {
+        console.warn(`Window mesh "${windowName}" not found.`)
+      }
+    }
+
+    // Optional: attach handle(s)
+    handles.forEach((hName) => {
+      const handleMesh = carModel.getObjectByName(hName) as THREE.Mesh
+      if (handleMesh) {
+        handleMesh.updateMatrixWorld(true)
+        pivot.attach(handleMesh)
+      } else {
+        console.warn(`Handle mesh "${hName}" not found.`)
+      }
+    })
+
+    return pivot
+  }
+
+  private animateMovement(
+    pivot: THREE.Object3D,
+    offset: THREE.Vector3,
+    isOpen: boolean
+  ) {
+    const base = this.pivotBasePositions.get(pivot)!
+    const targetPos = isOpen ? base.clone().add(offset) : base.clone()
+    gsap.to(pivot.position, {
+      x: targetPos.x,
+      y: targetPos.y,
+      z: targetPos.z,
+      duration: this.duration,
+      ease: 'power2.inOut',
+    })
+  }
+
+  public openLeftFrontDoor(isOpen: boolean) {
+    const target = isOpen ? this.leftDoorMax : 0
+    gsap.to(this.leftDoorPivot.rotation, {
+      y: -target,
+      duration: this.duration,
+      ease: 'power2.inOut',
+    })
+    this.animateMovement(
+      this.leftDoorPivot,
+      new THREE.Vector3(0.11, 0, 0),
+      isOpen
+    )
+  }
+
+  public openRightFrontDoor(isOpen: boolean) {
+    const target = isOpen ? -this.rightDoorMax : 0
+    gsap.to(this.rightDoorPivot.rotation, {
+      y: -target,
+      duration: this.duration,
+      ease: 'power2.inOut',
+    })
+    this.animateMovement(
+      this.rightDoorPivot,
+      new THREE.Vector3(0.11, 0, 0),
+      isOpen
+    )
+  }
+
+  public openLeftBackDoor(isOpen: boolean) {
+    const target = isOpen ? this.leftDoorMax : 0
+    gsap.to(this.leftBackDoorPivot.rotation, {
+      y: target,
+      duration: this.duration,
+      ease: 'power2.inOut',
+    })
+  }
+
+  public openRightBackDoor(isOpen: boolean) {
+    const target = isOpen ? -this.rightDoorMax : 0
+    gsap.to(this.rightBackDoorPivot.rotation, {
+      y: target,
+      duration: this.duration,
+      ease: 'power2.inOut',
+    })
+  }
+
+  public openHood(isOpen: boolean) {
+    const target = isOpen ? -this.hoodMax : 0
+    gsap.to(this.hoodPivot.rotation, {
+      z: target,
+      duration: this.duration,
+      ease: 'power2.inOut',
+    })
+    this.animateMovement(
+      this.hoodPivot,
+      new THREE.Vector3(0.18, 0.3, 0),
+      isOpen
+    )
+  }
+
+  public openTrunk(isOpen: boolean) {
+    const target = isOpen ? this.trunkMax : 0
+    gsap.to(this.trunkPivot.rotation, {
+      z: target,
+      duration: this.duration,
+      ease: 'power2.inOut',
+    })
+    this.animateMovement(
+      this.trunkPivot,
+      new THREE.Vector3(-0.28, 0.3, 0),
+      isOpen
+    )
+  }
+}
