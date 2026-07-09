@@ -280,7 +280,7 @@ export class DoorController {
 
   public openRightFrontDoor(isOpen: boolean) {
     console.log(`[DoorController] openRightFrontDoor(${isOpen})`)
-    const target = isOpen ? -this.rightDoorMax : 0
+    const target = isOpen ? this.rightDoorMax : 0
     gsap.to(this.rightDoorPivot.rotation, {
       z: target,  // Positive to open outward
       duration: this.duration,
@@ -305,7 +305,7 @@ export class DoorController {
 
   public openRightBackDoor(isOpen: boolean) {
     console.log(`[DoorController] openRightBackDoor(${isOpen})`)
-    const target = isOpen ? -this.rightDoorMax : 0
+    const target = isOpen ? this.rightDoorMax : 0
     gsap.to(this.rightBackDoorPivot.rotation, {
       z: target,  // Positive to open outward
       duration: this.duration,
@@ -317,7 +317,7 @@ export class DoorController {
     console.log(`[DoorController] openHood(${isOpen})`)
     const target = isOpen ? -this.hoodMax : 0
     gsap.to(this.hoodPivot.rotation, {
-      z: target,
+      x: target,
       duration: this.duration,
       ease: 'power2.inOut',
     })
@@ -332,7 +332,7 @@ export class DoorController {
     console.log(`[DoorController] openTrunk(${isOpen})`)
     const target = isOpen ? this.trunkMax : 0
     gsap.to(this.trunkPivot.rotation, {
-      z: target,
+      x: target,
       duration: this.duration,
       ease: 'power2.inOut',
     })
