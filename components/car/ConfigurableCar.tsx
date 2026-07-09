@@ -42,7 +42,8 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
         child.receiveShadow = true
 
         // Check if mesh is paintable (userData flag OR name matching)
-        const isPaintable = getUserData(child, 'paintable') === true
+        const paintableValue = getUserData(child, 'paintable')
+        const isPaintable = paintableValue === true || paintableValue === 1
         const nameMatch =
           child.material?.name?.toLowerCase().includes('body') ||
           child.material?.name?.toLowerCase().includes('paint') ||
@@ -52,6 +53,11 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
           // Get paint zone from userData, fallback to 'body'
           const zone = (getUserData(child, 'paintZone') as 'body' | 'trim' | 'interior') || 'body'
           const zoneConfig = paintConfig[zone]
+
+          // Debug: Log paint application
+          if (paintableValue) {
+            console.log(`[Paint] ${child.name} → zone: ${zone}, paintable: ${paintableValue}`)
+          }
 
           const mat = child.material as any
           mat.color.set(zoneConfig.color)
