@@ -189,15 +189,15 @@ export class DoorController {
         break
 
       case 'hood':
-        hingeLocal.x = (bbox.min.x + bbox.max.x) / 2
-        hingeLocal.y = bbox.max.y
-        hingeLocal.z = bbox.min.z
+        hingeLocal.x = bbox.max.x
+        hingeLocal.y = (bbox.min.y + bbox.max.y) / 2
+        hingeLocal.z = bbox.max.z
         break
 
       case 'trunk':
-        hingeLocal.x = (bbox.min.x + bbox.max.x) / 2
-        hingeLocal.y = bbox.max.y
-        hingeLocal.z = (bbox.min.z + bbox.max.z) / 2
+        hingeLocal.x = bbox.min.x
+        hingeLocal.y = (bbox.min.y + bbox.max.y) / 2
+        hingeLocal.z = bbox.max.z
         break
     }
 
@@ -315,9 +315,9 @@ export class DoorController {
 
   public openHood(isOpen: boolean) {
     console.log(`[DoorController] openHood(${isOpen})`)
-    const target = isOpen ? -this.hoodMax : 0
+    const target = isOpen ? this.hoodMax : 0
     gsap.to(this.hoodPivot.rotation, {
-      x: target,
+      y: target,
       duration: this.duration,
       ease: 'power2.inOut',
     })
@@ -330,9 +330,9 @@ export class DoorController {
 
   public openTrunk(isOpen: boolean) {
     console.log(`[DoorController] openTrunk(${isOpen})`)
-    const target = isOpen ? this.trunkMax : 0
+    const target = isOpen ? -this.trunkMax : 0
     gsap.to(this.trunkPivot.rotation, {
-      x: target,
+      y: target,
       duration: this.duration,
       ease: 'power2.inOut',
     })
