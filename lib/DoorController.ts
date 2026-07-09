@@ -94,14 +94,15 @@ export class DoorController {
     )
 
     // Store base positions for movement animations
-    [
+    const pivots = [
       this.leftDoorPivot,
       this.rightDoorPivot,
       this.leftBackDoorPivot,
       this.rightBackDoorPivot,
       this.hoodPivot,
       this.trunkPivot,
-    ].forEach((pivot) => {
+    ]
+    pivots.forEach((pivot) => {
       if (pivot) this.pivotBasePositions.set(pivot, pivot.position.clone())
     })
 
