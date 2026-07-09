@@ -1,11 +1,13 @@
 'use client'
 
 import { useRef, useMemo, useEffect, Suspense } from 'react'
+import { useRef, useMemo, Suspense, useEffect } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useCarConfig, PaintZone } from '@/stores/carConfigStore'
 import { DynamicPart } from './DynamicPart'
 import { PartErrorBoundary } from './PartErrorBoundary'
+import { DoorController } from '@/lib/DoorController'
 import * as THREE from 'three'
 
 // Use the local DRACO decoder instead of drei's default CDN
@@ -23,9 +25,11 @@ interface PaintTarget {
 export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
   const groupRef = useRef<THREE.Group>(null!)
   const invalidate = useThree((s) => s.invalidate)
+  const doorControllerRef = useRef<DoorController | null>(null)
 
   const paintConfig = useCarConfig((s) => s.paintConfig)
   const setPartError = useCarConfig((s) => s.setPartError)
+  const openParts = useCarConfig((s) => s.openParts)
 
   const handlePartError = (category: string, error: Error) => {
     setPartError(category, error.message)
@@ -36,21 +40,42 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
   // Clone + center the car ONCE per model. Paintable materials are cloned here
   // (so we never mutate drei's shared cache) and collected for the paint effect.
   const { carModel, paintTargets } = useMemo(() => {
+  // Process car model ONCE (don't recreate on paint changes)
+  const carModel = useMemo(() => {
     const clone = gltf.scene.clone(true)
     const targets: PaintTarget[] = []
 
-    // Helper: Support both flat userData and nested userData.userdata
-    const getUserData = (mesh: any, key: string) => {
-      return mesh.userData?.userdata?.[key] ?? mesh.userData?.[key]
-    }
+    // Center model
+    const box = new THREE.Box3().setFromObject(clone)
+    const center = box.getCenter(new THREE.Vector3())
+    clone.position.sub(center)
 
+    // Set shadows
     clone.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.castShadow = true
         child.receiveShadow = true
+        if (child.material) {
+          child.material.envMapIntensity = 1.5
+        }
+      }
+    })
 
-        // Check if mesh is paintable (userData flag OR name matching)
-        const isPaintable = getUserData(child, 'paintable') === true
+    return clone
+  }, [gltf.scene])
+
+  // Apply paint separately (doesn't recreate model)
+  useEffect(() => {
+    if (!carModel) return
+
+    const getUserData = (mesh: any, key: string) => {
+      return mesh.userData?.userdata?.[key] ?? mesh.userData?.[key]
+    }
+
+    carModel.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        const paintableValue = getUserData(child, 'paintable')
+        const isPaintable = paintableValue === true || paintableValue === 1
         const nameMatch =
           child.material?.name?.toLowerCase().includes('body') ||
           child.material?.name?.toLowerCase().includes('paint') ||
@@ -60,19 +85,29 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
           const zone = (getUserData(child, 'paintZone') as PaintZone) || 'body'
           child.material = (child.material as THREE.Material).clone()
           targets.push({ material: child.material as THREE.MeshPhysicalMaterial, zone })
-        }
+          const zone = (getUserData(child, 'paintZone') as 'body' | 'trim' | 'interior') || 'body'
+          const zoneConfig = paintConfig[zone]
 
-        // Enhanced reflections for all materials
-        if (child.material) {
-          child.material.envMapIntensity = 1.5
+          const mat = child.material as any
+          mat.color.set(zoneConfig.color)
+          mat.metalness = zoneConfig.metalness
+          mat.roughness = zoneConfig.roughness
+          if (mat.clearcoat !== undefined) {
+            mat.clearcoat = zoneConfig.clearcoat
+            mat.clearcoatRoughness = 0.1
+          }
+          mat.needsUpdate = true
         }
       }
     })
+  }, [carModel, paintConfig])
 
-    // Center model
-    const box = new THREE.Box3().setFromObject(clone)
-    const center = box.getCenter(new THREE.Vector3())
-    clone.position.sub(center)
+  // Initialize DoorController after car model loads
+  useEffect(() => {
+    if (!carModel) {
+      console.log('[ConfigurableCar] Car model not ready yet')
+      return
+    }
 
     return { carModel: clone, paintTargets: targets }
   }, [gltf.scene])
@@ -99,6 +134,41 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
       paintTargets.forEach(({ material }) => material.dispose())
     }
   }, [paintTargets])
+    console.log('[ConfigurableCar] Car model loaded, initializing DoorController...')
+    try {
+      const controller = new DoorController(carModel, {
+        doorAngleDeg: 70,
+        hoodAngleDeg: 45,
+        trunkAngleDeg: 80,
+        durationSec: 1.2,
+      })
+      doorControllerRef.current = controller
+      console.log('[ConfigurableCar] ✓ DoorController initialized successfully')
+      console.log('[ConfigurableCar] ✓ Controller ref set:', !!doorControllerRef.current)
+    } catch (error) {
+      console.error('[ConfigurableCar] ✗ DoorController initialization failed:', error)
+    }
+
+    // Don't cleanup - keep controller alive for entire component lifecycle
+  }, [carModel])
+
+  // React to openParts state changes
+  useEffect(() => {
+    if (!doorControllerRef.current) {
+      console.log('[ConfigurableCar] State changed but controller not ready')
+      return
+    }
+
+    console.log('[ConfigurableCar] openParts state changed:', openParts)
+    const controller = doorControllerRef.current
+
+    controller.openLeftFrontDoor(openParts.car_door_left)
+    controller.openRightFrontDoor(openParts.car_door_right)
+    controller.openLeftBackDoor(openParts.car_door_back_left)
+    controller.openRightBackDoor(openParts.car_door_back_right)
+    controller.openHood(openParts.car_caput)
+    controller.openTrunk(openParts.car_trunk)
+  }, [openParts])
 
   // Part categories to render
   const partCategories = [

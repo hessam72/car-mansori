@@ -6,7 +6,8 @@ import { RotateCcw, Home, ChevronRight, ChevronLeft } from 'lucide-react'
 import {
   MdOutlineViewInAr,
   MdOutlineZoomIn,
-  MdArrowUpward
+  MdArrowUpward,
+  MdAirlineSeatReclineNormal
 } from 'react-icons/md'
 import { TbCarSuv } from 'react-icons/tb'
 import { IoCarSportOutline } from 'react-icons/io5'
@@ -18,14 +19,15 @@ const presetIcons: Record<PresetName, React.ComponentType<{ className?: string }
   sideRight: () => <TbCarSuv className="w-5 h-5" />,
   top: () => <MdArrowUpward className="w-5 h-5" />,
   detail: () => <MdOutlineZoomIn className="w-5 h-5" />,
-  home: () => <MdOutlineViewInAr className="w-5 h-5" />
+  home: () => <MdOutlineViewInAr className="w-5 h-5" />,
+  interior: () => <MdAirlineSeatReclineNormal className="w-5 h-5" />
 }
 
 export default function CameraPresets() {
   const { activePreset, setPreset, autoRotate, setAutoRotate } = useCameraStore()
   const [isExpanded, setIsExpanded] = useState(false)
 
-  const presets: PresetName[] = ['front', 'rear', 'sideLeft', 'sideRight', 'top', 'detail']
+  const presets: PresetName[] = ['front', 'rear', 'sideLeft', 'sideRight', 'top', 'detail', 'interior']
 
   return (
     <>

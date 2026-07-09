@@ -16,6 +16,7 @@ public/models
 # next.js
 /.next/
 /out/
+integration-parts
 public/store-models
 public/hdr/Jew HDRI 2.exr
 public/hdr/Jew HDRI 3.exr

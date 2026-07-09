@@ -9,6 +9,11 @@ import CarLighting from './CarLighting'
 import ConfigurableCar from './ConfigurableCar'
 import CameraControls from './CameraControls'
 import CameraPresets from './CameraPresets'
+import InteriorLookControls from './InteriorLookControls'
+import PartClickDetector from './PartClickDetector'
+import PartsTogglePanel from './PartsTogglePanel'
+import PerformanceMonitor from './PerformanceMonitor'
+import { useCameraStore } from '@/stores/cameraStore'
 
 interface CarTuningSceneProps {
   modelPath: string
@@ -17,6 +22,7 @@ interface CarTuningSceneProps {
 export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   const initialPosition: [number, number, number] = isMobile ? [8, 3.2, 8] : [5, 2, 5]
+  const { activePreset } = useCameraStore()
 
   return (
     <div className="w-full h-screen">
@@ -27,6 +33,23 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
         frameloop="demand"
         dpr={[1, 1.75]}
         gl={{
+    <>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          canvas + div {
+            left: 20% !important;
+            top: 0 !important;
+            transform: scale(2.5) !important;
+            transform-origin: top left !important;
+            width: auto !important;
+            height: auto !important;
+          }
+        `
+      }} />
+      <div className="w-full h-screen">
+        <Canvas
+          shadows
+          gl={{
           antialias: true,
           toneMapping: ACESFilmicToneMapping,
           toneMappingExposure: 1.0,
@@ -62,10 +85,23 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
 
         {/* Camera Controls */}
         <CameraControls />
+
+        {/* Interior Look Controls */}
+        {activePreset === 'interior' && <InteriorLookControls />}
+
+        {/* Part Click Detection */}
+        <PartClickDetector />
+
+        {/* Performance Monitor */}
+        <PerformanceMonitor />
       </Canvas>
 
       {/* Camera Presets UI */}
       <CameraPresets />
-    </div>
+
+      {/* Parts Toggle Panel */}
+      <PartsTogglePanel />
+      </div>
+    </>
   )
 }
