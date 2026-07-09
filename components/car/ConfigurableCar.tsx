@@ -109,7 +109,7 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
 
     console.log('[ConfigurableCar] Car model loaded, initializing DoorController...')
     try {
-      const controller = new DoorController(carModel, {
+      const controller = new DoorController(carModel, invalidate, {
         doorAngleDeg: 70,
         hoodAngleDeg: 45,
         trunkAngleDeg: 80,

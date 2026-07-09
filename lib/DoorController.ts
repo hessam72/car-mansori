@@ -15,9 +15,11 @@ export class DoorController {
   private hoodMax: number
   private trunkMax: number
   private duration: number
+  private invalidate: () => void
 
   constructor(
-    private scene: THREE.Scene,
+    private scene: THREE.Group,
+    invalidate: () => void,
     options: {
       doorAngleDeg?: number
       hoodAngleDeg?: number
@@ -25,6 +27,7 @@ export class DoorController {
       durationSec?: number
     } = {}
   ) {
+    this.invalidate = invalidate
     const {
       doorAngleDeg = 70,
       hoodAngleDeg = 45,
@@ -259,6 +262,7 @@ export class DoorController {
       z: targetPos.z,
       duration: this.duration,
       ease: 'power2.inOut',
+      onUpdate: () => this.invalidate(),
     })
   }
 
@@ -270,6 +274,7 @@ export class DoorController {
       z: -target,  // Negative to open outward
       duration: this.duration,
       ease: 'power2.inOut',
+      onUpdate: () => this.invalidate(),
     })
     this.animateMovement(
       this.leftDoorPivot,
@@ -285,6 +290,7 @@ export class DoorController {
       z: target,  // Positive to open outward
       duration: this.duration,
       ease: 'power2.inOut',
+      onUpdate: () => this.invalidate(),
     })
     this.animateMovement(
       this.rightDoorPivot,
@@ -300,6 +306,7 @@ export class DoorController {
       z: -target,  // Negative to open outward
       duration: this.duration,
       ease: 'power2.inOut',
+      onUpdate: () => this.invalidate(),
     })
   }
 
@@ -310,6 +317,7 @@ export class DoorController {
       z: target,  // Positive to open outward
       duration: this.duration,
       ease: 'power2.inOut',
+      onUpdate: () => this.invalidate(),
     })
   }
 
@@ -320,6 +328,7 @@ export class DoorController {
       y: target,
       duration: this.duration,
       ease: 'power2.inOut',
+      onUpdate: () => this.invalidate(),
     })
     this.animateMovement(
       this.hoodPivot,
@@ -335,6 +344,7 @@ export class DoorController {
       y: target,
       duration: this.duration,
       ease: 'power2.inOut',
+      onUpdate: () => this.invalidate(),
     })
     this.animateMovement(
       this.trunkPivot,

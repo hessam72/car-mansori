@@ -13,7 +13,7 @@ export default function InteriorLookControls({
   sensitivity = 0.003,
   pitchLimit = Math.PI / 3 // 60 degrees
 }: InteriorLookControlsProps) {
-  const { camera, gl } = useThree()
+  const { camera, gl, invalidate } = useThree()
   const isDragging = useRef(false)
   const previousPosition = useRef({ x: 0, y: 0 })
   const rotation = useRef({ yaw: 0, pitch: 0 })
@@ -37,6 +37,7 @@ export default function InteriorLookControls({
     const lookAtTarget = new THREE.Vector3()
     lookAtTarget.addVectors(camera.position, direction.multiplyScalar(5))
     camera.lookAt(lookAtTarget)
+    invalidate()
   })
 
   useEffect(() => {
