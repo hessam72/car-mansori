@@ -33,7 +33,7 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
         gl={{
           antialias: true,
           toneMapping: ACESFilmicToneMapping,
-          toneMappingExposure: 1.0,
+          toneMappingExposure: 1.2,
         }}
         camera={{
           position: initialPosition,

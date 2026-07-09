@@ -89,6 +89,12 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
         material.clearcoat = zoneConfig.clearcoat
         material.clearcoatRoughness = 0.1
       }
+      // Iridescence for exotic paint effect (color shift at angles)
+      if (material.iridescence !== undefined) {
+        material.iridescence = 0.3
+        material.iridescenceIOR = 1.3
+        material.iridescenceThicknessRange = [100, 800]
+      }
     })
     invalidate()
   }, [paintConfig, paintTargets, invalidate])

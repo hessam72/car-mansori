@@ -29,6 +29,16 @@ export default function CarLighting() {
         intensity={80}
         angle={0.4}
         penumbra={0.6}
+        color="#88aaff"
+      />
+
+      {/* Ground bounce light - realistic reflected light from floor */}
+      <pointLight
+        position={[0, 0.5, 0]}
+        intensity={40}
+        distance={6}
+        decay={2}
+        color="#ffeedd"
       />
 
       {/* Ambient fill */}
