@@ -1,7 +1,6 @@
 'use client'
 
 import { useRef, useMemo, useEffect, Suspense } from 'react'
-import { useRef, useMemo, Suspense, useEffect } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useCarConfig, PaintZone } from '@/stores/carConfigStore'
@@ -40,8 +39,6 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
   // Clone + center the car ONCE per model. Paintable materials are cloned here
   // (so we never mutate drei's shared cache) and collected for the paint effect.
   const { carModel, paintTargets } = useMemo(() => {
-  // Process car model ONCE (don't recreate on paint changes)
-  const carModel = useMemo(() => {
     const clone = gltf.scene.clone(true)
     const targets: PaintTarget[] = []
 
@@ -50,7 +47,11 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
     const center = box.getCenter(new THREE.Vector3())
     clone.position.sub(center)
 
-    // Set shadows
+    const getUserData = (mesh: any, key: string) => {
+      return mesh.userData?.userdata?.[key] ?? mesh.userData?.[key]
+    }
+
+    // Set shadows and collect paintable materials
     clone.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.castShadow = true
@@ -58,22 +59,7 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
         if (child.material) {
           child.material.envMapIntensity = 1.5
         }
-      }
-    })
 
-    return clone
-  }, [gltf.scene])
-
-  // Apply paint separately (doesn't recreate model)
-  useEffect(() => {
-    if (!carModel) return
-
-    const getUserData = (mesh: any, key: string) => {
-      return mesh.userData?.userdata?.[key] ?? mesh.userData?.[key]
-    }
-
-    carModel.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
         const paintableValue = getUserData(child, 'paintable')
         const isPaintable = paintableValue === true || paintableValue === 1
         const nameMatch =
@@ -85,35 +71,14 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
           const zone = (getUserData(child, 'paintZone') as PaintZone) || 'body'
           child.material = (child.material as THREE.Material).clone()
           targets.push({ material: child.material as THREE.MeshPhysicalMaterial, zone })
-          const zone = (getUserData(child, 'paintZone') as 'body' | 'trim' | 'interior') || 'body'
-          const zoneConfig = paintConfig[zone]
-
-          const mat = child.material as any
-          mat.color.set(zoneConfig.color)
-          mat.metalness = zoneConfig.metalness
-          mat.roughness = zoneConfig.roughness
-          if (mat.clearcoat !== undefined) {
-            mat.clearcoat = zoneConfig.clearcoat
-            mat.clearcoatRoughness = 0.1
-          }
-          mat.needsUpdate = true
         }
       }
     })
-  }, [carModel, paintConfig])
-
-  // Initialize DoorController after car model loads
-  useEffect(() => {
-    if (!carModel) {
-      console.log('[ConfigurableCar] Car model not ready yet')
-      return
-    }
 
     return { carModel: clone, paintTargets: targets }
   }, [gltf.scene])
 
-  // Apply paint by mutating the cached materials in place — no re-clone,
-  // no traverse, no re-attach of DynamicParts.
+  // Apply paint by mutating the cached materials in place
   useEffect(() => {
     paintTargets.forEach(({ material, zone }) => {
       const zoneConfig = paintConfig[zone]
@@ -134,6 +99,14 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
       paintTargets.forEach(({ material }) => material.dispose())
     }
   }, [paintTargets])
+
+  // Initialize DoorController after car model loads
+  useEffect(() => {
+    if (!carModel) {
+      console.log('[ConfigurableCar] Car model not ready yet')
+      return
+    }
+
     console.log('[ConfigurableCar] Car model loaded, initializing DoorController...')
     try {
       const controller = new DoorController(carModel, {
