@@ -33,6 +33,7 @@ export class DoorController {
     } = options
 
     // Get meshes by name (adjust to match your car model's mesh names)
+    console.log('[DoorController] Searching for meshes in scene...')
     const leftFrontDoor = scene.getObjectByName('car_door_left') as THREE.Mesh
     const rightFrontDoor = scene.getObjectByName('car_door_right') as THREE.Mesh
     const leftBackDoor = scene.getObjectByName('car_door_back_left') as THREE.Mesh
@@ -40,11 +41,28 @@ export class DoorController {
     const hood = scene.getObjectByName('car_caput') as THREE.Mesh
     const trunk = scene.getObjectByName('car_trunk') as THREE.Mesh
 
+    console.log('[DoorController] Mesh lookup results:', {
+      car_door_left: leftFrontDoor ? '✓ FOUND' : '✗ NOT FOUND',
+      car_door_right: rightFrontDoor ? '✓ FOUND' : '✗ NOT FOUND',
+      car_door_back_left: leftBackDoor ? '✓ FOUND' : '✗ NOT FOUND',
+      car_door_back_right: rightBackDoor ? '✓ FOUND' : '✗ NOT FOUND',
+      car_caput: hood ? '✓ FOUND' : '✗ NOT FOUND',
+      car_trunk: trunk ? '✓ FOUND' : '✗ NOT FOUND',
+    })
+
     if (!leftFrontDoor || !rightFrontDoor || !hood || !trunk) {
-      console.warn('DoorController: one or more parts not found by name')
+      console.warn('[DoorController] ⚠️ One or more critical parts not found!')
+      console.log('[DoorController] Listing ALL mesh names in scene:')
+      scene.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          console.log('  - Mesh name:', child.name || '(unnamed)')
+        }
+      })
     }
 
     // Create pivot (hinge) objects for each part
+    console.log('[DoorController] Creating pivots for all parts...')
+
     this.leftDoorPivot = this.createHingePivot(
       scene,
       leftFrontDoor,
@@ -93,6 +111,15 @@ export class DoorController {
       ['back_attach', 'back_attach_2', 'back_attach_3']
     )
 
+    console.log('[DoorController] All pivots created:', {
+      leftDoorPivot: !!this.leftDoorPivot,
+      rightDoorPivot: !!this.rightDoorPivot,
+      leftBackDoorPivot: !!this.leftBackDoorPivot,
+      rightBackDoorPivot: !!this.rightBackDoorPivot,
+      hoodPivot: !!this.hoodPivot,
+      trunkPivot: !!this.trunkPivot,
+    })
+
     // Store base positions for movement animations
     const pivots = [
       this.leftDoorPivot,
@@ -122,9 +149,11 @@ export class DoorController {
     handleNames: string | string[] = []
   ): THREE.Object3D {
     if (!mesh) {
-      console.warn(`DoorController: mesh for ${part} not found`)
+      console.warn(`[DoorController] ⚠️ Mesh for "${part}" not found, skipping pivot creation`)
       return new THREE.Object3D()
     }
+
+    console.log(`[DoorController] Creating hinge pivot for "${part}"...`)
 
     const handles = Array.isArray(handleNames)
       ? handleNames
@@ -132,8 +161,18 @@ export class DoorController {
       ? [handleNames]
       : []
 
+    if (!mesh.geometry) {
+      console.error(`[DoorController] Mesh for "${part}" has no geometry!`)
+      return new THREE.Object3D()
+    }
+
     mesh.geometry.computeBoundingBox()
-    const bbox = mesh.geometry.boundingBox!
+    const bbox = mesh.geometry.boundingBox
+
+    if (!bbox) {
+      console.error(`[DoorController] Could not compute bounding box for "${part}"!`)
+      return new THREE.Object3D()
+    }
     const hingeLocal = new THREE.Vector3()
 
     switch (part) {
@@ -164,7 +203,13 @@ export class DoorController {
 
     // World ↔ parent local conversion
     const hingeWorld = mesh.localToWorld(hingeLocal.clone())
-    const parent = mesh.parent!
+    const parent = mesh.parent
+
+    if (!parent) {
+      console.error(`[DoorController] Mesh for "${part}" has no parent!`)
+      return new THREE.Object3D()
+    }
+
     const hingeParent = parent.worldToLocal(hingeWorld.clone())
 
     // Build pivot
@@ -193,10 +238,11 @@ export class DoorController {
         handleMesh.updateMatrixWorld(true)
         pivot.attach(handleMesh)
       } else {
-        console.warn(`Handle mesh "${hName}" not found.`)
+        console.warn(`[DoorController] Handle mesh "${hName}" not found.`)
       }
     })
 
+    console.log(`[DoorController] ✓ Pivot created for "${part}" at position:`, pivot.position)
     return pivot
   }
 
@@ -217,7 +263,9 @@ export class DoorController {
   }
 
   public openLeftFrontDoor(isOpen: boolean) {
+    console.log(`[DoorController] openLeftFrontDoor(${isOpen})`)
     const target = isOpen ? this.leftDoorMax : 0
+    console.log(`  → Rotating to: ${target} radians (${THREE.MathUtils.radToDeg(target)}°)`)
     gsap.to(this.leftDoorPivot.rotation, {
       y: -target,
       duration: this.duration,
@@ -231,6 +279,7 @@ export class DoorController {
   }
 
   public openRightFrontDoor(isOpen: boolean) {
+    console.log(`[DoorController] openRightFrontDoor(${isOpen})`)
     const target = isOpen ? -this.rightDoorMax : 0
     gsap.to(this.rightDoorPivot.rotation, {
       y: -target,
@@ -245,6 +294,7 @@ export class DoorController {
   }
 
   public openLeftBackDoor(isOpen: boolean) {
+    console.log(`[DoorController] openLeftBackDoor(${isOpen})`)
     const target = isOpen ? this.leftDoorMax : 0
     gsap.to(this.leftBackDoorPivot.rotation, {
       y: target,
@@ -254,6 +304,7 @@ export class DoorController {
   }
 
   public openRightBackDoor(isOpen: boolean) {
+    console.log(`[DoorController] openRightBackDoor(${isOpen})`)
     const target = isOpen ? -this.rightDoorMax : 0
     gsap.to(this.rightBackDoorPivot.rotation, {
       y: target,
@@ -263,6 +314,7 @@ export class DoorController {
   }
 
   public openHood(isOpen: boolean) {
+    console.log(`[DoorController] openHood(${isOpen})`)
     const target = isOpen ? -this.hoodMax : 0
     gsap.to(this.hoodPivot.rotation, {
       z: target,
@@ -277,6 +329,7 @@ export class DoorController {
   }
 
   public openTrunk(isOpen: boolean) {
+    console.log(`[DoorController] openTrunk(${isOpen})`)
     const target = isOpen ? this.trunkMax : 0
     gsap.to(this.trunkPivot.rotation, {
       z: target,

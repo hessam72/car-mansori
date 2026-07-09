@@ -20,6 +20,21 @@ export default function PartsTogglePanel() {
   const allOpen = Object.values(openParts).every((v) => v)
   const allClosed = Object.values(openParts).every((v) => !v)
 
+  const handleToggle = (partName: string) => {
+    console.log('[PartsTogglePanel] Button clicked:', partName)
+    togglePart(partName)
+  }
+
+  const handleOpenAll = () => {
+    console.log('[PartsTogglePanel] Open All clicked')
+    openAllParts()
+  }
+
+  const handleCloseAll = () => {
+    console.log('[PartsTogglePanel] Close All clicked')
+    closeAllParts()
+  }
+
   return (
     <div className="fixed bottom-8 right-8 z-20 flex flex-col gap-3">
       {/* Individual part toggles */}
@@ -29,7 +44,7 @@ export default function PartsTogglePanel() {
           {Object.entries(partLabels).map(([partName, label]) => (
             <button
               key={partName}
-              onClick={() => togglePart(partName)}
+              onClick={() => handleToggle(partName)}
               className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
                 openParts[partName]
                   ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/50'
@@ -45,7 +60,7 @@ export default function PartsTogglePanel() {
       {/* Open/Close All buttons */}
       <div className="flex gap-2">
         <button
-          onClick={openAllParts}
+          onClick={handleOpenAll}
           disabled={allOpen}
           className={`flex-1 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
             allOpen
@@ -56,7 +71,7 @@ export default function PartsTogglePanel() {
           Open All
         </button>
         <button
-          onClick={closeAllParts}
+          onClick={handleCloseAll}
           disabled={allClosed}
           className={`flex-1 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
             allClosed

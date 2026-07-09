@@ -115,27 +115,37 @@ export const useCarConfig = create<CarConfigState>()(
           }
         }),
 
-      togglePart: (partName) =>
-        set((state) => ({
-          openParts: {
-            ...state.openParts,
-            [partName]: !state.openParts[partName],
-          },
-        })),
+      togglePart: (partName) => {
+        console.log('[carConfigStore] togglePart called:', partName)
+        set((state) => {
+          const newState = !state.openParts[partName]
+          console.log(`  → ${partName}: ${state.openParts[partName]} → ${newState}`)
+          return {
+            openParts: {
+              ...state.openParts,
+              [partName]: newState,
+            },
+          }
+        })
+      },
 
-      openAllParts: () =>
+      openAllParts: () => {
+        console.log('[carConfigStore] openAllParts called')
         set((state) => ({
           openParts: Object.fromEntries(
             Object.keys(state.openParts).map((key) => [key, true])
           ),
-        })),
+        }))
+      },
 
-      closeAllParts: () =>
+      closeAllParts: () => {
+        console.log('[carConfigStore] closeAllParts called')
         set((state) => ({
           openParts: Object.fromEntries(
             Object.keys(state.openParts).map((key) => [key, false])
           ),
-        })),
+        }))
+      },
 
       getTotalPrice: () => {
         // Will be implemented with part price lookup from car-parts.json

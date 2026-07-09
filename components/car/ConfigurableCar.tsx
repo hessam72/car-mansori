@@ -29,22 +29,39 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
   // Load base car model with DRACO (useGLTF has built-in DRACO support)
   const gltf = useGLTF(modelPath)
 
-  // Process car model with paint config
+  // Process car model ONCE (don't recreate on paint changes)
   const carModel = useMemo(() => {
     const clone = gltf.scene.clone(true)
 
-    // Helper: Support both flat userData and nested userData.userdata
-    const getUserData = (mesh: any, key: string) => {
-      return mesh.userData?.userdata?.[key] ?? mesh.userData?.[key]
-    }
+    // Center model
+    const box = new THREE.Box3().setFromObject(clone)
+    const center = box.getCenter(new THREE.Vector3())
+    clone.position.sub(center)
 
-    // Apply paint to body meshes
+    // Set shadows
     clone.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.castShadow = true
         child.receiveShadow = true
+        if (child.material) {
+          child.material.envMapIntensity = 1.5
+        }
+      }
+    })
 
-        // Check if mesh is paintable (userData flag OR name matching)
+    return clone
+  }, [gltf.scene])
+
+  // Apply paint separately (doesn't recreate model)
+  useEffect(() => {
+    if (!carModel) return
+
+    const getUserData = (mesh: any, key: string) => {
+      return mesh.userData?.userdata?.[key] ?? mesh.userData?.[key]
+    }
+
+    carModel.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
         const paintableValue = getUserData(child, 'paintable')
         const isPaintable = paintableValue === true || paintableValue === 1
         const nameMatch =
@@ -53,14 +70,8 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
           child.name?.toLowerCase().includes('body')
 
         if (isPaintable || nameMatch) {
-          // Get paint zone from userData, fallback to 'body'
           const zone = (getUserData(child, 'paintZone') as 'body' | 'trim' | 'interior') || 'body'
           const zoneConfig = paintConfig[zone]
-
-          // Debug: Log paint application
-          if (paintableValue) {
-            console.log(`[Paint] ${child.name} → zone: ${zone}, paintable: ${paintableValue}`)
-          }
 
           const mat = child.material as any
           mat.color.set(zoneConfig.color)
@@ -72,47 +83,43 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
           }
           mat.needsUpdate = true
         }
-
-        // Enhanced reflections for all materials
-        if (child.material) {
-          child.material.envMapIntensity = 1.5
-        }
       }
     })
-
-    // Center model
-    const box = new THREE.Box3().setFromObject(clone)
-    const center = box.getCenter(new THREE.Vector3())
-    clone.position.sub(center)
-
-    return clone
-  }, [gltf.scene, paintConfig])
+  }, [carModel, paintConfig])
 
   // Initialize DoorController after car model loads
   useEffect(() => {
-    if (!carModel) return
+    if (!carModel) {
+      console.log('[ConfigurableCar] Car model not ready yet')
+      return
+    }
 
+    console.log('[ConfigurableCar] Car model loaded, initializing DoorController...')
     try {
-      doorControllerRef.current = new DoorController(carModel, {
+      const controller = new DoorController(carModel, {
         doorAngleDeg: 70,
         hoodAngleDeg: 45,
         trunkAngleDeg: 80,
         durationSec: 1.2,
       })
-      console.log('[DoorController] Initialized successfully')
+      doorControllerRef.current = controller
+      console.log('[ConfigurableCar] ✓ DoorController initialized successfully')
+      console.log('[ConfigurableCar] ✓ Controller ref set:', !!doorControllerRef.current)
     } catch (error) {
-      console.error('[DoorController] Initialization failed:', error)
+      console.error('[ConfigurableCar] ✗ DoorController initialization failed:', error)
     }
 
-    return () => {
-      doorControllerRef.current = null
-    }
+    // Don't cleanup - keep controller alive for entire component lifecycle
   }, [carModel])
 
   // React to openParts state changes
   useEffect(() => {
-    if (!doorControllerRef.current) return
+    if (!doorControllerRef.current) {
+      console.log('[ConfigurableCar] State changed but controller not ready')
+      return
+    }
 
+    console.log('[ConfigurableCar] openParts state changed:', openParts)
     const controller = doorControllerRef.current
 
     controller.openLeftFrontDoor(openParts.car_door_left)
