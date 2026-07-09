@@ -1,7 +1,7 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
-import { Environment, Stats } from '@react-three/drei'
+import { Environment } from '@react-three/drei'
 import { ACESFilmicToneMapping } from 'three'
 import { ReflectiveFloor } from '@/components/store/ReflectiveFloor'
 import { PostProcessing } from '@/components/store/PostProcessing'
@@ -12,6 +12,7 @@ import CameraPresets from './CameraPresets'
 import InteriorLookControls from './InteriorLookControls'
 import PartClickDetector from './PartClickDetector'
 import PartsTogglePanel from './PartsTogglePanel'
+import PerformanceMonitor from './PerformanceMonitor'
 import { useCameraStore } from '@/stores/cameraStore'
 
 interface CarTuningSceneProps {
@@ -79,9 +80,9 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
 
         {/* Part Click Detection */}
         <PartClickDetector />
- 
-        {/* FPS Monitor */}
-        <Stats showPanel={0} />
+
+        {/* Performance Monitor */}
+        <PerformanceMonitor />
       </Canvas>
 
       {/* Camera Presets UI */}
