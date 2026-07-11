@@ -38,14 +38,6 @@ const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
   opacity: 0.28 + (i % 4) * 0.14,
 }));
 
-/* ─────────────────────────────────────────────────────────────
-   Feature bar
-───────────────────────────────────────────────────────────── */
-const STATS = [
-  { icon: "◆", title: "مجموعه‌های نادر",    value: "۲۵۰+ اثر"  },
-  { icon: "◈", title: "سالن‌های نمایش",     value: "۱۲+ گالری" },
-  { icon: "◎", title: "امنیت و حریم خصوصی", value: "سطح بالا"  },
-];
 
 /* ─────────────────────────────────────────────────────────────
    Logo Component
@@ -149,14 +141,14 @@ export default function HeroSection() {
   // Scroll hint: fades out early (0 → 0.15)
   const scrollHintOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
 
-  // Hero content: staggered reveal, stays visible
-  const labelOpacity = useTransform(scrollYProgress, [0, 0.2, 0.3, 1], [0, 0, 1, 1]);
-  const titleOpacity = useTransform(scrollYProgress, [0, 0.35, 0.45, 1], [0, 0, 1, 1]);
-  const ornamentOpacity = useTransform(scrollYProgress, [0, 0.5, 0.6, 1], [0, 0, 1, 1]);
-  const subtitleOpacity = useTransform(scrollYProgress, [0, 0.65, 0.75, 1], [0, 0, 1, 1]);
+  // Hero content: hidden during journey, reveal only at finale (95%+)
+  const labelOpacity = useTransform(scrollYProgress, [0, 0.95, 1], [0, 0, 1]);
+  const titleOpacity = useTransform(scrollYProgress, [0, 0.95, 0.97, 1], [0, 0, 1, 1]);
+  const ornamentOpacity = useTransform(scrollYProgress, [0, 0.96, 0.98, 1], [0, 0, 1, 1]);
+  const subtitleOpacity = useTransform(scrollYProgress, [0, 0.97, 0.99, 1], [0, 0, 1, 1]);
 
-  // CTA button: fades in at end
-  const ctaOpacity = useTransform(scrollYProgress, [0, 0.8, 0.95, 1], [0, 0, 1, 1]);
+  // CTA button: fades in at finale
+  const ctaOpacity = useTransform(scrollYProgress, [0, 0.95, 1], [0, 0, 1]);
 
 
   /* ── Render ────────────────────────────────────────────── */
