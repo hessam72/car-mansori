@@ -306,15 +306,15 @@ export default function HeroSection() {
               toneMappingExposure: 1.2,
             }}
           >
-            <Suspense fallback={null}>
+            {/* <Suspense fallback={null}>
               <Environment
                 files="/hdr/main_hdr.exr"
                 background={false}
                 environmentIntensity={0.8}
               />
-            </Suspense>
+            </Suspense> */}
 
-            <CarLighting />
+            <CarLighting scrollProgress={scrollYProgress} />
             <ReflectiveFloor resolution={256} />
 
             <Suspense fallback={null}>
