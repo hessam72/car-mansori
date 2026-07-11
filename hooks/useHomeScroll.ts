@@ -7,10 +7,8 @@ export function useHomeScroll(scrollYProgress: MotionValue<number>) {
   const { setPreset, setAutoRotate } = useCameraStore()
   const { selectPart } = useCarConfig()
 
-  // Track which actions have been triggered to prevent repeats
+  // Track auto-rotate state only (parts are range-based)
   const triggeredRef = useRef({
-    wheelSwap: false,
-    spoilerAdd: false,
     autoRotate: false
   })
 
@@ -40,15 +38,18 @@ export function useHomeScroll(scrollYProgress: MotionValue<number>) {
         setPreset('home_finale')
       }
 
-      // Part swaps at specific scroll ranges
-      if (v >= 0.35 && v < 0.45 && !triggeredRef.current.wheelSwap) {
+      // Bidirectional wheel swap: stock2 from 35-70%, stock below 35%
+      if (v >= 0.35 && v < 0.70) {
         selectPart('wheels', 'wheel-stock2')
-        triggeredRef.current.wheelSwap = true
+      } else if (v < 0.35) {
+        selectPart('wheels', 'wheel-stock')
       }
 
-      if (v >= 0.70 && v < 0.80 && !triggeredRef.current.spoilerAdd) {
+      // Bidirectional spoiler swap: add at 70%+, remove below 70%
+      if (v >= 0.70) {
         selectPart('spoilers', 'spoiler-stock')
-        triggeredRef.current.spoilerAdd = true
+      } else if (v < 0.70) {
+        selectPart('spoilers', 'spoiler-none')
       }
     })
 
