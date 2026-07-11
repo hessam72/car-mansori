@@ -5,7 +5,7 @@ import { useCarConfig } from '@/stores/carConfigStore'
 
 export function useHomeScroll(scrollYProgress: MotionValue<number>) {
   const { setPreset, setAutoRotate } = useCameraStore()
-  const { selectPart } = useCarConfig()
+  const { selectPart, setPaintConfig } = useCarConfig()
 
   // Track auto-rotate state only (parts are range-based)
   const triggeredRef = useRef({
@@ -36,6 +36,16 @@ export function useHomeScroll(scrollYProgress: MotionValue<number>) {
         setPreset('home_spoiler')
       } else if (v >= 0.90) {
         setPreset('home_finale')
+      }
+
+      // Bidirectional color changes: cycle through presets from 15-30%
+      if (v < 0.15) {
+        setPaintConfig({ color: '#ff0000', metalness: 0.9, roughness: 0.2, clearcoat: 1.0 }, 'body')
+      } else if (v >= 0.15 && v < 0.20) {
+        setPaintConfig({ color: '#0066ff', metalness: 0.9, roughness: 0.3, clearcoat: 1.0 }, 'body')
+      } else if (v >= 0.25 ) {
+        setPaintConfig({ color: '#f5f5f5', metalness: 0.8, roughness: 0.1, clearcoat: 1.0 }, 'body')
+    
       }
 
       // Bidirectional wheel swap: stock2 from 35-70%, stock below 35%
