@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { MotionValue } from "framer-motion";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { useCameraStore } from "@/stores/cameraStore";
 
 /*
   Scroll-scrubbed camera rig — replaces discrete preset jumps for the
@@ -50,6 +51,12 @@ export default function ScrollCameraRig({ scrollProgress }: { scrollProgress: Mo
   const attractAngle = useRef(0);
   const reducedMotion = useRef(false);
   const scratch = useRef({ pos: new THREE.Vector3(), tgt: new THREE.Vector3() });
+
+  // Kill any stale preset transition on mount — a pending transition makes
+  // CameraControls' spring force-write the camera every frame against the rig
+  useEffect(() => {
+    useCameraStore.getState().clearTransition();
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");

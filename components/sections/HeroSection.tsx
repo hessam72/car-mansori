@@ -20,7 +20,6 @@ import LoadingScreen from "@/components/home/LoadingScreen";
 import ChapterRail from "@/components/home/ChapterRail";
 import { useHomeScroll } from "@/hooks/useHomeScroll";
 import { useCarConfig } from "@/stores/carConfigStore";
-import { useCameraStore } from "@/stores/cameraStore";
 
 /* ─────────────────────────────────────────────────────────────
    Scroll section height — increase for more scroll room per
@@ -109,9 +108,12 @@ export default function HeroSection() {
   /* ── Scroll-driven camera and parts ── */
   useHomeScroll(scrollYProgress);
 
-  /* ── Initialize car config and camera on mount ── */
+  /* ── Initialize car config on mount ──
+     NOTE: no setPreset here — a pending preset transition makes
+     CameraControls' spring force-write the camera every frame and
+     fight ScrollCameraRig (initial-scroll glitch). The rig owns the
+     journey camera; Canvas starts at the curve's first point. */
   const { selectPart } = useCarConfig();
-  const { setPreset } = useCameraStore();
 
   useEffect(() => {
     // Scroll to top on mount
@@ -120,10 +122,7 @@ export default function HeroSection() {
     // Set initial parts (stock wheel, no spoiler)
     selectPart('wheels', 'wheel-stock');
     selectPart('spoilers', 'spoiler-none');
-
-    // Set initial camera position
-    setPreset('home_initial');
-  }, [selectPart, setPreset]);
+  }, [selectPart]);
 
 
   /* ── Scroll-based animations ── */
