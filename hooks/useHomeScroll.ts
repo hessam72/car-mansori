@@ -64,6 +64,8 @@ export function useHomeScroll(scrollYProgress: MotionValue<number>) {
         newColor = '#ff0000'
       } else if (v >= 0.15 && v < 0.20) {
         newColor = '#0066ff'
+      } else if (v >= 0.20 && v < 0.25) {
+        newColor = '#1a1a1a'
       } else if (v >= 0.25) {
         newColor = '#f5f5f5'
       }
@@ -71,6 +73,7 @@ export function useHomeScroll(scrollYProgress: MotionValue<number>) {
         const configs = {
           '#ff0000': { color: '#ff0000', metalness: 0.9, roughness: 0.2, clearcoat: 1.0 },
           '#0066ff': { color: '#0066ff', metalness: 0.9, roughness: 0.3, clearcoat: 1.0 },
+          '#1a1a1a': { color: '#1a1a1a', metalness: 0.8, roughness: 0.4, clearcoat: 1.0 },
           '#f5f5f5': { color: '#f5f5f5', metalness: 0.8, roughness: 0.1, clearcoat: 1.0 }
         }
         setPaintConfig(configs[newColor as keyof typeof configs], 'body')

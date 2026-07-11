@@ -8,7 +8,11 @@ import { useCameraStore } from '@/stores/cameraStore'
 import { useSpring, config } from '@react-spring/three'
 import * as THREE from 'three'
 
-export default function CameraControls() {
+interface CameraControlsProps {
+  disableInteraction?: boolean
+}
+
+export default function CameraControls({ disableInteraction = false }: CameraControlsProps) {
   const controlsRef = useRef<OrbitControlsImpl>(null!)
   const { camera } = useThree()
   const invalidate = useThree((s) => s.invalidate)
@@ -73,9 +77,9 @@ export default function CameraControls() {
       autoRotate={autoRotate && !isInteriorMode}
       autoRotateSpeed={autoRotateSpeed}
       target={[0, 0.5, 0]}
-      enableRotate={!isInteriorMode}
-      enablePan={!isInteriorMode}
-      enableZoom={!isInteriorMode}
+      enableRotate={!isInteriorMode && !disableInteraction}
+      enablePan={!isInteriorMode && !disableInteraction}
+      enableZoom={!isInteriorMode && !disableInteraction}
     />
   )
 }

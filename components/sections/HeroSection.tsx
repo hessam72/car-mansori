@@ -313,7 +313,7 @@ export default function HeroSection() {
                 <ConfigurableCar modelPath="/models/car/car.glb" />
               </Suspense>
 
-              <CameraControls />
+              <CameraControls disableInteraction />
               <AdaptiveDpr pixelated />
             </LightFlickerController>
           </Canvas>

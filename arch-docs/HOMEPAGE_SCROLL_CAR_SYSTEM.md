@@ -54,7 +54,8 @@ target: [0, 0.5, 0]
 **Paint**:
 - 0-15%: Red `#ff0000` (Gloss Red - initial color)
 - 15-20%: Blue `#0066ff` (Gloss Blue)
-- 20-25%: White `#f5f5f5` (Pearl White)
+- 20-25%: Black `#1a1a1a` (Satin Black)
+- 25%+: White `#f5f5f5` (Pearl White)
 
 **UI**: Logo centered, scroll hint visible
 
@@ -104,6 +105,7 @@ Car paint color changes dynamically based on scroll position, reusing the same p
 const configs = {
   '#ff0000': { color: '#ff0000', metalness: 0.9, roughness: 0.2, clearcoat: 1.0 },  // Gloss Red
   '#0066ff': { color: '#0066ff', metalness: 0.9, roughness: 0.3, clearcoat: 1.0 },  // Gloss Blue
+  '#1a1a1a': { color: '#1a1a1a', metalness: 0.8, roughness: 0.4, clearcoat: 1.0 },  // Satin Black
   '#f5f5f5': { color: '#f5f5f5', metalness: 0.8, roughness: 0.1, clearcoat: 1.0 }   // Pearl White
 }
 
@@ -111,6 +113,8 @@ if (v < 0.15) {
   newColor = '#ff0000'  // Red (initial)
 } else if (v >= 0.15 && v < 0.20) {
   newColor = '#0066ff'  // Blue
+} else if (v >= 0.20 && v < 0.25) {
+  newColor = '#1a1a1a'  // Black
 } else if (v >= 0.25) {
   newColor = '#f5f5f5'  // White
 }
@@ -135,8 +139,8 @@ if (newColor !== prevStateRef.current.color) {
 ```
 
 ### Bidirectional Behavior
-- **Scroll down**: Red → Blue → White
-- **Scroll up**: White → Blue → Red
+- **Scroll down**: Red → Blue → Black → White
+- **Scroll up**: White → Black → Blue → Red
 - **State tracking**: Prevents redundant `setPaintConfig()` calls
 - **Automatic**: No user interaction needed
 
@@ -282,7 +286,7 @@ export const CAMERA_PRESETS = {
   <ReflectiveFloor resolution={256} />
 
   <ConfigurableCar modelPath="/models/car/car.glb" />
-  <CameraControls />
+  <CameraControls disableInteraction />
   <AdaptiveDpr pixelated />
 </Canvas>
 ```
@@ -293,6 +297,7 @@ export const CAMERA_PRESETS = {
 - Lower floor reflection resolution (256 vs 1080 on /car page)
 - DPR range `[0.75, 1.5]` for better mobile performance
 - Environment intensity reduced to 0.8 (less computational load)
+- `disableInteraction` on CameraControls: Prevents drag conflicts with mobile scroll
 
 *See [Performance Optimizations](#performance-optimizations-july-11-2026) section for detailed improvements*
 
@@ -442,8 +447,8 @@ const ctaOpacity = useTransform(scrollYProgress, [0, 0.8, 0.95, 1], [0, 0, 1, 1]
 ### Scroll Down (0 → 100%)
 - [ ] 0%: Car visible (red), stock wheels, no spoiler, camera at initial position
 - [ ] 15%: Car paint changes to blue
-- [ ] 20%: Car paint changes to white
-- [ ] 25%: Camera zooms to front wheel (white paint maintained)
+- [ ] 20%: Car paint changes to black
+- [ ] 25%: Car paint changes to white, camera zooms to front wheel
 - [ ] 35%: Wheel swaps to `wheel-stock2`
 - [ ] 60%: Camera moves to rear/spoiler area
 - [ ] 70%: Spoiler appears (`spoiler-stock`)
@@ -456,6 +461,7 @@ const ctaOpacity = useTransform(scrollYProgress, [0, 0.8, 0.95, 1], [0, 0, 1, 1]
 - [ ] 60%: Camera back to front wheel view
 - [ ] 35%: Wheel reverts to `wheel-stock`
 - [ ] 25%: Camera back to initial view (white paint maintained)
+- [ ] 25%: Car paint changes back to black
 - [ ] 20%: Car paint changes back to blue
 - [ ] 15%: Car paint changes back to red
 - [ ] 0%: All state reset to initial (red paint)
@@ -466,6 +472,8 @@ const ctaOpacity = useTransform(scrollYProgress, [0, 0.8, 0.95, 1], [0, 0, 1, 1]
 - [ ] Paint color transitions: No redundant updates (check console for unnecessary setPaintConfig calls)
 - [ ] Performance: Smooth 60fps during scroll with throttling active
 - [ ] Mobile: Camera distances should scale (handled by cameraStore)
+- [ ] Drag interaction: Dragging/touching car should NOT rotate/pan (scroll-only on homepage)
+- [ ] Mobile scroll: Touch scroll should work smoothly without drag conflicts
 
 ---
 
@@ -529,7 +537,7 @@ mixStrength={mixStrength}  // = 0.62
 ---
 
 #### 3. ConfigurableCar Debouncing ([components/car/ConfigurableCar.tsx](../components/car/ConfigurableCar.tsx))
-**Problem**: Paint config changes during scroll (3 times from 15-25%) each triggered immediate `invalidate()` calls
+**Problem**: Paint config changes during scroll (4 times from 0-25%) each triggered immediate `invalidate()` calls
 
 **Solution**: Debounced `invalidate()` calls to 50ms batch window
 
@@ -553,7 +561,7 @@ useEffect(() => {
 }, [paintConfig])
 ```
 
-**Impact**: Reduced re-renders during color transitions from 3+ to 1
+**Impact**: Reduced re-renders during color transitions from 4+ to 1
 
 ---
 
@@ -622,6 +630,32 @@ dpr={[0.75, 1.5]}  // 25% better mobile perf at low end
 
 ---
 
+#### 7. Disabled User Interaction ([components/car/CameraControls.tsx](../components/car/CameraControls.tsx))
+**Problem**: OrbitControls drag-to-rotate interfering with mobile touch scroll
+
+**Solution**:
+- Added `disableInteraction` prop to CameraControls
+- Disabled rotate/pan/zoom on homepage while keeping auto-rotate functional
+- Maintains full controls on `/car` page
+
+```typescript
+// CameraControls.tsx
+interface CameraControlsProps {
+  disableInteraction?: boolean
+}
+
+enableRotate={!isInteriorMode && !disableInteraction}
+enablePan={!isInteriorMode && !disableInteraction}
+enableZoom={!isInteriorMode && !disableInteraction}
+
+// HeroSection.tsx
+<CameraControls disableInteraction />
+```
+
+**Impact**: Eliminated mobile scroll conflicts, scroll-only interaction on homepage
+
+---
+
 ### Performance Metrics
 
 | Optimization | Before | After | Improvement |
@@ -633,6 +667,7 @@ dpr={[0.75, 1.5]}  // 25% better mobile perf at low end
 | Paint invalidate calls | 3+ rapid | 1 debounced | 66% reduction |
 | Light flicker frames | Continuous | Early exit | Eliminates 1.5s overhead |
 | Mobile DPR minimum | 1.0 | 0.75 | 25% better perf |
+| Drag interaction | Enabled | Disabled on homepage | Eliminates scroll conflicts |
 
 **Estimated Total Impact**: **3-4x FPS improvement** during scroll without quality loss
 
@@ -667,6 +702,7 @@ gltf-pipeline -i car-main.glb -o car-main.glb -d
 6. **Early exit from `useFrame` hooks** when work is complete
 7. **Right-size shadow maps** for camera distances
 8. **Adaptive DPR for mobile** performance
+9. **Disable competing interactions** on scroll-driven pages (OrbitControls conflicts with touch scroll)
 
 ---
 
@@ -714,6 +750,7 @@ gltf-pipeline -i car-main.glb -o car-main.glb -d
 **Status**: ✅ Production Ready (Optimized)
 **Recent Changes**:
 - Paint color scroll transitions (15-25% range)
-- 6 critical performance optimizations (3-4x FPS improvement)
+- 7 critical performance optimizations (3-4x FPS improvement)
 - Scroll listener throttling + state tracking
 - Reflection/shadow quality optimizations
+- Disabled drag interaction to fix mobile scroll conflicts
