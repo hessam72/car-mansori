@@ -124,6 +124,9 @@ export default function HeroSection() {
   const { setPreset } = useCameraStore();
 
   useEffect(() => {
+    // Scroll to top on mount
+    window.scrollTo(0, 0);
+
     // Set initial parts (stock wheel, no spoiler)
     selectPart('wheels', 'wheel-stock');
     selectPart('spoilers', 'spoiler-none');
