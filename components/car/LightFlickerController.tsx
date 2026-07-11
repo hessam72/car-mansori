@@ -20,7 +20,7 @@ export function LightFlickerController({ scrollProgress, children }: LightFlicke
 
   return (
     <>
-      <ConditionalEnvironment flickerData={lightFlickerData} />
+      {/* <ConditionalEnvironment flickerData={lightFlickerData} /> */}
       <CarLighting flickerData={lightFlickerData} />
       {children}
     </>
