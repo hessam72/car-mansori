@@ -61,6 +61,11 @@ export function useLightFlicker(scrollYProgress: MotionValue<number>) {
     const scroll = scrollYProgress.get()
     const currentTime = state.clock.elapsedTime
 
+    // Early return if flicker already completed and lights are at full brightness
+    if (hasFlickered.current && scroll >= 0.05) {
+      return
+    }
+
     // Calculate intensity for each light with timing offset
     const getIntensityAtTime = (elapsedSeconds: number): number => {
       // Clamp to animation duration
@@ -140,11 +145,6 @@ export function useLightFlicker(scrollYProgress: MotionValue<number>) {
         isFlickering.current = false
         setIntensities({ key: 1, fill: 1, rim: 1, bounce: 1, ambient: 0.3 })
       }
-    }
-
-    // Already flickered: stay at full brightness
-    if (hasFlickered.current) {
-      setIntensities({ key: 1, fill: 1, rim: 1, bounce: 1, ambient: 0.3 })
     }
   })
 

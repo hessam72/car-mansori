@@ -14,7 +14,7 @@ export function ReflectiveFloor({
   blur = 0.85,
   roughness = 0.62,
   opacity = 1,
-  resolution = 1080,
+  resolution = 256,
 }: ReflectiveFloorProps) {
   return (
     <mesh
@@ -26,7 +26,7 @@ export function ReflectiveFloor({
       <MeshReflectorMaterial
         resolution={resolution}
         mixBlur={0}
-        mixStrength={mixStrength * 34}
+        mixStrength={mixStrength}
         mirror={.8}
         depthScale={.4}
         minDepthThreshold={.35}

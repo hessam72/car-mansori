@@ -299,7 +299,7 @@ export default function HeroSection() {
             camera={{ position: [5, 2, 5], fov: 50 }}
             shadows
             frameloop="demand"
-            dpr={[1, 1.5]}
+            dpr={[0.75, 1.5]}
             gl={{
               antialias: true,
               toneMapping: THREE.ACESFilmicToneMapping,

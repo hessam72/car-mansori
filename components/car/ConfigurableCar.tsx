@@ -78,6 +78,9 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
     return { carModel: clone, paintTargets: targets }
   }, [gltf.scene])
 
+  // Debounce ref for invalidate calls
+  const invalidateTimeoutRef = useRef<NodeJS.Timeout>()
+
   // Apply paint by mutating the cached materials in place
   useEffect(() => {
     paintTargets.forEach(({ material, zone }) => {
@@ -96,7 +99,14 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
         material.iridescenceThicknessRange = [100, 800]
       }
     })
-    invalidate()
+
+    // Debounce invalidate to batch rapid paint changes
+    if (invalidateTimeoutRef.current) {
+      clearTimeout(invalidateTimeoutRef.current)
+    }
+    invalidateTimeoutRef.current = setTimeout(() => {
+      invalidate()
+    }, 50)
   }, [paintConfig, paintTargets, invalidate])
 
   // Dispose the per-car cloned paint materials when the model changes/unmounts

@@ -12,8 +12,23 @@ export function useHomeScroll(scrollYProgress: MotionValue<number>) {
     autoRotate: false
   })
 
+  // Throttle scroll updates to 60fps max
+  const lastUpdateRef = useRef(0)
+
+  // Track previous states to prevent redundant updates
+  const prevStateRef = useRef({
+    camera: 'home_initial',
+    color: '#ff0000',
+    wheel: 'wheel-stock',
+    spoiler: 'spoiler-none'
+  })
+
   useEffect(() => {
     const unsubscribe = scrollYProgress.on('change', (v) => {
+      // Throttle to 16ms (60fps)
+      const now = Date.now()
+      if (now - lastUpdateRef.current < 16) return
+      lastUpdateRef.current = now
       // Auto-rotate control: enable at 90%, disable below 85% threshold
       if (v >= 0.90) {
         if (!triggeredRef.current.autoRotate) {
@@ -28,38 +43,62 @@ export function useHomeScroll(scrollYProgress: MotionValue<number>) {
       }
 
       // Camera movements based on scroll progress
+      let newCamera: 'home_initial' | 'home_front_wheel' | 'home_spoiler' | 'home_finale' = prevStateRef.current.camera as any
       if (v < 0.25) {
-        setPreset('home_initial')
+        newCamera = 'home_initial'
       } else if (v >= 0.25 && v < 0.60) {
-        setPreset('home_front_wheel')
+        newCamera = 'home_front_wheel'
       } else if (v >= 0.60 && v < 0.90) {
-        setPreset('home_spoiler')
+        newCamera = 'home_spoiler'
       } else if (v >= 0.90) {
-        setPreset('home_finale')
+        newCamera = 'home_finale'
+      }
+      if (newCamera !== prevStateRef.current.camera) {
+        setPreset(newCamera)
+        prevStateRef.current.camera = newCamera
       }
 
       // Bidirectional color changes: cycle through presets from 15-30%
+      let newColor = prevStateRef.current.color
       if (v < 0.15) {
-        setPaintConfig({ color: '#ff0000', metalness: 0.9, roughness: 0.2, clearcoat: 1.0 }, 'body')
+        newColor = '#ff0000'
       } else if (v >= 0.15 && v < 0.20) {
-        setPaintConfig({ color: '#0066ff', metalness: 0.9, roughness: 0.3, clearcoat: 1.0 }, 'body')
-      } else if (v >= 0.25 ) {
-        setPaintConfig({ color: '#f5f5f5', metalness: 0.8, roughness: 0.1, clearcoat: 1.0 }, 'body')
-    
+        newColor = '#0066ff'
+      } else if (v >= 0.25) {
+        newColor = '#f5f5f5'
+      }
+      if (newColor !== prevStateRef.current.color) {
+        const configs = {
+          '#ff0000': { color: '#ff0000', metalness: 0.9, roughness: 0.2, clearcoat: 1.0 },
+          '#0066ff': { color: '#0066ff', metalness: 0.9, roughness: 0.3, clearcoat: 1.0 },
+          '#f5f5f5': { color: '#f5f5f5', metalness: 0.8, roughness: 0.1, clearcoat: 1.0 }
+        }
+        setPaintConfig(configs[newColor as keyof typeof configs], 'body')
+        prevStateRef.current.color = newColor
       }
 
       // Bidirectional wheel swap: stock2 from 35-70%, stock below 35%
+      let newWheel = prevStateRef.current.wheel
       if (v >= 0.35 && v < 0.70) {
-        selectPart('wheels', 'wheel-stock2')
+        newWheel = 'wheel-stock2'
       } else if (v < 0.35) {
-        selectPart('wheels', 'wheel-stock')
+        newWheel = 'wheel-stock'
+      }
+      if (newWheel !== prevStateRef.current.wheel) {
+        selectPart('wheels', newWheel)
+        prevStateRef.current.wheel = newWheel
       }
 
       // Bidirectional spoiler swap: add at 70%+, remove below 70%
+      let newSpoiler = prevStateRef.current.spoiler
       if (v >= 0.70) {
-        selectPart('spoilers', 'spoiler-stock')
+        newSpoiler = 'spoiler-stock'
       } else if (v < 0.70) {
-        selectPart('spoilers', 'spoiler-none')
+        newSpoiler = 'spoiler-none'
+      }
+      if (newSpoiler !== prevStateRef.current.spoiler) {
+        selectPart('spoilers', newSpoiler)
+        prevStateRef.current.spoiler = newSpoiler
       }
     })
 
