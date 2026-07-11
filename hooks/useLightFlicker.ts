@@ -1,35 +1,37 @@
 import { useState, useEffect, useRef } from 'react'
 import { MotionValue } from 'framer-motion'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 
-// Precomputed flicker sequence (time in normalized units 0→1, intensity 0→1)
+// Time-based flicker sequence (time in seconds, intensity 0→1)
 const FLICKER_KEYFRAMES = [
   { time: 0.00, intensity: 0.0 },   // Complete darkness
-  { time: 0.05, intensity: 0.0 },   // Still dark
-  { time: 0.055, intensity: 0.9 },  // First flash
-  { time: 0.12, intensity: 0.0 },   // Off
-  { time: 0.14, intensity: 0.8 },   // Second flash
-  { time: 0.22, intensity: 0.1 },   // Dim
-  { time: 0.25, intensity: 0.9 },   // Bright
-  { time: 0.32, intensity: 0.3 },   // Dip
-  { time: 0.36, intensity: 1.0 },   // Full
-  { time: 0.45, intensity: 0.6 },   // Oscillate
-  { time: 0.52, intensity: 0.95 },  // Almost stable
-  { time: 0.60, intensity: 0.75 },  // Minor dip
-  { time: 0.70, intensity: 1.0 },   // Stable
-  { time: 1.00, intensity: 1.0 },   // Fully stable
+  { time: 0.08, intensity: 0.0 },   // Still dark
+  { time: 0.10, intensity: 0.9 },   // First flash
+  { time: 0.18, intensity: 0.0 },   // Off
+  { time: 0.22, intensity: 0.8 },   // Second flash
+  { time: 0.35, intensity: 0.1 },   // Dim
+  { time: 0.42, intensity: 0.9 },   // Bright
+  { time: 0.52, intensity: 0.3 },   // Dip
+  { time: 0.60, intensity: 1.0 },   // Full
+  { time: 0.75, intensity: 0.6 },   // Oscillate
+  { time: 0.88, intensity: 0.95 },  // Almost stable
+  { time: 1.05, intensity: 0.75 },  // Minor dip
+  { time: 1.25, intensity: 1.0 },   // Stable
+  { time: 1.50, intensity: 1.0 },   // Fully stable
 ]
 
-// Per-light timing offsets (creates "rolling" gallery effect)
+const FLICKER_DURATION = 1.5 // Total flicker animation duration in seconds
+
+// Per-light timing offsets in seconds (creates "rolling" gallery effect)
 const LIGHT_OFFSETS = {
   key: 0.0,      // Key light turns on first
-  fill: 0.08,    // Fill follows
-  bounce: 0.12,  // Ground bounce
-  rim: 0.15,     // Rim light last
+  fill: 0.12,    // Fill follows
+  bounce: 0.18,  // Ground bounce
+  rim: 0.22,     // Rim light last
 }
 
 /**
- * Maps scroll progress to light intensity with realistic flicker effect
+ * Maps scroll threshold to time-based light flicker animation
  *
  * @param scrollYProgress - Framer Motion scroll value (0→1)
  * @returns Intensity multipliers for each light type (0→1)
@@ -44,6 +46,11 @@ export function useLightFlicker(scrollYProgress: MotionValue<number>) {
   })
 
   const prefersReducedMotion = useRef(false)
+  const flickerStartTime = useRef<number | null>(null)
+  const isFlickering = useRef(false)
+  const hasFlickered = useRef(false)
+
+  const invalidate = useThree((state) => state.invalidate)
 
   // Check for reduced motion preference
   useEffect(() => {
@@ -58,37 +65,14 @@ export function useLightFlicker(scrollYProgress: MotionValue<number>) {
     return () => mediaQuery.removeEventListener('change', handler)
   }, [])
 
-  useFrame(() => {
+  useFrame((state) => {
     const scroll = scrollYProgress.get()
-
-    // Outside flicker range: instant full brightness
-    if (scroll > 0.15) {
-      setIntensities({ key: 1, fill: 1, rim: 1, bounce: 1, ambient: 0.3 })
-      return
-    }
-
-    // Before flicker starts: complete darkness
-    if (scroll < 0.05) {
-      setIntensities({ key: 0, fill: 0, rim: 0, bounce: 0, ambient: 0 })
-      return
-    }
-
-    // Reduced motion: smooth fade instead of flicker
-    if (prefersReducedMotion.current) {
-      const fadeProgress = (scroll - 0.05) / 0.10 // 0→1 over 5-15% range
-      const intensity = Math.min(fadeProgress, 1)
-      const ambient = intensity * 0.3
-      setIntensities({ key: intensity, fill: intensity, rim: intensity, bounce: intensity, ambient })
-      return
-    }
-
-    // Map scroll 5-15% to animation time 0→1
-    const normalizedTime = (scroll - 0.05) / 0.10
+    const currentTime = state.clock.elapsedTime
 
     // Calculate intensity for each light with timing offset
-    const getIntensityAtTime = (time: number): number => {
-      // Clamp time to 0-1
-      const clampedTime = Math.max(0, Math.min(1, time))
+    const getIntensityAtTime = (elapsedSeconds: number): number => {
+      // Clamp to animation duration
+      const clampedTime = Math.max(0, Math.min(FLICKER_DURATION, elapsedSeconds))
 
       // Find surrounding keyframes
       let lowerFrame = FLICKER_KEYFRAMES[0]
@@ -110,17 +94,66 @@ export function useLightFlicker(scrollYProgress: MotionValue<number>) {
       return lowerFrame.intensity + (upperFrame.intensity - lowerFrame.intensity) * localProgress
     }
 
-    // Apply per-light offsets
-    // Ambient: smooth fade (no flicker) - maps scroll 5-15% to intensity 0→0.3
-    const ambientIntensity = normalizedTime * 0.3
+    // Below threshold: darkness, reset flicker state
+    if (scroll < 0.05) {
+      flickerStartTime.current = null
+      isFlickering.current = false
+      hasFlickered.current = false
+      setIntensities({ key: 0, fill: 0, rim: 0, bounce: 0, ambient: 0 })
+      return
+    }
 
-    setIntensities({
-      key: getIntensityAtTime(normalizedTime + LIGHT_OFFSETS.key),
-      fill: getIntensityAtTime(normalizedTime + LIGHT_OFFSETS.fill),
-      bounce: getIntensityAtTime(normalizedTime + LIGHT_OFFSETS.bounce),
-      rim: getIntensityAtTime(normalizedTime + LIGHT_OFFSETS.rim),
-      ambient: ambientIntensity,
-    })
+    // Above threshold: trigger flicker if not already started
+    if (scroll >= 0.05 && !hasFlickered.current) {
+      if (!isFlickering.current) {
+        // Start flicker animation
+        flickerStartTime.current = currentTime
+        isFlickering.current = true
+      }
+
+      // Calculate elapsed time since flicker started
+      const elapsedTime = currentTime - (flickerStartTime.current ?? currentTime)
+
+      // Reduced motion: instant fade instead of flicker
+      if (prefersReducedMotion.current) {
+        const fadeProgress = Math.min(elapsedTime / 0.5, 1) // 0.5s fade
+        const intensity = fadeProgress
+        const ambient = fadeProgress * 0.3
+        setIntensities({ key: intensity, fill: intensity, rim: intensity, bounce: intensity, ambient })
+
+        if (fadeProgress >= 1) {
+          hasFlickered.current = true
+          isFlickering.current = false
+        }
+        return
+      }
+
+      // Time-based flicker animation
+      if (elapsedTime < FLICKER_DURATION) {
+        // Still flickering - force continuous rendering
+        invalidate()
+
+        const ambientIntensity = Math.min(elapsedTime / FLICKER_DURATION, 1) * 0.3
+
+        setIntensities({
+          key: getIntensityAtTime(elapsedTime + LIGHT_OFFSETS.key),
+          fill: getIntensityAtTime(elapsedTime + LIGHT_OFFSETS.fill),
+          bounce: getIntensityAtTime(elapsedTime + LIGHT_OFFSETS.bounce),
+          rim: getIntensityAtTime(elapsedTime + LIGHT_OFFSETS.rim),
+          ambient: ambientIntensity,
+        })
+      } else {
+        // Flicker complete: full brightness
+        hasFlickered.current = true
+        isFlickering.current = false
+        setIntensities({ key: 1, fill: 1, rim: 1, bounce: 1, ambient: 0.3 })
+      }
+    }
+
+    // Already flickered: stay at full brightness
+    if (hasFlickered.current) {
+      setIntensities({ key: 1, fill: 1, rim: 1, bounce: 1, ambient: 0.3 })
+    }
   })
 
   return intensities
