@@ -12,7 +12,7 @@ import { Environment, AdaptiveDpr } from "@react-three/drei";
 import * as THREE from "three";
 import ConfigurableCar from "@/components/car/ConfigurableCar";
 import CameraControls from "@/components/car/CameraControls";
-import CarLighting from "@/components/car/CarLighting";
+import { LightFlickerController } from "@/components/car/LightFlickerController";
 import { ReflectiveFloor } from "@/components/store/ReflectiveFloor";
 import { useHomeScroll } from "@/hooks/useHomeScroll";
 import { useCarConfig } from "@/stores/carConfigStore";
@@ -306,23 +306,16 @@ export default function HeroSection() {
               toneMappingExposure: 1.2,
             }}
           >
-            {/* <Suspense fallback={null}>
-              <Environment
-                files="/hdr/main_hdr.exr"
-                background={false}
-                environmentIntensity={0.8}
-              />
-            </Suspense> */}
+            <LightFlickerController scrollProgress={scrollYProgress}>
+              <ReflectiveFloor resolution={256} />
 
-            <CarLighting scrollProgress={scrollYProgress} />
-            <ReflectiveFloor resolution={256} />
+              <Suspense fallback={null}>
+                <ConfigurableCar modelPath="/models/car/car.glb" />
+              </Suspense>
 
-            <Suspense fallback={null}>
-              <ConfigurableCar modelPath="/models/car/car.glb" />
-            </Suspense>
-
-            <CameraControls />
-            <AdaptiveDpr pixelated />
+              <CameraControls />
+              <AdaptiveDpr pixelated />
+            </LightFlickerController>
           </Canvas>
         </div>
 

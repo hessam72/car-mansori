@@ -1,10 +1,18 @@
 'use client'
 
-import { MotionValue } from 'framer-motion'
-import { useLightFlicker } from '@/hooks/useLightFlicker'
+interface LightFlickerData {
+  intensities: {
+    key: number
+    fill: number
+    rim: number
+    bounce: number
+    ambient: number
+  }
+  isComplete: boolean
+}
 
 interface CarLightingProps {
-  scrollProgress?: MotionValue<number>
+  flickerData?: LightFlickerData
 }
 
 // Base intensities (stable state)
@@ -15,11 +23,10 @@ const BASE_INTENSITIES = {
   bounce: 40,
 }
 
-export default function CarLighting({ scrollProgress }: CarLightingProps) {
-  // Get flicker multipliers (0→1) + ambient intensity if scroll progress provided
-  const flickerMultipliers = scrollProgress
-    ? useLightFlicker(scrollProgress)
-    : { key: 1, fill: 1, rim: 1, bounce: 1, ambient: 0.3 }
+export default function CarLighting({ flickerData }: CarLightingProps) {
+  // Use provided flicker data or default to full brightness
+  const data = flickerData ?? { intensities: { key: 1, fill: 1, rim: 1, bounce: 1, ambient: 0.3 }, isComplete: true }
+  const flickerMultipliers = data.intensities
 
   return (
     <>

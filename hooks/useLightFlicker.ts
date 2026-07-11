@@ -5,19 +5,11 @@ import { useFrame, useThree } from '@react-three/fiber'
 // Time-based flicker sequence (time in seconds, intensity 0→1)
 const FLICKER_KEYFRAMES = [
   { time: 0.00, intensity: 0.0 },   // Complete darkness
-  { time: 0.08, intensity: 0.0 },   // Still dark
-  { time: 0.10, intensity: 0.9 },   // First flash
-  { time: 0.18, intensity: 0.0 },   // Off
-  { time: 0.22, intensity: 0.8 },   // Second flash
-  { time: 0.35, intensity: 0.1 },   // Dim
-  { time: 0.42, intensity: 0.9 },   // Bright
-  { time: 0.52, intensity: 0.3 },   // Dip
-  { time: 0.60, intensity: 1.0 },   // Full
-  { time: 0.75, intensity: 0.6 },   // Oscillate
-  { time: 0.88, intensity: 0.95 },  // Almost stable
-  { time: 1.05, intensity: 0.75 },  // Minor dip
-  { time: 1.25, intensity: 1.0 },   // Stable
-  { time: 1.50, intensity: 1.0 },   // Fully stable
+  { time: 0.2, intensity: 0.0 },   // Still dark
+  { time: 0.40, intensity: 0.9 },   // First flash
+  { time: 0.38, intensity: 0.0 },   // Off
+
+  { time: 1, intensity: 1.0 },   // Fully stable
 ]
 
 const FLICKER_DURATION = 1.5 // Total flicker animation duration in seconds
@@ -156,5 +148,5 @@ export function useLightFlicker(scrollYProgress: MotionValue<number>) {
     }
   })
 
-  return intensities
+  return { intensities, isComplete: hasFlickered.current }
 }
