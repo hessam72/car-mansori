@@ -1,17 +1,22 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import {
   motion,
   useTransform,
   useScroll,
-  MotionValue,
 } from "framer-motion";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useGLTF, Environment, SpotLight } from "@react-three/drei";
+import { Canvas } from "@react-three/fiber";
+import { Environment, AdaptiveDpr } from "@react-three/drei";
 import * as THREE from "three";
-import { Suspense } from "react";
+import ConfigurableCar from "@/components/car/ConfigurableCar";
+import CameraControls from "@/components/car/CameraControls";
+import CarLighting from "@/components/car/CarLighting";
+import { ReflectiveFloor } from "@/components/store/ReflectiveFloor";
+import { useHomeScroll } from "@/hooks/useHomeScroll";
+import { useCarConfig } from "@/stores/carConfigStore";
+import { useCameraStore } from "@/stores/cameraStore";
 
 /* ─────────────────────────────────────────────────────────────
    Scroll section height — increase for more scroll room per
@@ -101,125 +106,7 @@ function ShahrOmidLogo() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   JewelryModel Component — Single 3D model with auto-rotate
-───────────────────────────────────────────────────────────── */
-interface JewelryModelProps {
-  url: string;
-  position: [number, number, number];
-  scrollOpacity: MotionValue<number>;
-  scale?: number;
-}
-
-function JewelryModel({ url, position, scrollOpacity, scale = 5 }: JewelryModelProps) {
-  const groupRef = useRef<THREE.Group>(null);
-  const { scene } = useGLTF(url);
-  const [clonedScene, setClonedScene] = useState<THREE.Group | null>(null);
-  const materialsRef = useRef<THREE.Material[]>([]);
-
-  // Clone scene once and prepare materials
-  useEffect(() => {
-    const cloned = scene.clone();
-    const materials: THREE.Material[] = [];
-
-    // Center the model at origin
-    const box = new THREE.Box3().setFromObject(cloned);
-    const center = box.getCenter(new THREE.Vector3());
-    cloned.position.sub(center);
-
-    cloned.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        if (Array.isArray(mesh.material)) {
-          mesh.material.forEach((mat) => {
-            mat.transparent = true;
-            mat.opacity = 0;
-            // Enhance gold reflections
-            if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
-              mat.metalness = 1;
-              mat.roughness = 0.15;
-              mat.envMapIntensity = 2.5;
-            }
-            materials.push(mat);
-          });
-        } else {
-          mesh.material.transparent = true;
-          mesh.material.opacity = 0;
-          // Enhance gold reflections
-          const mat = mesh.material;
-          if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
-            mat.metalness = 1;
-            mat.roughness = 0.15;
-            mat.envMapIntensity = 2.5;
-          }
-          materials.push(mesh.material);
-        }
-      }
-    });
-
-    materialsRef.current = materials;
-    setClonedScene(cloned);
-  }, [scene]);
-
-  // Subscribe to scroll opacity changes and update materials
-  useEffect(() => {
-    // Set initial scroll opacity value
-    const currentOpacity = scrollOpacity.get();
-    materialsRef.current.forEach((mat) => {
-      mat.opacity = currentOpacity;
-    });
-
-    // Listen for scroll changes
-    const unsubscribe = scrollOpacity.on("change", (v) => {
-      materialsRef.current.forEach((mat) => {
-        mat.opacity = v;
-      });
-    });
-    return unsubscribe;
-  }, [scrollOpacity]);
-
-  // Auto-rotate
-  useFrame((_, delta) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y += delta * 0.31;
-    }
-  });
-
-  return (
-    <group ref={groupRef} position={position}>
-      {clonedScene && <primitive object={clonedScene} scale={scale} />}
-    </group>
-  );
-}
-
-// Preload models
-
-useGLTF.preload("/home_models/jewel-1.glb");
-useGLTF.preload("/home_models/jewel-2.glb");
-useGLTF.preload("/home_models/jewel-3.glb");
-useGLTF.preload("/home_models/jewel-4.glb");
-useGLTF.preload("/home_models/jewel-5.glb");
-useGLTF.preload("/home_models/jewel-6.glb");
-useGLTF.preload("/home_models/jewel-7.glb");
-useGLTF.preload("/home_models/jewel-8.glb");
-
-/* ─────────────────────────────────────────────────────────────
-   Camera Controller — Subtle orbit during scroll
-───────────────────────────────────────────────────────────── */
-function CameraController() {
-  const { camera } = useThree();
-  const timeRef = useRef(0);
-
-  useFrame((_, delta) => {
-    timeRef.current += delta;
-    const angle = timeRef.current * 0.08;
-    camera.position.x = Math.sin(angle) * 0.2;
-    camera.position.z = Math.cos(angle) * 0.2 + 5;
-    camera.lookAt(0, 0, 0);
-  });
-
-  return null;
-}
+/* Car components will be imported below */
 
 /* ═══════════════════════════════════════════════════════════
    HeroSection
@@ -236,6 +123,22 @@ export default function HeroSection() {
     target: scrollContainerRef,
     offset: ["start start", "end end"],
   });
+
+  /* ── Scroll-driven camera and parts ── */
+  useHomeScroll(scrollYProgress);
+
+  /* ── Initialize car config and camera on mount ── */
+  const { selectPart } = useCarConfig();
+  const { setPreset } = useCameraStore();
+
+  useEffect(() => {
+    // Set initial parts (stock wheel, no spoiler)
+    selectPart('wheels', 'wheel-stock');
+    selectPart('spoilers', 'spoiler-none');
+
+    // Set initial camera position
+    setPreset('home_initial');
+  }, [selectPart, setPreset]);
 
 
   /* ── Scroll-based animations ── */
@@ -254,14 +157,6 @@ export default function HeroSection() {
 
   // CTA button: fades in at end
   const ctaOpacity = useTransform(scrollYProgress, [0, 0.8, 0.95, 1], [0, 0, 1, 1]);
-
-  // 3D Models: progressive accumulation
-  const model1Opacity = useTransform(scrollYProgress, [0, 0.15, 0.25], [0, 1, 1]);
-  const model2Opacity = useTransform(scrollYProgress, [0.25, 0.4, 0.5], [0, 1, 1]);
-  const model3Opacity = useTransform(scrollYProgress, [0.5, 0.65, 0.75], [0, 1, 1]);
-  const model4Opacity = useTransform(scrollYProgress, [0.75, 0.9, 1], [0, 1, 1]);
-  const model5Opacity = useTransform(scrollYProgress, [0.82, 1], [0, 1]);
-  const model6Opacity = useTransform(scrollYProgress, [0.91, 1], [0, 1]);
 
 
   /* ── Render ────────────────────────────────────────────── */
@@ -402,95 +297,37 @@ export default function HeroSection() {
         </motion.div>
 
         {/* ════════════════════════════════════════════════
-            LAYER 0 — 3D JEWELRY MODELS (Progressive Scroll Reveal)
+            LAYER 0 — 3D CAR MODEL (Scroll-Driven Camera & Parts)
         ════════════════════════════════════════════════ */}
         <div className="absolute inset-0 z-[1]">
           <Canvas
-            camera={{ position: [0, 0, 8], fov: 30 }}
+            camera={{ position: [5, 2, 5], fov: 50 }}
+            shadows
+            frameloop="demand"
             dpr={[1, 1.5]}
             gl={{
-              alpha: true,
               antialias: true,
               toneMapping: THREE.ACESFilmicToneMapping,
-              toneMappingExposure: 0.8
+              toneMappingExposure: 1.2,
             }}
           >
-            <CameraController />
-
-            {/* HDRI environment for gold reflections */}
             <Suspense fallback={null}>
               <Environment
                 files="/hdr/main_hdr.exr"
                 background={false}
-                environmentIntensity={2.2}
-                resolution={512}
+                environmentIntensity={0.8}
               />
             </Suspense>
 
-            {/* Reduced lighting - let HDR do the work */}
-            <ambientLight intensity={8} color="#ffffff" />
-            <SpotLight
-              position={[5, 5, 5]}
-              angle={0.3}
-              penumbra={0.5}
-              intensity={40}
-              color="#ffd700"
-            />
-            <SpotLight
-              position={[-5, 3, 5]}
-              angle={0.4}
-              penumbra={0.5}
-              intensity={40}
-              color="#fffacd"
-            />
-            <pointLight position={[0, 3, 3]} intensity={20} color="#ffd700" />
+            <CarLighting />
+            <ReflectiveFloor resolution={256} />
 
-            {/* Progressive jewelry models */}
             <Suspense fallback={null}>
-              <JewelryModel
-                url="/home_models/jewel-3.glb"
-                position={[0, 0, 0]}
-                scrollOpacity={model1Opacity}
-              />
-              <JewelryModel
-                url="/home_models/jewel-1.glb"
-                position={[-0.4, .9, 0]}
-                scrollOpacity={model2Opacity}
-              />
-              <JewelryModel
-                url="/home_models/jewel-2.glb"
-                position={[0.3, .9, 0]}
-                scrollOpacity={model3Opacity}
-              />
-              <JewelryModel
-                url="/home_models/jewel-4.glb"
-                position={[.4, -.1, 0]}
-                scrollOpacity={model4Opacity}
-                scale={5}
-              />
-              <JewelryModel
-                url="/home_models/jewel-5.glb"
-                position={[-0.6, -.1, 0]}
-                scrollOpacity={model5Opacity}
-                scale={5}
-              />
-              {/* <JewelryModel
-                url="/home_models/jewel-6.glb"
-                position={[0.1, -.3, 0]}
-                scrollOpacity={model6Opacity}
-                scale={5}
-              /> */}
-              <JewelryModel
-                url="/home_models/jewel-7.glb"
-                position={[-0.15, -.7, 0.5]}
-                scrollOpacity={model5Opacity}
-              />
-              <JewelryModel
-                url="/home_models/jewel-8.glb"
-                position={[0, -1, 0.5]}
-                scrollOpacity={model6Opacity}
-              />
+              <ConfigurableCar modelPath="/models/car/car.glb" />
             </Suspense>
+
+            <CameraControls />
+            <AdaptiveDpr pixelated />
           </Canvas>
         </div>
 
