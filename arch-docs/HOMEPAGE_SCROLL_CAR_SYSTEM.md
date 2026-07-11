@@ -723,6 +723,36 @@ gltf-pipeline -i car-main.glb -o car-main.glb -d
 
 ---
 
+## In-Scene 3D Chapter Narrative (July 11, 2026)
+
+Advertising layer rendered INSIDE the Canvas — chapter content lives in 3D space behind the car.
+
+### Components
+- **[components/home/ScrollChapters3D.tsx](../components/home/ScrollChapters3D.tsx)**: 4 chapters (`Text3D` gold headline + oversized numeral, `Billboard` description). Each faces its act's camera preset, fades+rises via `useFrame` damp with gated `invalidate()` (preserves `frameloop="demand"`). Includes:
+  - **Color orbs** (act 02): 4 paint-color spheres; active one scales + glows, synced to paint thresholds
+  - **Floor spotlight rings** under front wheel (act 03) / spoiler (act 04)
+  - **`<Sparkles>`** gold dust (replaced DOM particle layer)
+  - **Part-swap burst**: expanding gold ring at wheel/spoiler on swap
+- **[components/home/LoadingScreen.tsx](../components/home/LoadingScreen.tsx)**: `useProgress` branded loader (logo + % bar), fixes model pop-in
+- **[components/home/ChapterRail.tsx](../components/home/ChapterRail.tsx)**: vertical 5-dot act rail, click-to-jump
+- **[lib/homeChapters.ts](../lib/homeChapters.ts)**: single source of truth — `PAINT_STOPS` (also consumed by `useHomeScroll`), `CHAPTERS_3D` (ranges/positions/copy), `RAIL_ACTS`
+
+### Chapter timeline
+| # | Range | Title |
+|---|-------|-------|
+| 01 | 4–14.5% | EXPERIENCE IN 3D |
+| 02 | 15–24.5% | CHOOSE YOUR COLOR (+ orbs) |
+| 03 | 30–58% | TUNE YOUR TASTE (+ wheel ring) |
+| 04 | 60–88% | AERO UPGRADES (+ spoiler ring) |
+
+### Font
+`Text3D` requires typeface JSON: `public/fonts/helvetiker_bold.typeface.json` (from three examples).
+
+### Copy
+Hero copy switched to English car-pitch text (replaced leftover jewelry Persian copy).
+
+---
+
 ## Related Documentation
 - [Camera System Implementation](./CAMERA_SYSTEM_IMPLEMENTATION.md)
 - [Car Tuning View Implementation](./CAR_TUNING_VIEW_IMPLEMENTATION.md)

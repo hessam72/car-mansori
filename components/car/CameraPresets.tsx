@@ -12,7 +12,8 @@ import {
 import { TbCarSuv } from 'react-icons/tb'
 import { IoCarSportOutline } from 'react-icons/io5'
 
-const presetIcons: Record<PresetName, React.ComponentType<{ className?: string }>> = {
+// Partial: scroll-only homepage presets (home_*) never appear in this UI
+const presetIcons: Partial<Record<PresetName, React.ComponentType<{ className?: string }>>> = {
   front: () => <IoCarSportOutline className="w-5 h-5" style={{ transform: 'rotate(0deg)' }} />,
   rear: () => <IoCarSportOutline className="w-5 h-5" style={{ transform: 'rotate(180deg)' }} />,
   sideLeft: () => <TbCarSuv className="w-5 h-5" style={{ transform: 'scaleX(-1)' }} />,
@@ -134,7 +135,7 @@ export default function CameraPresets() {
             {/* Camera Presets */}
             <div className="grid grid-cols-2 gap-3">
               {presets.map((preset) => {
-                const IconComponent = presetIcons[preset]
+                const IconComponent = presetIcons[preset] ?? MdOutlineViewInAr
                 return (
                   <button
                     key={preset}
@@ -188,7 +189,7 @@ export default function CameraPresets() {
 
             {/* Camera Presets */}
             {presets.map((preset) => {
-              const IconComponent = presetIcons[preset]
+              const IconComponent = presetIcons[preset] ?? MdOutlineViewInAr
               return (
                 <button
                   key={preset}

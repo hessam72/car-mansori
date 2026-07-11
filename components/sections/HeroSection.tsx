@@ -14,6 +14,9 @@ import ConfigurableCar from "@/components/car/ConfigurableCar";
 import CameraControls from "@/components/car/CameraControls";
 import { LightFlickerController } from "@/components/car/LightFlickerController";
 import { ReflectiveFloor } from "@/components/store/ReflectiveFloor";
+import ScrollChapters3D from "@/components/home/ScrollChapters3D";
+import LoadingScreen from "@/components/home/LoadingScreen";
+import ChapterRail from "@/components/home/ChapterRail";
 import { useHomeScroll } from "@/hooks/useHomeScroll";
 import { useCarConfig } from "@/stores/carConfigStore";
 import { useCameraStore } from "@/stores/cameraStore";
@@ -23,20 +26,6 @@ import { useCameraStore } from "@/stores/cameraStore";
    second of video. 300vh ≈ comfortable for a 6-10s clip.
 ───────────────────────────────────────────────────────────── */
 const SCROLL_HEIGHT = "300vh";
-
-/* ─────────────────────────────────────────────────────────────
-   Gold dust particles — deterministic (no Math.random → no SSR
-   hydration mismatch)
-───────────────────────────────────────────────────────────── */
-const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
-  id:      i,
-  left:    `${((i * 19 + 7) % 88) + 4}%`,
-  top:     `${((i * 31 + 13) % 72) + 6}%`,
-  size:    1.3 + (i % 4) * 0.65,
-  dur:     3.8 + (i % 6) * 1.05,
-  delay:   (i % 9) * 0.42,
-  opacity: 0.28 + (i % 4) * 0.14,
-}));
 
 
 /* ─────────────────────────────────────────────────────────────
@@ -219,7 +208,7 @@ export default function HeroSection() {
                 textShadow: "0 0 15px rgba(255, 215, 0, 0.3)",
               }}
             >
-            برای ورود به شهر جواهرات اسکرول کنید
+            Scroll to explore the showroom
             </p>
 
             {/* Animated scroll gesture */}
@@ -311,6 +300,7 @@ export default function HeroSection() {
 
               <Suspense fallback={null}>
                 <ConfigurableCar modelPath="/models/car/car.glb" />
+                <ScrollChapters3D scrollProgress={scrollYProgress} />
               </Suspense>
 
               <CameraControls disableInteraction />
@@ -362,35 +352,15 @@ export default function HeroSection() {
         </div>
 
         {/* ════════════════════════════════════════════════
-            LAYER 3 — GOLD DUST PARTICLES
+            LAYER 3 — GOLD DUST: now real-depth <Sparkles>
+            inside the 3D scene (ScrollChapters3D)
         ════════════════════════════════════════════════ */}
-        <div className="absolute inset-0 pointer-events-none z-[4]">
-          {PARTICLES.map((p) => (
-            <motion.div
-              key={p.id}
-              className="absolute rounded-full"
-              style={{
-                left:       p.left,
-                top:        p.top,
-                width:      `${p.size}px`,
-                height:     `${p.size}px`,
-                background: "#D4AF37",
-                boxShadow:  `0 0 ${p.size * 3.5}px rgba(212,175,55,0.85)`,
-              }}
-              animate={{
-                y:       [0, -38, 0],
-                opacity: [0, p.opacity * 1.2, 0],
-                scale:   [0.4, 1.5, 0.4],
-              }}
-              transition={{
-                duration: p.dur * 1.15,
-                delay:    p.delay,
-                repeat:   Infinity,
-                ease:     [0.45, 0.05, 0.55, 0.95],
-              }}
-            />
-          ))}
-        </div>
+
+        {/* CHAPTER PROGRESS RAIL — act dots, click to jump */}
+        <ChapterRail scrollProgress={scrollYProgress} containerRef={scrollContainerRef} />
+
+        {/* BRANDED LOADING SCREEN — hides model pop-in */}
+        <LoadingScreen />
 
         {/* ════════════════════════════════════════════════
             LAYER 5 — TEXT BLOCK (scroll-controlled staggered reveal)
@@ -419,7 +389,7 @@ export default function HeroSection() {
                 opacity: 0.95,
               }}
             >
-             پاساژ دیجیتال شهر امید دروازه‌ای به آینده جواهرات
+             THE DIGITAL SHOWROOM — CONFIGURE YOUR CAR IN REAL TIME
             </p>
             <span
               className="block w-10 md:w-12 h-[1.5px] flex-shrink-0"
@@ -506,7 +476,7 @@ export default function HeroSection() {
               opacity: subtitleOpacity,
             }}
           >
-هر قطعه طلا قبل از خرید متعلق به توست
+See it. Style it. Own it — every detail is yours before you buy.
           </motion.p>
         </div>
 
@@ -570,7 +540,7 @@ export default function HeroSection() {
                 strokeLinejoin="round"
               />
             </svg>
-            <span className="relative tracking-wider">ورود به گالری</span>
+            <span className="relative tracking-wider">Enter the Showroom</span>
           </motion.button>
         </motion.div>
 

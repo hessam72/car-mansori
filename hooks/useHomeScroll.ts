@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { MotionValue } from 'framer-motion'
 import { useCameraStore } from '@/stores/cameraStore'
 import { useCarConfig } from '@/stores/carConfigStore'
+import { paintForProgress } from '@/lib/homeChapters'
 
 export function useHomeScroll(scrollYProgress: MotionValue<number>) {
   const { setPreset, setAutoRotate } = useCameraStore()
@@ -58,26 +59,14 @@ export function useHomeScroll(scrollYProgress: MotionValue<number>) {
         prevStateRef.current.camera = newCamera
       }
 
-      // Bidirectional color changes: cycle through presets from 15-30%
-      let newColor = prevStateRef.current.color
-      if (v < 0.15) {
-        newColor = '#ff0000'
-      } else if (v >= 0.15 && v < 0.20) {
-        newColor = '#0066ff'
-      } else if (v >= 0.20 && v < 0.25) {
-        newColor = '#1a1a1a'
-      } else if (v >= 0.25) {
-        newColor = '#f5f5f5'
-      }
-      if (newColor !== prevStateRef.current.color) {
-        const configs = {
-          '#ff0000': { color: '#ff0000', metalness: 0.9, roughness: 0.2, clearcoat: 1.0 },
-          '#0066ff': { color: '#0066ff', metalness: 0.9, roughness: 0.3, clearcoat: 1.0 },
-          '#1a1a1a': { color: '#1a1a1a', metalness: 0.8, roughness: 0.4, clearcoat: 1.0 },
-          '#f5f5f5': { color: '#f5f5f5', metalness: 0.8, roughness: 0.1, clearcoat: 1.0 }
-        }
-        setPaintConfig(configs[newColor as keyof typeof configs], 'body')
-        prevStateRef.current.color = newColor
+      // Bidirectional color changes: thresholds shared with ScrollChapters3D orbs
+      const stop = paintForProgress(v)
+      if (stop.color !== prevStateRef.current.color) {
+        setPaintConfig(
+          { color: stop.color, metalness: stop.metalness, roughness: stop.roughness, clearcoat: stop.clearcoat },
+          'body'
+        )
+        prevStateRef.current.color = stop.color
       }
 
       // Bidirectional wheel swap: stock2 from 35-70%, stock below 35%
