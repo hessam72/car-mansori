@@ -15,6 +15,7 @@ import CameraControls from "@/components/car/CameraControls";
 import { LightFlickerController } from "@/components/car/LightFlickerController";
 import { ReflectiveFloor } from "@/components/store/ReflectiveFloor";
 import ScrollChapters3D from "@/components/home/ScrollChapters3D";
+import ScrollCameraRig from "@/components/home/ScrollCameraRig";
 import LoadingScreen from "@/components/home/LoadingScreen";
 import ChapterRail from "@/components/home/ChapterRail";
 import { useHomeScroll } from "@/hooks/useHomeScroll";
@@ -141,6 +142,9 @@ export default function HeroSection() {
 
   // CTA button: fades in at finale
   const ctaOpacity = useTransform(scrollYProgress, [0, 0.95, 1], [0, 0, 1]);
+
+  // Letterbox cinema bars: slide in as the journey starts, snap open at finale
+  const letterboxScale = useTransform(scrollYProgress, [0, 0.04, 0.88, 0.92], [0, 1, 1, 0]);
 
 
   /* ── Render ────────────────────────────────────────────── */
@@ -304,6 +308,7 @@ export default function HeroSection() {
               </Suspense>
 
               <CameraControls disableInteraction />
+              <ScrollCameraRig scrollProgress={scrollYProgress} />
               <AdaptiveDpr pixelated />
             </LightFlickerController>
           </Canvas>
@@ -355,6 +360,16 @@ export default function HeroSection() {
             LAYER 3 — GOLD DUST: now real-depth <Sparkles>
             inside the 3D scene (ScrollChapters3D)
         ════════════════════════════════════════════════ */}
+
+        {/* LETTERBOX CINEMA BARS — journey framing, open at finale */}
+        <motion.div
+          className="absolute top-0 left-0 right-0 z-[15] pointer-events-none bg-black"
+          style={{ height: "7svh", scaleY: letterboxScale, transformOrigin: "top" }}
+        />
+        <motion.div
+          className="absolute bottom-0 left-0 right-0 z-[15] pointer-events-none bg-black"
+          style={{ height: "7svh", scaleY: letterboxScale, transformOrigin: "bottom" }}
+        />
 
         {/* CHAPTER PROGRESS RAIL — act dots, click to jump */}
         <ChapterRail scrollProgress={scrollYProgress} containerRef={scrollContainerRef} />

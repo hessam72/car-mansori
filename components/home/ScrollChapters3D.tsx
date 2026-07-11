@@ -197,6 +197,18 @@ function PartSwapBurst() {
   const prevRef = useRef<Record<string, string>>({});
   const burstRef = useRef<{ pos: THREE.Vector3; t: number } | null>(null);
   const meshRef = useRef<THREE.Mesh>(null);
+  const lightRef = useRef<THREE.PointLight>(null);
+  const shadowRef = useRef<THREE.Mesh>(null);
+  const shadowMat = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: "#000000",
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+      }),
+    []
+  );
   const mat = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
@@ -209,7 +221,7 @@ function PartSwapBurst() {
       }),
     []
   );
-  useEffect(() => () => mat.dispose(), [mat]);
+  useEffect(() => () => { mat.dispose(); shadowMat.dispose(); }, [mat, shadowMat]);
 
   useEffect(() => {
     const prev = prevRef.current;
@@ -230,21 +242,49 @@ function PartSwapBurst() {
   useFrame((_, delta) => {
     const burst = burstRef.current;
     const mesh = meshRef.current;
+    const light = lightRef.current;
+    const shadow = shadowRef.current;
     if (!burst || !mesh) return;
     burst.t += delta;
     const p = Math.min(burst.t / BURST_DURATION, 1);
-    mesh.visible = p < 1;
+    const alive = p < 1;
+
+    // Expanding gold ring
+    mesh.visible = alive;
     mesh.position.copy(burst.pos);
     mesh.scale.setScalar(0.3 + p * 1.4);
     mat.opacity = (1 - p) * 0.8;
+
+    // Rim-light pulse: fast attack, smooth decay
+    if (light) {
+      light.visible = alive;
+      light.position.set(burst.pos.x, burst.pos.y + 0.4, burst.pos.z);
+      const pulse = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85;
+      light.intensity = pulse * 8;
+    }
+
+    // Ground shadow pulse: dark blob under the part, fades as it spreads
+    if (shadow) {
+      shadow.visible = alive;
+      shadow.position.set(burst.pos.x, 0.015, burst.pos.z);
+      shadow.scale.setScalar(0.5 + p * 0.9);
+      shadowMat.opacity = (1 - p) * 0.5;
+    }
+
     if (p >= 1) burstRef.current = null;
     else invalidate();
   });
 
   return (
-    <mesh ref={meshRef} visible={false} rotation={[-Math.PI / 2, 0, 0]} material={mat}>
-      <ringGeometry args={[0.42, 0.5, 40]} />
-    </mesh>
+    <>
+      <mesh ref={meshRef} visible={false} rotation={[-Math.PI / 2, 0, 0]} material={mat}>
+        <ringGeometry args={[0.42, 0.5, 40]} />
+      </mesh>
+      <pointLight ref={lightRef} visible={false} intensity={0} distance={2.5} decay={2} color={GOLD} />
+      <mesh ref={shadowRef} visible={false} rotation={[-Math.PI / 2, 0, 0]} material={shadowMat}>
+        <circleGeometry args={[0.5, 32]} />
+      </mesh>
+    </>
   );
 }
 

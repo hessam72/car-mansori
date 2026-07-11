@@ -2,7 +2,7 @@
 
 import { useRef, useMemo, useEffect, Suspense } from 'react'
 import { useGLTF } from '@react-three/drei'
-import { useThree } from '@react-three/fiber'
+import { useThree, useFrame } from '@react-three/fiber'
 import { useCarConfig, PaintZone } from '@/stores/carConfigStore'
 import { DynamicPart } from './DynamicPart'
 import { PartErrorBoundary } from './PartErrorBoundary'
@@ -78,18 +78,17 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
     return { carModel: clone, paintTargets: targets }
   }, [gltf.scene])
 
-  // Debounce ref for invalidate calls
-  const invalidateTimeoutRef = useRef<NodeJS.Timeout>()
+  // Paint transitions: first application is instant, later changes blend
+  // smoothly (~400ms) in useFrame instead of snapping
+  const firstPaintRef = useRef(true)
+  const paintAnimatingRef = useRef(false)
+  const paintScratchRef = useRef(new THREE.Color())
 
-  // Apply paint by mutating the cached materials in place
   useEffect(() => {
+    // Static exotic-paint properties + instant first coat
     paintTargets.forEach(({ material, zone }) => {
       const zoneConfig = paintConfig[zone]
-      material.color.set(zoneConfig.color)
-      material.metalness = zoneConfig.metalness
-      material.roughness = zoneConfig.roughness
       if (material.clearcoat !== undefined) {
-        material.clearcoat = zoneConfig.clearcoat
         material.clearcoatRoughness = 0.1
       }
       // Iridescence for exotic paint effect (color shift at angles)
@@ -98,16 +97,53 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
         material.iridescenceIOR = 1.3
         material.iridescenceThicknessRange = [100, 800]
       }
+      if (firstPaintRef.current) {
+        material.color.set(zoneConfig.color)
+        material.metalness = zoneConfig.metalness
+        material.roughness = zoneConfig.roughness
+        if (material.clearcoat !== undefined) material.clearcoat = zoneConfig.clearcoat
+      }
     })
-
-    // Debounce invalidate to batch rapid paint changes
-    if (invalidateTimeoutRef.current) {
-      clearTimeout(invalidateTimeoutRef.current)
+    if (firstPaintRef.current) {
+      firstPaintRef.current = false
+    } else {
+      paintAnimatingRef.current = true
     }
-    invalidateTimeoutRef.current = setTimeout(() => {
-      invalidate()
-    }, 50)
+    invalidate()
   }, [paintConfig, paintTargets, invalidate])
+
+  useFrame((_, delta) => {
+    if (!paintAnimatingRef.current) return
+    const d = 1 - Math.exp(-10 * delta) // ~400ms blend
+    const scratch = paintScratchRef.current
+    let moving = false
+    paintTargets.forEach(({ material, zone }) => {
+      const zoneConfig = paintConfig[zone]
+      scratch.set(zoneConfig.color)
+      material.color.lerp(scratch, d)
+      material.metalness = THREE.MathUtils.damp(material.metalness, zoneConfig.metalness, 10, delta)
+      material.roughness = THREE.MathUtils.damp(material.roughness, zoneConfig.roughness, 10, delta)
+      if (material.clearcoat !== undefined) {
+        material.clearcoat = THREE.MathUtils.damp(material.clearcoat, zoneConfig.clearcoat, 10, delta)
+      }
+      if (
+        Math.abs(material.color.r - scratch.r) > 0.004 ||
+        Math.abs(material.color.g - scratch.g) > 0.004 ||
+        Math.abs(material.color.b - scratch.b) > 0.004 ||
+        Math.abs(material.metalness - zoneConfig.metalness) > 0.004 ||
+        Math.abs(material.roughness - zoneConfig.roughness) > 0.004
+      ) {
+        moving = true
+      } else {
+        material.color.copy(scratch)
+        material.metalness = zoneConfig.metalness
+        material.roughness = zoneConfig.roughness
+        if (material.clearcoat !== undefined) material.clearcoat = zoneConfig.clearcoat
+      }
+    })
+    if (moving) invalidate()
+    else paintAnimatingRef.current = false
+  })
 
   // Dispose the per-car cloned paint materials when the model changes/unmounts
   useEffect(() => {

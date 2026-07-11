@@ -5,7 +5,7 @@ import { useCarConfig } from '@/stores/carConfigStore'
 import { paintForProgress } from '@/lib/homeChapters'
 
 export function useHomeScroll(scrollYProgress: MotionValue<number>) {
-  const { setPreset, setAutoRotate } = useCameraStore()
+  const { setPreset, setAutoRotate, clearTransition } = useCameraStore()
   const { selectPart, setPaintConfig } = useCarConfig()
 
   // Track auto-rotate state only (parts are range-based)
@@ -43,20 +43,18 @@ export function useHomeScroll(scrollYProgress: MotionValue<number>) {
         }
       }
 
-      // Camera movements based on scroll progress
-      let newCamera: 'home_initial' | 'home_front_wheel' | 'home_spoiler' | 'home_finale' = prevStateRef.current.camera as any
-      if (v < 0.25) {
-        newCamera = 'home_initial'
-      } else if (v >= 0.25 && v < 0.60) {
-        newCamera = 'home_front_wheel'
-      } else if (v >= 0.60 && v < 0.90) {
-        newCamera = 'home_spoiler'
-      } else if (v >= 0.90) {
-        newCamera = 'home_finale'
-      }
-      if (newCamera !== prevStateRef.current.camera) {
-        setPreset(newCamera)
-        prevStateRef.current.camera = newCamera
+      // Camera: journey (0→0.90) is driven continuously by ScrollCameraRig.
+      // Only the finale still uses a preset (spring + auto-rotate handoff).
+      if (v >= 0.90) {
+        if (prevStateRef.current.camera !== 'home_finale') {
+          setPreset('home_finale')
+          prevStateRef.current.camera = 'home_finale'
+        }
+      } else if (prevStateRef.current.camera === 'home_finale') {
+        // Back into scrub territory — stop the preset spring so it
+        // doesn't fight the rig
+        clearTransition()
+        prevStateRef.current.camera = 'home_initial'
       }
 
       // Bidirectional color changes: thresholds shared with ScrollChapters3D orbs
@@ -95,5 +93,5 @@ export function useHomeScroll(scrollYProgress: MotionValue<number>) {
     })
 
     return unsubscribe
-  }, [scrollYProgress, setPreset, setAutoRotate, selectPart])
+  }, [scrollYProgress, setPreset, setAutoRotate, selectPart, clearTransition])
 }

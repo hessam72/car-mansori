@@ -68,6 +68,7 @@ export default function CameraControls({ disableInteraction = false }: CameraCon
   return (
     <OrbitControls
       ref={controlsRef}
+      makeDefault
       regress
       enableDamping
       dampingFactor={0.05}
