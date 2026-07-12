@@ -79,14 +79,14 @@ function Chapter({ chapter, scrollProgress }: { chapter: Chapter3D; scrollProgre
   return (
     <group ref={groupRef} position={chapter.position} rotation={[0, rotationY, 0]} visible={false}>
       {/* Oversized chapter numeral, offset behind the headline */}
-      <Text3D font={FONT_URL} size={1.5} height={0.04} position={[-0.3, 0.35, -0.5]} material={goldMat} curveSegments={6}>
+      {/* <Text3D font={FONT_URL} size={1.5} height={0.04} position={[-0.3, 0.35, -0.5]} material={goldMat} curveSegments={6}>
         {chapter.index}
-      </Text3D>
+      </Text3D> */}
 
       {/* Headline */}
       <Text3D
         font={FONT_URL}
-        size={0.34}
+        size={0.3}
         height={0.07}
         bevelEnabled
         bevelSize={0.008}

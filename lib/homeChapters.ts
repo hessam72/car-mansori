@@ -41,8 +41,8 @@ export const CHAPTERS_3D: Chapter3D[] = [
     range: [0.04, 0.145],
     title: 'EXPERIENCE IN 3D',
     description: 'Explore every angle in a real-time showroom',
-    position: [-2.6, 1.5, -2.6],
-    facing: [5, 2, 5], // home_initial camera
+    position: [-4.6, 1.5, -2.6],
+    facing: [3, 2, 5], // home_initial camera
   },
   {
     id: 'color',
@@ -51,7 +51,7 @@ export const CHAPTERS_3D: Chapter3D[] = [
     title: 'CHOOSE YOUR COLOR',
     description: 'Factory-grade paint, rendered live',
     position: [-2.9, 1.7, -1.6],
-    facing: [5, 2, 5], // still home_initial camera
+    facing: [3, 2, 5], // still home_initial camera
     showOrbs: true,
   },
   {

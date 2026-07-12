@@ -25,7 +25,7 @@ import { useCarConfig } from "@/stores/carConfigStore";
    Scroll section height — increase for more scroll room per
    second of video. 300vh ≈ comfortable for a 6-10s clip.
 ───────────────────────────────────────────────────────────── */
-const SCROLL_HEIGHT = "300vh";
+const SCROLL_HEIGHT = "700vh";
 
 
 /* ─────────────────────────────────────────────────────────────
