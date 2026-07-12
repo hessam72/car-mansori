@@ -12,10 +12,10 @@ export interface PaintStop {
 }
 
 export const PAINT_STOPS: PaintStop[] = [
-  { until: 0.30, color: '#ff0000', metalness: 0.9, roughness: 0.2, clearcoat: 1.0, label: 'Gloss Red' },
-  { until: 0.40, color: '#0066ff', metalness: 0.9, roughness: 0.3, clearcoat: 1.0, label: 'Gloss Blue' },
-  { until: 0.53, color: '#1a1a1a', metalness: 0.8, roughness: 0.4, clearcoat: 1.0, label: 'Satin Black' },
-  { until: 1.01, color: '#f5f5f5', metalness: 0.8, roughness: 0.1, clearcoat: 1.0, label: 'Pearl White' },
+  { until: 0.25, color: '#ff0000', metalness: 0.9, roughness: 0.2, clearcoat: 1.0, label: 'Gloss Red' },
+  { until: 0.35, color: '#1a1a1a', metalness: 0.8, roughness: 0.4, clearcoat: 1.0, label: 'Satin Black'},
+  { until: 1,  color: '#f5f5f5', metalness: 0.8, roughness: 0.1, clearcoat: 1.0, label: 'Pearl White' },
+  // { until: 1.01, color: '#f5f5f5', metalness: 0.8, roughness: 0.1, clearcoat: 1.0, label: 'Pearl White' },
 ]
 
 export function paintForProgress(v: number): PaintStop {
@@ -47,7 +47,7 @@ export const CHAPTERS_3D: Chapter3D[] = [
   {
     id: 'color',
     index: '02',
-    range: [0.30, 0.53],
+    range: [0.25, 0.50],
     title: 'CHOOSE YOUR COLOR',
     description: 'Factory-grade paint, rendered live',
     position: [-2.9, 1.7, -1.6],
@@ -80,7 +80,7 @@ export const CHAPTERS_3D: Chapter3D[] = [
 // Chapter rail acts (includes finale) with click-to-jump scroll fractions
 export const RAIL_ACTS = [
   { id: 'experience', label: '3D Showroom', jumpTo: 0.16 },
-  { id: 'color', label: 'Color', jumpTo: 0.40 },
+  { id: 'color', label: 'Color', jumpTo: 0.35 },
   { id: 'tune', label: 'Wheels', jumpTo: 0.55 },
   { id: 'aero', label: 'Aero', jumpTo: 0.85 },
   { id: 'finale', label: 'Finale', jumpTo: 1.0 },
@@ -89,7 +89,7 @@ export const RAIL_ACTS = [
 export function activeActIndex(v: number): number {
   if (v >= 1.00) return 4
   if (v >= 0.70) return 3
-  if (v >= 0.53) return 2
-  if (v >= 0.30) return 1
+  if (v >= 0.50) return 2
+  if (v >= 0.25) return 1
   return 0
 }
