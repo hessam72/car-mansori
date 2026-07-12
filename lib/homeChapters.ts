@@ -63,7 +63,7 @@ export const CHAPTERS_3D: Chapter3D[] = [
     position: [-2, 1.2, 3],
     
     facing: [0, 0.8, 2.5], // home_front_wheel camera
-    ring: { position: [1.3, 0.02, 0.2], radius: 0.55 },
+    // ring: { position: [-1.3, 0.02, 2], radius: 0.55 },
   },
   {
     id: 'aero',
@@ -73,7 +73,7 @@ export const CHAPTERS_3D: Chapter3D[] = [
     description: 'Performance styling on demand',
     position: [3.4, 2.0, -0.4],
     facing: [-2, 1.8, -3.5], // home_spoiler camera
-    ring: { position: [0, 0.02, -1.9], radius: 0.8 },
+    // ring: { position: [0, 0.02, -1.9], radius: 0.8 },
   },
 ]
 
