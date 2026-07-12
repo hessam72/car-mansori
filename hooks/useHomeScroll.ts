@@ -33,13 +33,13 @@ export function useHomeScroll(scrollYProgress: MotionValue<number>) {
       const now = Date.now()
       if (now - lastUpdateRef.current < 16) return
       lastUpdateRef.current = now
-      // Auto-rotate control: enable at 100%, disable below 95% threshold
+      // Auto-rotate control: enable at 100%, disable when leaving finale
       if (v >= 1.00) {
         if (!triggeredRef.current.autoRotate) {
           setAutoRotate(true)
           triggeredRef.current.autoRotate = true
         }
-      } else if (v < 0.95) {
+      } else if (v < 1.00) {
         if (triggeredRef.current.autoRotate) {
           setAutoRotate(false)
           triggeredRef.current.autoRotate = false
