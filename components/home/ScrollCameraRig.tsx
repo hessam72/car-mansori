@@ -17,7 +17,8 @@ import { useCameraStore } from "@/stores/cameraStore";
   around the car until the user scrolls again.
 */
 
-const SCRUB_END = 0.90;
+const LIGHT_INTRO_END = 0.10; // Camera frozen during light intro 0-10%
+const SCRUB_END = 1.00; // Camera scrub ends at finale (100%)
 const ATTRACT_IDLE_MS = 8000;
 const ATTRACT_SPEED = 0.15; // rad/s
 const DAMP_LAMBDA = 5;
@@ -82,7 +83,7 @@ export default function ScrollCameraRig({ scrollProgress }: { scrollProgress: Mo
       if (
         !reducedMotion.current &&
         document.visibilityState === "visible" &&
-        scrollProgress.get() < 0.02 &&
+        scrollProgress.get() < (LIGHT_INTRO_END + 0.02) &&
         Date.now() - lastScrollAt.current >= ATTRACT_IDLE_MS
       ) {
         invalidate();
@@ -93,12 +94,26 @@ export default function ScrollCameraRig({ scrollProgress }: { scrollProgress: Mo
 
   useFrame((_, delta) => {
     const v = scrollProgress.get();
+
+    // Freeze camera during light intro (0-10%)
+    if (v < LIGHT_INTRO_END) {
+      camera.position.copy(POSITION_POINTS[0]);
+      const targetObj = controls ? controls.target : null;
+      if (targetObj) {
+        targetObj.copy(TARGET_POINTS[0]);
+        controls!.update();
+      } else {
+        camera.lookAt(TARGET_POINTS[0]);
+      }
+      return;
+    }
+
     if (v >= SCRUB_END) return; // finale: preset spring + auto-rotate own the camera
 
     const { pos, tgt } = scratch.current;
     const idle = Date.now() - lastScrollAt.current >= ATTRACT_IDLE_MS;
     const attract =
-      idle && v < 0.02 && !reducedMotion.current && document.visibilityState === "visible";
+      idle && v < (LIGHT_INTRO_END + 0.02) && !reducedMotion.current && document.visibilityState === "visible";
 
     if (attract) {
       // Slow orbit tease around the car at the initial-view radius
@@ -111,7 +126,8 @@ export default function ScrollCameraRig({ scrollProgress }: { scrollProgress: Mo
       tgt.copy(TARGET_POINTS[0]);
     } else {
       if (!idle) attractAngle.current = 0;
-      const u = THREE.MathUtils.clamp(v / SCRUB_END, 0, 1);
+      // Remap scroll [LIGHT_INTRO_END, SCRUB_END] → curve progress [0, 1]
+      const u = THREE.MathUtils.clamp((v - LIGHT_INTRO_END) / (SCRUB_END - LIGHT_INTRO_END), 0, 1);
       posCurve.getPoint(u, pos);
       tgtCurve.getPoint(u, tgt);
     }

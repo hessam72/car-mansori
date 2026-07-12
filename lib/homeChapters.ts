@@ -12,9 +12,9 @@ export interface PaintStop {
 }
 
 export const PAINT_STOPS: PaintStop[] = [
-  { until: 0.15, color: '#ff0000', metalness: 0.9, roughness: 0.2, clearcoat: 1.0, label: 'Gloss Red' },
-  { until: 0.20, color: '#0066ff', metalness: 0.9, roughness: 0.3, clearcoat: 1.0, label: 'Gloss Blue' },
-  { until: 0.25, color: '#1a1a1a', metalness: 0.8, roughness: 0.4, clearcoat: 1.0, label: 'Satin Black' },
+  { until: 0.25, color: '#ff0000', metalness: 0.9, roughness: 0.2, clearcoat: 1.0, label: 'Gloss Red' },
+  { until: 0.30, color: '#0066ff', metalness: 0.9, roughness: 0.3, clearcoat: 1.0, label: 'Gloss Blue' },
+  { until: 0.35, color: '#1a1a1a', metalness: 0.8, roughness: 0.4, clearcoat: 1.0, label: 'Satin Black' },
   { until: 1.01, color: '#f5f5f5', metalness: 0.8, roughness: 0.1, clearcoat: 1.0, label: 'Pearl White' },
 ]
 
@@ -38,7 +38,7 @@ export const CHAPTERS_3D: Chapter3D[] = [
   {
     id: 'experience',
     index: '01',
-    range: [0.04, 0.145],
+    range: [0.14, 0.245],
     title: 'EXPERIENCE IN 3D',
     description: 'Explore every angle in a real-time showroom',
     position: [-4.6, 1.5, -2.6],
@@ -47,7 +47,7 @@ export const CHAPTERS_3D: Chapter3D[] = [
   {
     id: 'color',
     index: '02',
-    range: [0.15, 0.245],
+    range: [0.25, 0.345],
     title: 'CHOOSE YOUR COLOR',
     description: 'Factory-grade paint, rendered live',
     position: [-2.9, 1.7, -1.6],
@@ -57,17 +57,17 @@ export const CHAPTERS_3D: Chapter3D[] = [
   {
     id: 'tune',
     index: '03',
-    range: [0.30, 0.58],
+    range: [0.40, 0.68],
     title: 'TUNE YOUR TASTE',
     description: 'Wheels & parts, swapped instantly',
-    position: [-1.4, 1.3, -1.4],
+    position: [-6, 1.2, -1.6],
     facing: [2.5, 0.8, 2.5], // home_front_wheel camera
     ring: { position: [1.3, 0.02, 0.2], radius: 0.55 },
   },
   {
     id: 'aero',
     index: '04',
-    range: [0.60, 0.88],
+    range: [0.70, 0.98],
     title: 'AERO UPGRADES',
     description: 'Performance styling on demand',
     position: [2.0, 2.0, -0.4],
@@ -78,17 +78,17 @@ export const CHAPTERS_3D: Chapter3D[] = [
 
 // Chapter rail acts (includes finale) with click-to-jump scroll fractions
 export const RAIL_ACTS = [
-  { id: 'experience', label: '3D Showroom', jumpTo: 0.06 },
-  { id: 'color', label: 'Color', jumpTo: 0.18 },
-  { id: 'tune', label: 'Wheels', jumpTo: 0.45 },
-  { id: 'aero', label: 'Aero', jumpTo: 0.75 },
+  { id: 'experience', label: '3D Showroom', jumpTo: 0.16 },
+  { id: 'color', label: 'Color', jumpTo: 0.28 },
+  { id: 'tune', label: 'Wheels', jumpTo: 0.55 },
+  { id: 'aero', label: 'Aero', jumpTo: 0.85 },
   { id: 'finale', label: 'Finale', jumpTo: 1.0 },
 ]
 
 export function activeActIndex(v: number): number {
-  if (v >= 0.90) return 4
-  if (v >= 0.60) return 3
-  if (v >= 0.28) return 2
-  if (v >= 0.15) return 1
+  if (v >= 1.00) return 4
+  if (v >= 0.70) return 3
+  if (v >= 0.38) return 2
+  if (v >= 0.25) return 1
   return 0
 }

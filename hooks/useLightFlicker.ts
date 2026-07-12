@@ -83,7 +83,7 @@ export function useLightFlicker(scrollYProgress: MotionValue<number>) {
     const currentTime = state.clock.elapsedTime
 
     // Early return if flicker already completed and lights are at full brightness
-    if (hasFlickered.current && scroll >= 0.05) {
+    if (hasFlickered.current && scroll >= 0.02) {
       return
     }
 
@@ -113,7 +113,7 @@ export function useLightFlicker(scrollYProgress: MotionValue<number>) {
     }
 
     // Below threshold: darkness, reset flicker state
-    if (scroll < 0.05) {
+    if (scroll < 0.03) {
       flickerStartTime.current = null
       isFlickering.current = false
       hasFlickered.current = false
@@ -122,7 +122,7 @@ export function useLightFlicker(scrollYProgress: MotionValue<number>) {
     }
 
     // Above threshold: trigger flicker if not already started
-    if (scroll >= 0.05 && !hasFlickered.current) {
+    if (scroll >= 0.02 && !hasFlickered.current) {
       if (!isFlickering.current) {
         // Start flicker animation
         flickerStartTime.current = currentTime
