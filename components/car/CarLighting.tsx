@@ -17,8 +17,8 @@ interface CarLightingProps {
 
 // Base intensities (stable state)
 const BASE_INTENSITIES = {
-  key: 100,
-  fill: 60,
+  key: 70,
+  fill: 40,
   rim: 80,
   bounce: 40,
 }
@@ -72,6 +72,10 @@ export default function CarLighting({ flickerData }: CarLightingProps) {
 
       {/* Ambient fill - smooth fade, no flicker */}
       <ambientLight intensity={flickerMultipliers.ambient} />
+
+      {/* PERMANENT REFLECTION LIGHTS - Always on, not affected by flicker */}
+
+ 
     </>
   )
 }
