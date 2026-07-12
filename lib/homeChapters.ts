@@ -47,7 +47,7 @@ export const CHAPTERS_3D: Chapter3D[] = [
   {
     id: 'color',
     index: '02',
-    range: [0.25, 0.50],
+    range: [0.25, 0.55],
     title: 'CHOOSE YOUR COLOR',
     description: 'Factory-grade paint, rendered live',
     position: [-2.9, 1.7, -1.6],
@@ -57,7 +57,7 @@ export const CHAPTERS_3D: Chapter3D[] = [
   {
     id: 'tune',
     index: '03',
-    range: [0.40, 0.68],
+    range: [0.50, 0.68],
     title: 'TUNE YOUR TASTE',
     description: 'Wheels & parts, swapped instantly',
     position: [3, 1.2, 3],
