@@ -17,7 +17,7 @@ interface CarLightingProps {
 
 // Base intensities (stable state)
 const BASE_INTENSITIES = {
-  key: 160,
+  key: 100,
   fill: 60,
   rim: 80,
   bounce: 40,
