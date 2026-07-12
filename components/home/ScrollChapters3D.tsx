@@ -227,7 +227,7 @@ function PartSwapBurst() {
     const prev = prevRef.current;
     const anchors: Record<string, [number, number, number]> = {
       wheels: [1.3, -.4, 2],
-      spoilers: [0, 1.3, -1.9],
+      // spoilers: [0, 1.3, -1.9],
     };
     for (const cat of Object.keys(anchors)) {
       const cur = selectedParts[cat];

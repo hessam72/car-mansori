@@ -25,11 +25,12 @@ const DAMP_LAMBDA = 5;
 
 // Position path through the old preset spots (+ helper point to swing
 // around the rear instead of cutting through the car)
+// Increase all coordinates → further away 
 const POSITION_POINTS = [
   new THREE.Vector3(5, 2, 5),      // home_initial
   new THREE.Vector3(2.5, 0.8, 2.5), // home_front_wheel
   new THREE.Vector3(3, 1.2, -2.5),  // swing around the rear-right
-  new THREE.Vector3(-2, 1.8, -3.5), // home_spoiler
+  new THREE.Vector3(-4, -1, -4.5), // home_spoiler
   new THREE.Vector3(6, 3, 6),       // home_finale
 ];
 const TARGET_POINTS = [
