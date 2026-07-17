@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useGLTF } from '@react-three/drei'
 import CustomizationPanel from '@/components/car/CustomizationPanel'
+import PhotoModeUI from '@/components/car/PhotoModeUI'
 import QualitySelector from '@/components/car/QualitySelector'
 import partsConfig from '@/public/config/car-parts.json'
 import { useCarConfig } from '@/stores/carConfigStore'
@@ -90,6 +91,9 @@ export default function CarPageClient({ car }: { car: Car | null }) {
 
         {/* Quality Selector */}
         <QualitySelector />
+
+        {/* Photo Mode (desktop only) */}
+        <PhotoModeUI />
 
         {/* Customization Panel */}
         <CustomizationPanel />

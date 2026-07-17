@@ -21,6 +21,7 @@ import InteriorLookControls from './InteriorLookControls'
 import PartClickDetector from './PartClickDetector'
 import PartsTogglePanel from './PartsTogglePanel'
 import PerformanceMonitor from './PerformanceMonitor'
+import PhotoMode from './PhotoMode'
 import { useCameraStore } from '@/stores/cameraStore'
 import { useQuality } from '@/contexts/QualityContext'
 
@@ -84,6 +85,9 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
 
         {/* Part Click Detection */}
         <PartClickDetector />
+
+        {/* Path-traced photo mode (desktop button in PhotoModeUI) */}
+        <PhotoMode />
 
         {/* Performance Monitor */}
         {/* <PerformanceMonitor /> */}

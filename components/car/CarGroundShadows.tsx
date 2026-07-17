@@ -19,20 +19,28 @@ const BAKE_FRAMES = 45
 export default function CarGroundShadows() {
   const { settings } = useQuality()
 
+  // userData.photoModeHide: the path tracer computes real ground shadows,
+  // so these raster shadow catchers are hidden during photo mode
   if (settings.groundShadows === 'accumulative') {
-    return <AccumulativeGroundShadows key={settings.groundShadowResolution} />
+    return (
+      <group userData={{ photoModeHide: true }}>
+        <AccumulativeGroundShadows key={settings.groundShadowResolution} />
+      </group>
+    )
   }
 
   return (
-    <ContactShadows
-      position={[0, SHADOW_Y, 0]}
-      opacity={0.7}
-      scale={12}
-      blur={2.2}
-      far={3}
-      resolution={settings.groundShadowResolution}
-      color="#000000"
-    />
+    <group userData={{ photoModeHide: true }}>
+      <ContactShadows
+        position={[0, SHADOW_Y, 0]}
+        opacity={0.7}
+        scale={12}
+        blur={2.2}
+        far={3}
+        resolution={settings.groundShadowResolution}
+        color="#000000"
+      />
+    </group>
   )
 }
 
