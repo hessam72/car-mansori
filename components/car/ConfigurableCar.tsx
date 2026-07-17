@@ -30,6 +30,7 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
   const doorControllerRef = useRef<DoorController | null>(null)
 
   const paintConfig = useCarConfig((s) => s.paintConfig)
+  const paintInitialized = useCarConfig((s) => s.paintInitialized)
   const setPartError = useCarConfig((s) => s.setPartError)
   const openParts = useCarConfig((s) => s.openParts)
   const selectedParts = useCarConfig((s) => s.selectedParts)
@@ -88,6 +89,9 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
   const paintScratchRef = useRef(new THREE.Color())
 
   useEffect(() => {
+    // Skip paint application until user interacts with paint controls
+    if (!paintInitialized) return
+
     // Static exotic-paint properties + instant first coat
     paintTargets.forEach(({ material, zone }) => {
       const zoneConfig = paintConfig[zone]
@@ -113,7 +117,7 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
       paintAnimatingRef.current = true
     }
     invalidate()
-  }, [paintConfig, paintTargets, invalidate])
+  }, [paintConfig, paintTargets, paintInitialized, invalidate])
 
   useFrame((_, delta) => {
     if (!paintAnimatingRef.current) return
