@@ -52,24 +52,20 @@ function PhotoModeSession() {
     pt.renderToCanvas = true
 
     setStatus('building', 0)
-    // Synchronous BVH build (setScene → generator.generate()) — the async
-    // path needs a registered Web Worker (setBVHWorker) and is fragile to
-    // bundle under Next. The realtime loop is already frozen behind a
-    // blocking overlay, so a one-time sync build of the single car is fine.
-    // Deferred two rAF so the "Building scene…" overlay paints first.
-    rafId = requestAnimationFrame(() => {
-      rafId = requestAnimationFrame(() => {
+    pt.setSceneAsync(scene, camera, {
+      onProgress: (p: number) => {
+        if (!disposed) setStatus('building', p)
+      },
+    }).then(() => {
+      if (disposed) return
+      setStatus('rendering')
+      const loop = () => {
         if (disposed) return
-        pt.setScene(scene, camera)
-        setStatus('rendering')
-        const loop = () => {
-          if (disposed) return
-          pt.renderSample()
-          setSamples(pt.samples)
-          if (pt.samples < MAX_SAMPLES) rafId = requestAnimationFrame(loop)
-        }
-        rafId = requestAnimationFrame(loop)
-      })
+        pt.renderSample()
+        setSamples(pt.samples)
+        if (pt.samples < MAX_SAMPLES) rafId = requestAnimationFrame(loop)
+      }
+      rafId = requestAnimationFrame(loop)
     })
 
     // Save: render one sample and read the canvas back in the same tick
