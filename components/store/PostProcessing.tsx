@@ -17,11 +17,14 @@ function StandardComposer() {
   // effect stack is assembled as an array
   const effects: ReactElement[] = []
 
-  // N8AO - HEAVY: Screen-space ambient occlusion, quality follows tier
+  // N8AO - screen-space AO, quality follows tier. halfRes computes AO at
+  // half resolution with depth-aware upsampling: ~3x cheaper, visually
+  // near-identical on a car scene.
   if (settings.enableN8AO) {
     effects.push(
       <N8AO
         key="n8ao"
+        halfRes
         aoRadius={0.5}
         intensity={3}
         distanceFalloff={1.0}
