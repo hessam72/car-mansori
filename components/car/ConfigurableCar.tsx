@@ -167,34 +167,31 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
 
   // True reflections (high/ultra): one-shot cube capture of floor + baked
   // ground shadow + studio env, applied as a real envMap on car materials.
-  // Re-captured only when the captured content can change — the car itself
-  // is hidden during capture, so paint changes never require one.
-  const captureReflections = useCubeReflections(
+  // Captures are frame-counted (not wall-clock) so they always land after
+  // the ~50-frame shadow bake, however slow the GPU. The car is hidden in
+  // its own capture, so paint changes never require one.
+  const scheduleReflectionCapture = useCubeReflections(
     carModel,
     settings.cubeReflections,
     settings.cubeReflectionResolution
   )
 
   useEffect(() => {
-    if (!settings.cubeReflections) return
-    // Initial: after the first accumulative shadow bake settles
-    const t = setTimeout(captureReflections, 1200)
-    return () => clearTimeout(t)
-  }, [settings.cubeReflections, captureReflections])
+    // Initial: alongside the first shadow bake
+    scheduleReflectionCapture(60)
+  }, [scheduleReflectionCapture])
 
   useEffect(() => {
-    if (!settings.cubeReflections) return
-    // Part swap: fade (~0.7s) + shadow re-bake (~0.9s)
-    const t = setTimeout(captureReflections, 2000)
+    // Part swap: wait out the fade (~0.7s), then bake + capture
+    const t = setTimeout(() => scheduleReflectionCapture(60), 950)
     return () => clearTimeout(t)
-  }, [selectedParts, settings.cubeReflections, captureReflections])
+  }, [selectedParts, scheduleReflectionCapture])
 
   useEffect(() => {
-    if (!settings.cubeReflections) return
-    // Door/hood/trunk animation (~1.2s) + shadow re-bake (~0.9s)
-    const t = setTimeout(captureReflections, 2600)
+    // Door/hood/trunk: wait out the animation (~1.2s), then bake + capture
+    const t = setTimeout(() => scheduleReflectionCapture(60), 1450)
     return () => clearTimeout(t)
-  }, [openParts, settings.cubeReflections, captureReflections])
+  }, [openParts, scheduleReflectionCapture])
 
   // Initialize DoorController after car model loads
   useEffect(() => {

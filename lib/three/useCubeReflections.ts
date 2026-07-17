@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef } from 'react'
-import { useThree } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 
 /**
@@ -11,9 +11,12 @@ import * as THREE from 'three'
  * scene.background is temporarily set to the environment texture so paint
  * reflects the light rig too.
  *
- * Returns a `capture()` callback — call it after the scene has settled
- * (shadow bake / part fade / door animation). Paint color changes never need
- * a re-capture since the car itself is not part of the capture.
+ * Returns `scheduleCapture(afterFrames)`: the capture runs after N *rendered*
+ * frames rather than a wall-clock delay, so it always lands after the
+ * accumulative shadow bake (~50 driven frames) finishes — regardless of GPU
+ * speed. The hook drives the demand loop itself while a capture is pending.
+ * Paint color changes never need a re-capture since the car is not part of
+ * its own capture.
  */
 export function useCubeReflections(
   carRoot: THREE.Object3D | null,
@@ -24,6 +27,7 @@ export function useCubeReflections(
   const scene = useThree((s) => s.scene)
   const invalidate = useThree((s) => s.invalidate)
   const rigRef = useRef<{ rt: THREE.WebGLCubeRenderTarget; cam: THREE.CubeCamera } | null>(null)
+  const pendingFramesRef = useRef(-1)
 
   useEffect(() => {
     if (!enabled || !carRoot) return
@@ -33,6 +37,7 @@ export function useCubeReflections(
     rigRef.current = { rt, cam }
 
     return () => {
+      pendingFramesRef.current = -1
       // Detach from materials before disposing so they fall back to scene env
       carRoot.traverse((child) => {
         if (child instanceof THREE.Mesh) {
@@ -52,7 +57,7 @@ export function useCubeReflections(
     }
   }, [enabled, resolution, carRoot, invalidate])
 
-  return useCallback(() => {
+  const capture = useCallback(() => {
     const rig = rigRef.current
     if (!rig || !carRoot || !enabled) return
 
@@ -80,4 +85,25 @@ export function useCubeReflections(
     })
     invalidate()
   }, [carRoot, enabled, gl, scene, invalidate])
+
+  // Count down rendered frames, keep the demand loop alive, capture at zero
+  useFrame(() => {
+    if (pendingFramesRef.current < 0) return
+    if (pendingFramesRef.current === 0) {
+      pendingFramesRef.current = -1
+      capture()
+      return
+    }
+    pendingFramesRef.current -= 1
+    invalidate()
+  })
+
+  return useCallback(
+    (afterFrames = 60) => {
+      if (!enabled) return
+      pendingFramesRef.current = afterFrames
+      invalidate()
+    },
+    [enabled, invalidate]
+  )
 }
