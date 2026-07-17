@@ -5,6 +5,7 @@ import { Environment, AdaptiveDpr } from '@react-three/drei'
 import { ACESFilmicToneMapping } from 'three'
 import { ReflectiveFloor } from '@/components/store/ReflectiveFloor'
 import { PostProcessing } from '@/components/store/PostProcessing'
+import CarGroundShadows from './CarGroundShadows'
 import CarLighting from './CarLighting'
 import ConfigurableCar from './ConfigurableCar'
 import CameraControls from './CameraControls'
@@ -62,6 +63,9 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
 
         {/* Reflective Floor */}
         <ReflectiveFloor resolution={settings.floorReflectionResolution} />
+
+        {/* Ground contact shadows (contact or accumulative per quality tier) */}
+        <CarGroundShadows />
 
         {/* Configurable Car with Part Swapping */}
         <ConfigurableCar modelPath={modelPath} />
