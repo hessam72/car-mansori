@@ -8,6 +8,7 @@ import { DynamicPart } from './DynamicPart'
 import { PartErrorBoundary } from './PartErrorBoundary'
 import { DoorController } from '@/lib/DoorController'
 import { useQuality } from '@/contexts/QualityContext'
+import { prepareCarObject } from '@/lib/three/prepareCarMaterial'
 import * as THREE from 'three'
 
 // Use the local DRACO decoder instead of drei's default CDN
@@ -53,15 +54,13 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
       return mesh.userData?.userdata?.[key] ?? mesh.userData?.[key]
     }
 
-    // Set shadows and collect paintable materials
+    // Shadow flags + env boost for every surface (shared helper keeps swapped
+    // parts visually in sync with the body)
+    prepareCarObject(clone)
+
+    // Collect paintable materials
     clone.traverse((child) => {
       if (child instanceof THREE.Mesh) {
-        child.castShadow = true
-        child.receiveShadow = true
-        if (child.material) {
-          child.material.envMapIntensity = 1.5
-        }
-
         const paintableValue = getUserData(child, 'paintable')
         const isPaintable = paintableValue === true || paintableValue === 1
         const nameMatch =
@@ -154,29 +153,15 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
     }
   }, [paintTargets])
 
-  // Apply anisotropic filtering based on quality settings
+  // Env intensity + anisotropic filtering follow quality settings
   useEffect(() => {
-    if (!settings.enableAnisotropicFiltering || !carModel) return
-
-    carModel.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.material) {
-        const materials = Array.isArray(child.material) ? child.material : [child.material]
-        materials.forEach((mat: THREE.Material) => {
-          if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
-            // Apply anisotropy to all texture maps
-            const textureProps = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap'] as const
-            textureProps.forEach((prop) => {
-              const texture = mat[prop]
-              if (texture instanceof THREE.Texture) {
-                texture.anisotropy = settings.anisotropyLevel
-              }
-            })
-          }
-        })
-      }
+    if (!carModel) return
+    prepareCarObject(carModel, {
+      envMapIntensity: settings.envIntensity,
+      anisotropy: settings.anisotropyLevel,
     })
     invalidate()
-  }, [settings.enableAnisotropicFiltering, settings.anisotropyLevel, carModel, invalidate])
+  }, [settings.envIntensity, settings.anisotropyLevel, carModel, invalidate])
 
   // Initialize DoorController after car model loads
   useEffect(() => {

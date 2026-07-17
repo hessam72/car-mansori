@@ -33,7 +33,10 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
         frameloop="demand"
         dpr={settings.dpr}
         gl={{
-          antialias: true,
+          // The EffectComposer renders offscreen, so canvas MSAA never applies —
+          // AA lives in the composer (multisampling/SMAA per quality tier)
+          antialias: false,
+          powerPreference: 'high-performance',
           toneMapping: ACESFilmicToneMapping,
           toneMappingExposure: 1.2,
         }}

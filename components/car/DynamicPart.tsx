@@ -4,6 +4,8 @@ import { Suspense, useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import { useCarConfig } from '@/stores/carConfigStore'
+import { useQuality } from '@/contexts/QualityContext'
+import { prepareCarMaterial, type CarMaterialOptions } from '@/lib/three/prepareCarMaterial'
 import * as THREE from 'three'
 import partsConfig from '@/public/config/car-parts.json'
 
@@ -43,7 +45,11 @@ function hideNodes(baseCarScene: THREE.Object3D, names: string[]): THREE.Object3
 
 // Clone a part for placement. Geometries stay shared with the drei cache;
 // materials are cloned per instance so fade transitions never touch the cache.
-function clonePartAt(gltfScene: THREE.Object3D, targetNode: THREE.Object3D): THREE.Object3D {
+function clonePartAt(
+  gltfScene: THREE.Object3D,
+  targetNode: THREE.Object3D,
+  matOptions: CarMaterialOptions
+): THREE.Object3D {
   const clone = gltfScene.clone(true)
 
   clone.position.copy(targetNode.position)
@@ -53,17 +59,49 @@ function clonePartAt(gltfScene: THREE.Object3D, targetNode: THREE.Object3D): THR
   // Store original scale for animation
   clone.userData.originalScale = targetNode.scale.clone()
 
-  // Per-clone materials, initialized for the fade-in transition
+  // Per-clone materials, initialized for the fade-in transition. depthWrite
+  // stays off while translucent so old/new parts don't occlude each other
+  // mid-fade; finalizeFadedMaterials restores opaque state afterwards.
   clone.traverse((child: any) => {
     if (child instanceof THREE.Mesh && child.material) {
       const mat = (child.material as THREE.Material).clone() as THREE.MeshStandardMaterial
       mat.transparent = true
       mat.opacity = 0
+      mat.depthWrite = false
+      prepareCarMaterial(mat, matOptions)
       child.material = mat
+      child.castShadow = true
+      child.receiveShadow = true
     }
   })
 
   return clone
+}
+
+// After the fade-in completes, return materials to opaque state — leaving
+// transparent:true causes alpha-sorting/depth artifacts against the body
+function finalizeFadedMaterials(part: THREE.Object3D) {
+  part.traverse((child: any) => {
+    if (child instanceof THREE.Mesh && child.material) {
+      const mat = child.material as THREE.MeshStandardMaterial
+      mat.opacity = 1
+      mat.transparent = false
+      mat.depthWrite = true
+      mat.needsUpdate = true
+    }
+  })
+}
+
+// Re-arm previously finalized (opaque) materials so a fade-out can animate
+function armMaterialsForFade(part: THREE.Object3D) {
+  part.traverse((child: any) => {
+    if (child instanceof THREE.Mesh && child.material) {
+      const mat = child.material as THREE.MeshStandardMaterial
+      mat.transparent = true
+      mat.depthWrite = false
+      mat.needsUpdate = true
+    }
+  })
 }
 
 // Dispose only what we own: the cloned materials. Geometries belong to the drei cache.
@@ -129,6 +167,11 @@ function ModeledPart({ category, partConfig, baseCarScene }: ModeledPartProps) {
   const setPartLoading = useCarConfig((s) => s.setPartLoading)
   const setPartError = useCarConfig((s) => s.setPartError)
   const invalidate = useThree((s) => s.invalidate)
+  const { settings } = useQuality()
+  const matOptions: CarMaterialOptions = {
+    envMapIntensity: settings.envIntensity,
+    anisotropy: settings.anisotropyLevel,
+  }
 
   // Track transition state
   const transitionRef = useRef<{
@@ -174,6 +217,11 @@ function ModeledPart({ category, partConfig, baseCarScene }: ModeledPartProps) {
 
       transition.oldParts.forEach(disposeClone)
       transition.oldParts = []
+
+      // Restore opaque materials — transparency was only for the fade
+      transition.newParts.forEach(finalizeFadedMaterials)
+      invalidate()
+      return
     }
 
     // Animate opacity and scale
@@ -212,9 +260,11 @@ function ModeledPart({ category, partConfig, baseCarScene }: ModeledPartProps) {
     const hiddenNodes: THREE.Object3D[] = []
     const transition = transitionRef.current
 
-    // Store old parts for fade-out transition
+    // Store old parts for fade-out transition (their materials were finalized
+    // to opaque after the last fade, so re-arm them for animating opacity)
     if (transition.newParts.length > 0) {
       transition.oldParts = [...transition.newParts]
+      transition.oldParts.forEach(armMaterialsForFade)
     }
 
     // Strategy 2: attachNodes (multiple instances, e.g., wheels)
@@ -226,7 +276,7 @@ function ModeledPart({ category, partConfig, baseCarScene }: ModeledPartProps) {
           return
         }
 
-        const clone = clonePartAt(gltf.scene, targetNode)
+        const clone = clonePartAt(gltf.scene, targetNode, matOptions)
 
         // Add to same parent to maintain coordinate space
         targetNode.parent?.add(clone)
@@ -252,7 +302,7 @@ function ModeledPart({ category, partConfig, baseCarScene }: ModeledPartProps) {
         return
       }
 
-      const clone = clonePartAt(gltf.scene, targetNode)
+      const clone = clonePartAt(gltf.scene, targetNode, matOptions)
 
       // Add to same parent to maintain coordinate space
       targetNode.parent?.add(clone)

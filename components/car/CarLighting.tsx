@@ -42,9 +42,10 @@ export default function CarLighting({ flickerData }: CarLightingProps) {
         castShadow
         shadow-mapSize-width={settings.shadowResolution}
         shadow-mapSize-height={settings.shadowResolution}
-        shadow-camera-near={3}
-        shadow-camera-far={25}
-        shadow-bias={-0.001}
+        shadow-camera-near={5}
+        shadow-camera-far={18}
+        shadow-bias={-0.0001}
+        shadow-normalBias={0.03}
       />
 
       {/* Fill Light - Soften shadows from left */}
