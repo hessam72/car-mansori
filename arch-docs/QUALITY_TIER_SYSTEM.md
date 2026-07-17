@@ -89,6 +89,38 @@ realism-effects `VelocityDepthNormalPass + SSGIEffect + TRAAEffect` replaces N8A
 
 ---
 
+## Performance architecture
+
+The scene runs `frameloop="demand"` — it renders only on invalidation, so an idle car costs nothing. Frame drops therefore come from **per-interactive-frame cost** and **one-shot spikes**, which these systems target. Ordered by impact:
+
+### Frozen static shadows — `components/car/ShadowFreeze.tsx`
+`gl.shadowMap.autoUpdate` is turned **off**; shadow maps re-render only during frame-counted windows (`needsUpdate=true` for ~150 rendered frames) opened on mount, part swaps, door animations and quality changes. Orbiting a static car no longer repays a 2048² depth pass every frame. The AccumulativeShadows bake runs *inside* these windows, so soft ground shadows are unaffected.
+
+### On-change ContactShadows — `CarGroundShadows.tsx`
+The low/medium contact catcher uses `frames={160}` and a `key` keyed to part/door state, so it renders scene-from-below + blur only right after geometry changes instead of every frame. (High/ultra use the already-baked AccumulativeShadows.)
+
+### Cube-capture floor swap — `lib/three/useCubeReflections.ts`
+During a reflection capture the `reflective-floor` mesh is temporarily swapped to a plain dark material, so the 6 cube faces don't each re-render the live MeshReflector (was a 6× scene-render spike after every tuning change). Visually identical inside a rough paint reflection.
+
+### DPR pixel budget — `CarTuningScene.tsx` `clampDprToBudget()`
+Effective max DPR is capped so total pixels stay ≤ ~4.5MP (`min(tierMax, sqrt(BUDGET/(w·h)))`, never below native). Only bites on 4K/5K screens where DPR 2 was invisible overspend against a real fill-rate cost (× MSAA × post).
+
+### Reflector resolution cap — `lib/config/quality.ts`
+`floorReflectionResolution` 128/256/512/512. The reflector re-renders the scene into its FBO whenever it's visible; on a roughness-1, depth-faded floor, 1024/2048 targets looked identical to 512 — pure savings on the single most expensive recurring pass.
+
+### Half-res AO — `PostProcessing.tsx`
+N8AO runs with `halfRes` (+ depth-aware upsampling): ~3× cheaper AO, near-identical on a car scene.
+
+### Adaptive DPR ladder — `CarTuningScene.tsx`
+`AdaptiveDpr` (all tiers) drops resolution *during* camera motion and snaps back on the idle frame — the drop is hidden by motion. On top, drei `PerformanceMonitor` steps the tier's max DPR down a ladder (×1 → ×0.85 → ×0.7) on sustained FPS decline and back up on incline (`flipflops` guard locks a stable point; an `fps>=5` filter ignores the poisoned sample a demand-loop idle gap produces). Quality yields only under real load and recovers automatically; silent, no UI.
+
+### Mobile default — `contexts/QualityContext.tsx`
+First visit on a `<768px` screen with nothing stored defaults to the **low** preset instead of medium.
+
+> **Measuring frame rate:** must be done on real GPU hardware. Software-GL/headless environments render the whole scene at <1 FPS, drowning these deltas in noise.
+
+---
+
 ## Usage
 
 ```tsx
