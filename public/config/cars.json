@@ -3,7 +3,7 @@
     "id": "sample-car",
     "name": "Sample Car",
     "name_fa": "BMW M5",
-    "model_path": "/models/car/supercars/bmw_m5.glb",
+    "model_path": "/models/car/supercars/porsche_992.glb",
     "usdz_path": "/models/car/car.usdz",
     "specs": {
       "engine": "V6 Turbo",
