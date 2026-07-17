@@ -723,6 +723,58 @@ gltf-pipeline -i car-main.glb -o car-main.glb -d
 
 ---
 
+## In-Scene 3D Chapter Narrative (July 11, 2026)
+
+Advertising layer rendered INSIDE the Canvas — chapter content lives in 3D space behind the car.
+
+### Components
+- **[components/home/ScrollChapters3D.tsx](../components/home/ScrollChapters3D.tsx)**: 4 chapters (`Text3D` gold headline + oversized numeral, `Billboard` description). Each faces its act's camera preset, fades+rises via `useFrame` damp with gated `invalidate()` (preserves `frameloop="demand"`). Includes:
+  - **Color orbs** (act 02): 4 paint-color spheres; active one scales + glows, synced to paint thresholds
+  - **Floor spotlight rings** under front wheel (act 03) / spoiler (act 04)
+  - **`<Sparkles>`** gold dust (replaced DOM particle layer)
+  - **Part-swap burst**: expanding gold ring at wheel/spoiler on swap
+- **[components/home/LoadingScreen.tsx](../components/home/LoadingScreen.tsx)**: `useProgress` branded loader (logo + % bar), fixes model pop-in
+- **[components/home/ChapterRail.tsx](../components/home/ChapterRail.tsx)**: vertical 5-dot act rail, click-to-jump
+- **[lib/homeChapters.ts](../lib/homeChapters.ts)**: single source of truth — `PAINT_STOPS` (also consumed by `useHomeScroll`), `CHAPTERS_3D` (ranges/positions/copy), `RAIL_ACTS`
+
+### Chapter timeline
+| # | Range | Title |
+|---|-------|-------|
+| 01 | 4–14.5% | EXPERIENCE IN 3D |
+| 02 | 15–24.5% | CHOOSE YOUR COLOR (+ orbs) |
+| 03 | 30–58% | TUNE YOUR TASTE (+ wheel ring) |
+| 04 | 60–88% | AERO UPGRADES (+ spoiler ring) |
+
+### Font
+`Text3D` requires typeface JSON: `public/fonts/helvetiker_bold.typeface.json` (from three examples).
+
+### Copy
+Hero copy switched to English car-pitch text (replaced leftover jewelry Persian copy).
+
+---
+
+## Cinematic Upgrade — Round 2 (July 11, 2026)
+
+### 1. Continuous camera path ([components/home/ScrollCameraRig.tsx](../components/home/ScrollCameraRig.tsx))
+Journey camera (scroll 0→0.90) is now scrubbed along `CatmullRomCurve3` position/target curves through the old preset spots (+ rear swing point `[3,1.2,-2.5]`) instead of 4 discrete jumps. Damped (`lambda 5`) toward `curve.getPoint(v/0.90)` each frame; gated `invalidate()`. At ≥0.90 the rig goes dormant and the finale preset spring + auto-rotate take over (`useHomeScroll` now only sets `home_finale`; `clearTransition()` on re-entry to scrub). `OrbitControls` got `makeDefault` so the rig reaches it via `useThree(s => s.controls)`.
+
+### 2. Idle attract mode (kiosk) — same file
+Idle ≥8s at `v < 0.02` (page visible, no `prefers-reduced-motion`) → slow orbit (0.15 rad/s) around the car; any scroll smoothly damps back to the curve. A 1s heartbeat interval kicks the demand frameloop only when attract conditions hold.
+
+### 3. Smooth paint transitions ([components/car/ConfigurableCar.tsx](../components/car/ConfigurableCar.tsx))
+Paint changes blend over ~400ms (`Color.lerp` + `MathUtils.damp` in `useFrame`, snap+stop when within 0.004). First coat on mount is instant. Also benefits `/car` page.
+
+### 4. Part-swap pulse upgrade ([components/home/ScrollChapters3D.tsx](../components/home/ScrollChapters3D.tsx))
+Burst now = gold ring + point-light pulse (fast attack → decay, intensity 8) + dark ground-shadow blob that spreads and fades — reads as the part "landing".
+
+### 5. Letterbox cinema bars ([components/sections/HeroSection.tsx](../components/sections/HeroSection.tsx))
+Two 7svh black bars, `scaleY` mapped `[0, 0.04, 0.88, 0.92] → [0, 1, 1, 0]` — frame the journey, snap open at the finale reveal. Pure DOM.
+
+### 6. Realistic light turn-on ([hooks/useLightFlicker.ts](../hooks/useLightFlicker.ts))
+Old keyframes were non-monotonic (`0.40` → `0.38`) and a single linear ramp. New sequence models a real HID strike: weak sputter → collapse → dark gap → second strike → stuttering climb → brightness sag → stable (1.8s + per-light lag, total 2.4s), with deterministic high-frequency shimmer (`1 + 0.12·sin(47t)·sin(23t)·decay`) during the strike phase. Per-light offsets are now lags (key 0 / fill 0.25 / bounce 0.40 / rim 0.55 behind) for a rolling-hall effect.
+
+---
+
 ## Related Documentation
 - [Camera System Implementation](./CAMERA_SYSTEM_IMPLEMENTATION.md)
 - [Car Tuning View Implementation](./CAR_TUNING_VIEW_IMPLEMENTATION.md)

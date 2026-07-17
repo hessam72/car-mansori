@@ -29,7 +29,7 @@ export function ConditionalEnvironment({ flickerData }: ConditionalEnvironmentPr
       <Environment
         files="/hdr/main_hdr.exr"
         background={false}
-        environmentIntensity={0.8}
+        environmentIntensity={0.6}
       />
     </Suspense>
   )

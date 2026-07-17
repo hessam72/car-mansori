@@ -2,24 +2,45 @@ import { useState, useEffect, useRef } from 'react'
 import { MotionValue } from 'framer-motion'
 import { useFrame, useThree } from '@react-three/fiber'
 
-// Time-based flicker sequence (time in seconds, intensity 0→1)
+// Time-based flicker sequence modeling a real HID/fluorescent strike:
+// weak sputter → collapse → dark gap → second strike → stuttering
+// climb → brightness sag → recover → stable. Times MUST be monotonic.
 const FLICKER_KEYFRAMES = [
   { time: 0.00, intensity: 0.0 },   // Complete darkness
-  { time: 0.2, intensity: 0.0 },   // Still dark
-  { time: 0.40, intensity: 0.9 },   // First flash
-  { time: 0.38, intensity: 0.0 },   // Off
-
-  { time: 1, intensity: 1.0 },   // Fully stable
+  { time: 0.30, intensity: 0.0 },   // Still dark
+  { time: 0.34, intensity: 0.55 },  // First strike (weak)
+  { time: 0.38, intensity: 0.05 },  // Collapses — tube didn't catch
+  { time: 0.55, intensity: 0.0 },   // Dark gap
+  { time: 0.62, intensity: 0.85 },  // Second strike (stronger)
+  { time: 0.66, intensity: 0.15 },  // Partial collapse
+  { time: 0.72, intensity: 0.65 },  // Stuttering climb
+  { time: 0.78, intensity: 0.25 },
+  { time: 0.90, intensity: 0.90 },  // Catches
+  { time: 1.05, intensity: 0.55 },  // Brightness sag (ballast settling)
+  { time: 1.25, intensity: 0.95 },  // Recovers
+  { time: 1.45, intensity: 0.85 },  // Last wobble
+  { time: 1.80, intensity: 1.0 },   // Fully stable
 ]
 
-const FLICKER_DURATION = 1.5 // Total flicker animation duration in seconds
+// Total duration covers the slowest (most-lagged) light: 1.8s keyframes + 0.55s max lag
+const FLICKER_DURATION = 2.4
+const SHIMMER_END = 1.45     // High-frequency instability stops here
 
-// Per-light timing offsets in seconds (creates "rolling" gallery effect)
+// Per-light timing offsets in seconds (creates "rolling" gallery effect —
+// each fixture strikes at its own moment, like a real hall)
 const LIGHT_OFFSETS = {
-  key: 0.0,      // Key light turns on first
-  fill: 0.12,    // Fill follows
-  bounce: 0.18,  // Ground bounce
-  rim: 0.22,     // Rim light last
+  key: 0.0,      // Key light strikes first
+  fill: -0.25,   // Fill lags behind
+  bounce: -0.40, // Ground bounce later
+  rim: -0.55,    // Rim light last
+}
+
+// High-frequency shimmer during the strike phase — the micro-instability
+// of a real discharge lamp. Deterministic (sin-based), decays to 0.
+function shimmer(t: number): number {
+  if (t <= 0.30 || t >= SHIMMER_END) return 1
+  const decay = 1 - (t - 0.30) / (SHIMMER_END - 0.30)
+  return 1 + 0.12 * Math.sin(t * 47) * Math.sin(t * 23) * decay
 }
 
 /**
@@ -62,7 +83,7 @@ export function useLightFlicker(scrollYProgress: MotionValue<number>) {
     const currentTime = state.clock.elapsedTime
 
     // Early return if flicker already completed and lights are at full brightness
-    if (hasFlickered.current && scroll >= 0.05) {
+    if (hasFlickered.current && scroll >= 0.02) {
       return
     }
 
@@ -92,7 +113,7 @@ export function useLightFlicker(scrollYProgress: MotionValue<number>) {
     }
 
     // Below threshold: darkness, reset flicker state
-    if (scroll < 0.05) {
+    if (scroll < 0.03) {
       flickerStartTime.current = null
       isFlickering.current = false
       hasFlickered.current = false
@@ -101,7 +122,7 @@ export function useLightFlicker(scrollYProgress: MotionValue<number>) {
     }
 
     // Above threshold: trigger flicker if not already started
-    if (scroll >= 0.05 && !hasFlickered.current) {
+    if (scroll >= 0.02 && !hasFlickered.current) {
       if (!isFlickering.current) {
         // Start flicker animation
         flickerStartTime.current = currentTime
@@ -132,11 +153,17 @@ export function useLightFlicker(scrollYProgress: MotionValue<number>) {
 
         const ambientIntensity = Math.min(elapsedTime / FLICKER_DURATION, 1) * 0.3
 
+        // Per-light lag + high-frequency shimmer during the strike phase
+        const lightIntensity = (offset: number) => {
+          const t = elapsedTime + offset
+          return getIntensityAtTime(t) * shimmer(t)
+        }
+
         setIntensities({
-          key: getIntensityAtTime(elapsedTime + LIGHT_OFFSETS.key),
-          fill: getIntensityAtTime(elapsedTime + LIGHT_OFFSETS.fill),
-          bounce: getIntensityAtTime(elapsedTime + LIGHT_OFFSETS.bounce),
-          rim: getIntensityAtTime(elapsedTime + LIGHT_OFFSETS.rim),
+          key: lightIntensity(LIGHT_OFFSETS.key),
+          fill: lightIntensity(LIGHT_OFFSETS.fill),
+          bounce: lightIntensity(LIGHT_OFFSETS.bounce),
+          rim: lightIntensity(LIGHT_OFFSETS.rim),
           ambient: ambientIntensity,
         })
       } else {
