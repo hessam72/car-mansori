@@ -11,7 +11,7 @@ const QUALITY_LABELS: Record<QualityPreset, string> = {
 }
 
 export default function QualitySelector() {
-  const { preset, setPreset } = useQuality()
+  const { preset, setPreset, settings, ssgiEnabled, setSsgiEnabled } = useQuality()
 
   return (
     <div className="absolute top-4 right-4 z-10 bg-black/50 backdrop-blur-sm rounded-lg p-3">
@@ -32,6 +32,19 @@ export default function QualitySelector() {
             </button>
           ))}
         </div>
+        {settings.experimentalSSGI && (
+          <button
+            onClick={() => setSsgiEnabled(!ssgiEnabled)}
+            className={`px-3 py-1.5 rounded text-xs font-medium transition-all text-left ${
+              ssgiEnabled
+                ? 'bg-purple-600 text-white'
+                : 'bg-white/10 text-white/50 hover:bg-white/20 hover:text-white'
+            }`}
+            title="Screen-space global illumination + temporal AA (experimental, heavy)"
+          >
+            SSGI {ssgiEnabled ? 'On' : 'Off'} (experimental)
+          </button>
+        )}
       </div>
     </div>
   )

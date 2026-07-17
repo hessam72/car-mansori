@@ -7,15 +7,20 @@ interface QualityContextType {
   preset: QualityPreset;
   settings: QualitySettings;
   setPreset: (preset: QualityPreset) => void;
+  /** Experimental SSGI/TRAA runtime toggle (only honored where settings.experimentalSSGI allows it) */
+  ssgiEnabled: boolean;
+  setSsgiEnabled: (enabled: boolean) => void;
 }
 
 const QualityContext = createContext<QualityContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'car-quality-preset';
+const SSGI_STORAGE_KEY = 'car-experimental-ssgi';
 
 export function QualityProvider({ children }: { children: ReactNode }) {
   const [preset, setPresetState] = useState<QualityPreset>(DEFAULT_QUALITY);
   const [settings, setSettings] = useState<QualitySettings>(QUALITY_PRESETS[DEFAULT_QUALITY]);
+  const [ssgiEnabled, setSsgiEnabledState] = useState(false);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -25,6 +30,7 @@ export function QualityProvider({ children }: { children: ReactNode }) {
       setPresetState(loadedPreset);
       setSettings(QUALITY_PRESETS[loadedPreset]);
     }
+    setSsgiEnabledState(localStorage.getItem(SSGI_STORAGE_KEY) === '1');
   }, []);
 
   const setPreset = (newPreset: QualityPreset) => {
@@ -33,8 +39,13 @@ export function QualityProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, newPreset);
   };
 
+  const setSsgiEnabled = (enabled: boolean) => {
+    setSsgiEnabledState(enabled);
+    localStorage.setItem(SSGI_STORAGE_KEY, enabled ? '1' : '0');
+  };
+
   return (
-    <QualityContext.Provider value={{ preset, settings, setPreset }}>
+    <QualityContext.Provider value={{ preset, settings, setPreset, ssgiEnabled, setSsgiEnabled }}>
       {children}
     </QualityContext.Provider>
   );
