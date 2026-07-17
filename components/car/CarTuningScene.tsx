@@ -74,7 +74,7 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
         <PartClickDetector />
 
         {/* Performance Monitor */}
-        <PerformanceMonitor />
+        {/* <PerformanceMonitor /> */}
       </Canvas>
 
       {/* Camera Presets UI */}
