@@ -17,7 +17,6 @@ export default function PhotoModeUI() {
   const [desktop, setDesktop] = useState(false)
   const active = usePhotoMode((s) => s.active)
   const status = usePhotoMode((s) => s.status)
-  const buildProgress = usePhotoMode((s) => s.buildProgress)
   const samples = usePhotoMode((s) => s.samples)
   const setActive = usePhotoMode((s) => s.setActive)
   const requestSave = usePhotoMode((s) => s.requestSave)
@@ -44,9 +43,7 @@ export default function PhotoModeUI() {
     <div className="fixed inset-0 z-50 pointer-events-auto">
       <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/80 text-white px-6 py-3 rounded-xl border border-white/10">
         <span className="font-mono text-sm">
-          {status === 'building'
-            ? `Building scene… ${Math.round(buildProgress * 100)}%`
-            : `Refining ${samples} samples`}
+          {status === 'building' ? 'Building scene…' : `Refining · ${Math.round(samples)} samples`}
         </span>
         <button
           onClick={requestSave}
