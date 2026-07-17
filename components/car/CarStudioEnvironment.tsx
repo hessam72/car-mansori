@@ -25,6 +25,7 @@ export default function CarStudioEnvironment({ rotation = 0 }: CarStudioEnvironm
       background={false}
       resolution={settings.envResolution}
       frames={1}
+      environmentIntensity={settings.envIntensity}
     >
       <group rotation={[0, rotation, 0]}>
         {/* Overhead light-strip tunnel — the signature streaks along the body */}

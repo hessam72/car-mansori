@@ -2,12 +2,13 @@
 
 import { Canvas } from '@react-three/fiber'
 import { AdaptiveDpr } from '@react-three/drei'
-import { AgXToneMapping } from 'three'
+import { NeutralToneMapping } from 'three'
 
-// Color-accurate paint rendering: AgX keeps saturated paints on-hue
-// (ACESFilmic pushed pure red toward orange). Swap here for look-dev.
-const TONE_MAPPING = AgXToneMapping
-const TONE_MAPPING_EXPOSURE = 1.15
+// Color-accurate paint rendering: Khronos PBR Neutral keeps brand colors
+// on-hue (ACESFilmic pushed pure red toward orange). Swap here for look-dev
+// (AgXToneMapping = filmic alternative, also hue-stable).
+const TONE_MAPPING = NeutralToneMapping
+const TONE_MAPPING_EXPOSURE = 1.0
 import { ReflectiveFloor } from '@/components/store/ReflectiveFloor'
 import { PostProcessing } from '@/components/store/PostProcessing'
 import CarGroundShadows from './CarGroundShadows'
