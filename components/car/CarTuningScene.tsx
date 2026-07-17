@@ -1,7 +1,8 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { AdaptiveDpr } from '@react-three/drei'
+import { AdaptiveDpr, PerformanceMonitor as DreiPerformanceMonitor } from '@react-three/drei'
 import { NeutralToneMapping } from 'three'
 
 // Color-accurate paint rendering: Khronos PBR Neutral keeps brand colors
@@ -47,12 +48,21 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
   const { activePreset } = useCameraStore()
   const { settings } = useQuality()
 
+  // Sustained-FPS ladder: DreiPerformanceMonitor steps the max DPR down
+  // (1 → 0.85 → 0.7) when frame rate can't hold, and back up when it can.
+  // Quality yields only under real load and recovers automatically.
+  const [perfScale, setPerfScale] = useState(1)
+  const dpr = useMemo<[number, number]>(() => {
+    const [min, max] = clampDprToBudget(settings.dpr)
+    return [min, Math.max(min, +(max * perfScale).toFixed(2))]
+  }, [settings.dpr, perfScale])
+
   return (
     <div className="w-full h-screen">
       <Canvas
         shadows
         frameloop="demand"
-        dpr={clampDprToBudget(settings.dpr)}
+        dpr={dpr}
         gl={{
           // The EffectComposer renders offscreen, so canvas MSAA never applies —
           // AA lives in the composer (multisampling/SMAA per quality tier)
@@ -70,6 +80,17 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
       >
         {/* Drops DPR while the camera moves (OrbitControls regress), restores when idle */}
         {settings.adaptiveDpr && <AdaptiveDpr pixelated />}
+
+        {/* Sustained-FPS watchdog driving the DPR ladder. The fps>=5 guard
+            skips the poisoned sample a demand-frameloop idle gap produces. */}
+        <DreiPerformanceMonitor
+          flipflops={4}
+          onDecline={(api) => {
+            if (api.fps >= 5) setPerfScale((s) => Math.max(0.7, +(s - 0.15).toFixed(2)))
+          }}
+          onIncline={() => setPerfScale((s) => Math.min(1, +(s + 0.15).toFixed(2)))}
+          onFallback={() => setPerfScale(0.7)}
+        />
 
         {/* Shadow maps re-render only when shadow content can change */}
         <ShadowFreeze />

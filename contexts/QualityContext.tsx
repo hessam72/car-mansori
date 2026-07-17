@@ -22,13 +22,16 @@ export function QualityProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<QualitySettings>(QUALITY_PRESETS[DEFAULT_QUALITY]);
   const [ssgiEnabled, setSsgiEnabledState] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount; first visit on a phone defaults to low
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored && stored in QUALITY_PRESETS) {
       const loadedPreset = stored as QualityPreset;
       setPresetState(loadedPreset);
       setSettings(QUALITY_PRESETS[loadedPreset]);
+    } else if (window.innerWidth < 768) {
+      setPresetState('low');
+      setSettings(QUALITY_PRESETS.low);
     }
     setSsgiEnabledState(localStorage.getItem(SSGI_STORAGE_KEY) === '1');
   }, []);
