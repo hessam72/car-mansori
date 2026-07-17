@@ -9,6 +9,7 @@ import { PartErrorBoundary } from './PartErrorBoundary'
 import { DoorController } from '@/lib/DoorController'
 import { useQuality } from '@/contexts/QualityContext'
 import { prepareCarObject } from '@/lib/three/prepareCarMaterial'
+import { useCubeReflections } from '@/lib/three/useCubeReflections'
 import * as THREE from 'three'
 
 // Use the local DRACO decoder instead of drei's default CDN
@@ -31,6 +32,7 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
   const paintConfig = useCarConfig((s) => s.paintConfig)
   const setPartError = useCarConfig((s) => s.setPartError)
   const openParts = useCarConfig((s) => s.openParts)
+  const selectedParts = useCarConfig((s) => s.selectedParts)
   const { settings } = useQuality()
 
   const handlePartError = (category: string, error: Error) => {
@@ -162,6 +164,37 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
     })
     invalidate()
   }, [settings.envIntensity, settings.anisotropyLevel, carModel, invalidate])
+
+  // True reflections (high/ultra): one-shot cube capture of floor + baked
+  // ground shadow + studio env, applied as a real envMap on car materials.
+  // Re-captured only when the captured content can change — the car itself
+  // is hidden during capture, so paint changes never require one.
+  const captureReflections = useCubeReflections(
+    carModel,
+    settings.cubeReflections,
+    settings.cubeReflectionResolution
+  )
+
+  useEffect(() => {
+    if (!settings.cubeReflections) return
+    // Initial: after the first accumulative shadow bake settles
+    const t = setTimeout(captureReflections, 1200)
+    return () => clearTimeout(t)
+  }, [settings.cubeReflections, captureReflections])
+
+  useEffect(() => {
+    if (!settings.cubeReflections) return
+    // Part swap: fade (~0.7s) + shadow re-bake (~0.9s)
+    const t = setTimeout(captureReflections, 2000)
+    return () => clearTimeout(t)
+  }, [selectedParts, settings.cubeReflections, captureReflections])
+
+  useEffect(() => {
+    if (!settings.cubeReflections) return
+    // Door/hood/trunk animation (~1.2s) + shadow re-bake (~0.9s)
+    const t = setTimeout(captureReflections, 2600)
+    return () => clearTimeout(t)
+  }, [openParts, settings.cubeReflections, captureReflections])
 
   // Initialize DoorController after car model loads
   useEffect(() => {
