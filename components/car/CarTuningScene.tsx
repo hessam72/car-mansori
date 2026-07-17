@@ -22,11 +22,23 @@ import PartClickDetector from './PartClickDetector'
 import PartsTogglePanel from './PartsTogglePanel'
 import PerformanceMonitor from './PerformanceMonitor'
 import PhotoMode from './PhotoMode'
+import ShadowFreeze from './ShadowFreeze'
 import { useCameraStore } from '@/stores/cameraStore'
 import { useQuality } from '@/contexts/QualityContext'
 
 interface CarTuningSceneProps {
   modelPath: string
+}
+
+// Above ~4.5MP the extra pixels are invisible for this scene but the
+// fill-rate cost (× MSAA, × post) is very real on 4K/5K screens. Caps the
+// tier's max DPR to the budget; never clamps below native (1).
+const PIXEL_BUDGET = 4.5e6
+function clampDprToBudget(dpr: [number, number]): [number, number] {
+  if (typeof window === 'undefined') return dpr
+  const area = window.innerWidth * window.innerHeight
+  const budgetMax = Math.max(1, Math.sqrt(PIXEL_BUDGET / area))
+  return [dpr[0], Math.max(dpr[0], Math.min(dpr[1], budgetMax))]
 }
 
 export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
@@ -40,7 +52,7 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
       <Canvas
         shadows
         frameloop="demand"
-        dpr={settings.dpr}
+        dpr={clampDprToBudget(settings.dpr)}
         gl={{
           // The EffectComposer renders offscreen, so canvas MSAA never applies —
           // AA lives in the composer (multisampling/SMAA per quality tier)
@@ -58,6 +70,9 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
       >
         {/* Drops DPR while the camera moves (OrbitControls regress), restores when idle */}
         {settings.adaptiveDpr && <AdaptiveDpr pixelated />}
+
+        {/* Shadow maps re-render only when shadow content can change */}
+        <ShadowFreeze />
 
         {/* Studio environment: EXR base + Lightformer highlight rig */}
         <CarStudioEnvironment />

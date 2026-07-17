@@ -18,6 +18,7 @@ export function ReflectiveFloor({
 }: ReflectiveFloorProps) {
   return (
     <mesh
+      name="reflective-floor"
       rotation={[-Math.PI / 2, 0, 0]}
       position={[0, -.9, 0]}
       // receiveShadow

@@ -4,6 +4,19 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 
+// Stand-in for the reflective floor during cube captures (matches its color)
+let captureFloorMaterial: THREE.MeshStandardMaterial | null = null
+function getCaptureFloorMaterial() {
+  if (!captureFloorMaterial) {
+    captureFloorMaterial = new THREE.MeshStandardMaterial({
+      color: '#3f3d39',
+      roughness: 1,
+      metalness: 0.6,
+    })
+  }
+  return captureFloorMaterial
+}
+
 /**
  * True reflections for the car: a one-shot CubeCamera capture of the scene
  * (reflective floor, baked ground shadow, studio environment) assigned as a
@@ -65,9 +78,19 @@ export function useCubeReflections(
     const prevBackground = scene.background
     carRoot.visible = false
     scene.background = scene.environment
+
+    // The live MeshReflectorMaterial re-renders the whole scene per cube
+    // face (6× spike). Swap the floor to a plain dark material for the
+    // capture — indistinguishable inside a rough paint reflection.
+    const floor = scene.getObjectByName('reflective-floor') as THREE.Mesh | undefined
+    const prevFloorMaterial = floor?.material
+    if (floor) floor.material = getCaptureFloorMaterial()
+
     rig.cam.update(gl, scene)
     // Force PMREM regeneration so rough materials pick up the new capture
     rig.rt.texture.needsPMREMUpdate = true
+
+    if (floor && prevFloorMaterial) floor.material = prevFloorMaterial
     carRoot.visible = prevVisible
     scene.background = prevBackground
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { AccumulativeShadows, RandomizedLight, ContactShadows } from '@react-three/drei'
 import { useCarConfig } from '@/stores/carConfigStore'
@@ -31,16 +31,39 @@ export default function CarGroundShadows() {
 
   return (
     <group userData={{ photoModeHide: true }}>
-      <ContactShadows
-        position={[0, SHADOW_Y, 0]}
-        opacity={0.7}
-        scale={12}
-        blur={2.2}
-        far={3}
-        resolution={settings.groundShadowResolution}
-        color="#000000"
-      />
+      <OnChangeContactShadows resolution={settings.groundShadowResolution} />
     </group>
+  )
+}
+
+/**
+ * ContactShadows normally re-renders scene-from-below + blur on every frame —
+ * pure waste while orbiting a static car. frames={160} renders only the first
+ * 160 invalidated frames after (re)mount (covers a 1.2s door animation at
+ * 120Hz), and the key remount on part/door changes re-runs it exactly when
+ * geometry moves — frames only tick on frames the animation itself
+ * invalidates.
+ */
+function OnChangeContactShadows({ resolution }: { resolution: number }) {
+  const selectedParts = useCarConfig((s) => s.selectedParts)
+  const openParts = useCarConfig((s) => s.openParts)
+  const generation = useMemo(
+    () => JSON.stringify(selectedParts) + JSON.stringify(openParts),
+    [selectedParts, openParts]
+  )
+
+  return (
+    <ContactShadows
+      key={generation}
+      frames={160}
+      position={[0, SHADOW_Y, 0]}
+      opacity={0.7}
+      scale={12}
+      blur={2.2}
+      far={3}
+      resolution={resolution}
+      color="#000000"
+    />
   )
 }
 
