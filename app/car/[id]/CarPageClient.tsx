@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useGLTF } from '@react-three/drei'
 import CustomizationPanel from '@/components/car/CustomizationPanel'
+import QualitySelector from '@/components/car/QualitySelector'
 import partsConfig from '@/public/config/car-parts.json'
 import { useCarConfig } from '@/stores/carConfigStore'
 import { isARCapable } from '@/lib/device-utils'
+import { QualityProvider } from '@/contexts/QualityContext'
 
 // Use the local DRACO decoder instead of drei's default CDN — this runs
 // before any preload in this chunk (CustomizationPanel included)
@@ -76,17 +78,21 @@ export default function CarPageClient({ car }: { car: Car | null }) {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden relative">
-      <CarTuningScene modelPath={car.model_path} />
+    <QualityProvider>
+      <div className="h-screen w-screen overflow-hidden relative">
+        <CarTuningScene modelPath={car.model_path} />
 
-      {/* Car Info Overlay */}
-      <div className="absolute top-8 left-8 text-white pointer-events-none z-5">
-        <h1 className="text-4xl font-bold mb-2">{car.name}</h1>
-        <p className="text-xl text-gray-300">{car.name_fa}</p>
-      </div>
+        {/* Car Info Overlay */}
+        <div className="absolute top-8 left-8 text-white pointer-events-none z-5">
+          <h1 className="text-4xl font-bold mb-2">{car.name}</h1>
+          <p className="text-xl text-gray-300">{car.name_fa}</p>
+        </div>
 
-      {/* Customization Panel */}
-      <CustomizationPanel />
+        {/* Quality Selector */}
+        <QualitySelector />
+
+        {/* Customization Panel */}
+        <CustomizationPanel />
 
       {/* AR Button */}
       {arSupported && (
@@ -121,6 +127,7 @@ export default function CarPageClient({ car }: { car: Car | null }) {
           onClose={() => setShowAR(false)}
         />
       )}
-    </div>
+      </div>
+    </QualityProvider>
   )
 }

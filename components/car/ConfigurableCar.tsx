@@ -7,6 +7,7 @@ import { useCarConfig, PaintZone } from '@/stores/carConfigStore'
 import { DynamicPart } from './DynamicPart'
 import { PartErrorBoundary } from './PartErrorBoundary'
 import { DoorController } from '@/lib/DoorController'
+import { useQuality } from '@/contexts/QualityContext'
 import * as THREE from 'three'
 
 // Use the local DRACO decoder instead of drei's default CDN
@@ -29,6 +30,7 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
   const paintConfig = useCarConfig((s) => s.paintConfig)
   const setPartError = useCarConfig((s) => s.setPartError)
   const openParts = useCarConfig((s) => s.openParts)
+  const { settings } = useQuality()
 
   const handlePartError = (category: string, error: Error) => {
     setPartError(category, error.message)
@@ -151,6 +153,30 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
       paintTargets.forEach(({ material }) => material.dispose())
     }
   }, [paintTargets])
+
+  // Apply anisotropic filtering based on quality settings
+  useEffect(() => {
+    if (!settings.enableAnisotropicFiltering || !carModel) return
+
+    carModel.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.material) {
+        const materials = Array.isArray(child.material) ? child.material : [child.material]
+        materials.forEach((mat: THREE.Material) => {
+          if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
+            // Apply anisotropy to all texture maps
+            const textureProps = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap'] as const
+            textureProps.forEach((prop) => {
+              const texture = mat[prop]
+              if (texture instanceof THREE.Texture) {
+                texture.anisotropy = settings.anisotropyLevel
+              }
+            })
+          }
+        })
+      }
+    })
+    invalidate()
+  }, [settings.enableAnisotropicFiltering, settings.anisotropyLevel, carModel, invalidate])
 
   // Initialize DoorController after car model loads
   useEffect(() => {

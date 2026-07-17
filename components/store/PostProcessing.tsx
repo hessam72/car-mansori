@@ -1,16 +1,21 @@
 import { EffectComposer, Bloom, N8AO, SMAA, Vignette } from '@react-three/postprocessing'
+import { useQuality } from '@/contexts/QualityContext'
 
 export function PostProcessing() {
+  const { settings } = useQuality()
+
   return (
-    <EffectComposer multisampling={0}>
+    <EffectComposer multisampling={settings.multisampling}>
       {/* N8AO - HEAVY: Screen-space ambient occlusion, multiple samples */}
-      {/* <N8AO
-        aoRadius={1.2}
-        intensity={5.4}
-        distanceFalloff={1.0}
-        quality="performance"
-        color="black"
-      /> */}
+      {settings.enableN8AO && (
+        <N8AO
+          aoRadius={1.2}
+          intensity={5.4}
+          distanceFalloff={1.0}
+          quality="performance"
+          color="black"
+        />
+      )}
       {/* Bloom - MODERATE: Multiple blur passes with mipmapBlur */}
       <Bloom
         intensity={0.2}
@@ -20,7 +25,7 @@ export function PostProcessing() {
         radius={0.2}
       />
       {/* SMAA - LIGHT: Edge-detection anti-aliasing */}
-      {/* <SMAA /> */}
+      {settings.enableSMAA && <SMAA />}
       {/* Vignette - VERY LIGHT: Simple screen overlay */}
       <Vignette
         eskil={false}

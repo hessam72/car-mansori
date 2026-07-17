@@ -1,5 +1,7 @@
 'use client'
 
+import { useQuality } from '@/contexts/QualityContext'
+
 interface LightFlickerData {
   intensities: {
     key: number
@@ -27,6 +29,7 @@ export default function CarLighting({ flickerData }: CarLightingProps) {
   // Use provided flicker data or default to full brightness
   const data = flickerData ?? { intensities: { key: 1, fill: 1, rim: 1, bounce: 1, ambient: 0.3 }, isComplete: true }
   const flickerMultipliers = data.intensities
+  const { settings } = useQuality()
 
   return (
     <>
@@ -37,8 +40,8 @@ export default function CarLighting({ flickerData }: CarLightingProps) {
         angle={0.5}
         penumbra={0.5}
         castShadow
-        shadow-mapSize-width={512}
-        shadow-mapSize-height={512}
+        shadow-mapSize-width={settings.shadowResolution}
+        shadow-mapSize-height={settings.shadowResolution}
         shadow-camera-near={3}
         shadow-camera-far={25}
         shadow-bias={-0.001}

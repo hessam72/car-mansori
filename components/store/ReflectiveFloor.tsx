@@ -24,7 +24,7 @@ export function ReflectiveFloor({
     >
       <planeGeometry args={[size, size]} />
       <MeshReflectorMaterial
-        resolution={1024}
+        resolution={resolution}
         mixBlur={0}
         mixStrength={mixStrength}
         mirror={0.6}

@@ -14,6 +14,7 @@ import PartClickDetector from './PartClickDetector'
 import PartsTogglePanel from './PartsTogglePanel'
 import PerformanceMonitor from './PerformanceMonitor'
 import { useCameraStore } from '@/stores/cameraStore'
+import { useQuality } from '@/contexts/QualityContext'
 
 interface CarTuningSceneProps {
   modelPath: string
@@ -23,13 +24,14 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   const initialPosition: [number, number, number] = isMobile ? [8, 3.2, 8] : [5, 2, 5]
   const { activePreset } = useCameraStore()
+  const { settings } = useQuality()
 
   return (
     <div className="w-full h-screen">
       <Canvas
         shadows
         frameloop="demand"
-        dpr={[1, 1.75]}
+        dpr={settings.dpr}
         gl={{
           antialias: true,
           toneMapping: ACESFilmicToneMapping,
@@ -43,7 +45,7 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
         }}
       >
         {/* Drops DPR while the camera moves (OrbitControls regress), restores when idle */}
-        <AdaptiveDpr pixelated />
+        {settings.adaptiveDpr && <AdaptiveDpr pixelated />}
 
         {/* HDRI Environment */}
         <Environment
@@ -56,7 +58,7 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
         <CarLighting />
 
         {/* Reflective Floor */}
-        <ReflectiveFloor resolution={isMobile ? 256 : 512} />
+        <ReflectiveFloor resolution={settings.floorReflectionResolution} />
 
         {/* Configurable Car with Part Swapping */}
         <ConfigurableCar modelPath={modelPath} />
