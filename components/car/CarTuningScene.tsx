@@ -1,12 +1,13 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
-import { Environment, AdaptiveDpr } from '@react-three/drei'
+import { AdaptiveDpr } from '@react-three/drei'
 import { ACESFilmicToneMapping } from 'three'
 import { ReflectiveFloor } from '@/components/store/ReflectiveFloor'
 import { PostProcessing } from '@/components/store/PostProcessing'
 import CarGroundShadows from './CarGroundShadows'
 import CarLighting from './CarLighting'
+import CarStudioEnvironment from './CarStudioEnvironment'
 import ConfigurableCar from './ConfigurableCar'
 import CameraControls from './CameraControls'
 import CameraPresets from './CameraPresets'
@@ -51,12 +52,8 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
         {/* Drops DPR while the camera moves (OrbitControls regress), restores when idle */}
         {settings.adaptiveDpr && <AdaptiveDpr pixelated />}
 
-        {/* HDRI Environment */}
-        <Environment
-          files="/hdr/main_hdr.exr"
-          background={false}
-          environmentIntensity={0.8}
-        />
+        {/* Studio environment: EXR base + Lightformer highlight rig */}
+        <CarStudioEnvironment />
 
         {/* Studio Lighting */}
         <CarLighting />
