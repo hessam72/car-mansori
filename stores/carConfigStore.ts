@@ -16,6 +16,7 @@ export interface CarConfigState {
   selectedParts: Record<string, string>
   paintConfig: MultiZonePaintConfig
   activeZone: PaintZone
+  paintInitialized: boolean
   loadingParts: Record<string, boolean>
   partLoadErrors: Record<string, string>
   openParts: Record<string, boolean>
@@ -23,6 +24,7 @@ export interface CarConfigState {
   setPaintConfig: (config: Partial<PaintConfig>, zone?: PaintZone) => void
   setActiveZone: (zone: PaintZone) => void
   copyZoneToAll: (sourceZone: PaintZone) => void
+  initializePaint: () => void
   setPartLoading: (category: string, isLoading: boolean) => void
   setPartError: (category: string, error: string | null) => void
   togglePart: (partName: string) => void
@@ -59,6 +61,7 @@ export const useCarConfig = create<CarConfigState>()(
       selectedParts: {},
       paintConfig: defaultPaintConfig,
       activeZone: 'body',
+      paintInitialized: false,
       loadingParts: {},
       partLoadErrors: {},
       openParts: {
@@ -115,6 +118,9 @@ export const useCarConfig = create<CarConfigState>()(
           }
         }),
 
+      initializePaint: () =>
+        set({ paintInitialized: true }),
+
       togglePart: (partName) => {
         console.log('[carConfigStore] togglePart called:', partName)
         set((state) => {
@@ -159,6 +165,7 @@ export const useCarConfig = create<CarConfigState>()(
           selectedParts: defaultParts,
           paintConfig: defaultPaintConfig,
           activeZone: 'body',
+          paintInitialized: false,
           loadingParts: {},
           partLoadErrors: {},
           openParts: {

@@ -26,9 +26,21 @@ export default function PaintControls() {
   const setActiveZone = useCarConfig((s) => s.setActiveZone)
   const setPaintConfig = useCarConfig((s) => s.setPaintConfig)
   const copyZoneToAll = useCarConfig((s) => s.copyZoneToAll)
+  const initializePaint = useCarConfig((s) => s.initializePaint)
 
   // Get active zone config
   const activeConfig = paintConfig[activeZone]
+
+  // Wrapper to initialize paint on first user interaction
+  const handlePaintChange = (config: Parameters<typeof setPaintConfig>[0], zone?: PaintZone) => {
+    initializePaint()
+    setPaintConfig(config, zone)
+  }
+
+  const handleCopyZone = (zone: PaintZone) => {
+    initializePaint()
+    copyZoneToAll(zone)
+  }
 
   return (
     <div className="space-y-5">
@@ -62,7 +74,7 @@ export default function PaintControls() {
 
       {/* Copy to All Zones Button */}
       <button
-        onClick={() => copyZoneToAll(activeZone)}
+        onClick={() => handleCopyZone(activeZone)}
         className="w-full px-3 py-2.5 bg-white/5 text-gray-300 rounded-xl hover:bg-white/10 transition-all text-sm font-medium border border-white/10 backdrop-blur-sm"
       >
         Copy {ZONES.find((z) => z.id === activeZone)?.name} to All Zones
@@ -75,13 +87,13 @@ export default function PaintControls() {
           <input
             type="color"
             value={activeConfig.color}
-            onChange={(e) => setPaintConfig({ color: e.target.value })}
+            onChange={(e) => handlePaintChange({ color: e.target.value })}
             className="w-16 h-16 rounded-xl border-2 border-white/20 cursor-pointer bg-white/5 backdrop-blur-sm shadow-inner"
           />
           <input
             type="text"
             value={activeConfig.color}
-            onChange={(e) => setPaintConfig({ color: e.target.value })}
+            onChange={(e) => handlePaintChange({ color: e.target.value })}
             className="flex-1 px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl uppercase font-mono text-sm text-gray-200 focus:border-blue-400 focus:outline-none transition-all backdrop-blur-sm focus:bg-white/10"
             placeholder="#ff0000"
           />
@@ -100,7 +112,7 @@ export default function PaintControls() {
           max="1"
           step="0.01"
           value={activeConfig.metalness}
-          onChange={(e) => setPaintConfig({ metalness: parseFloat(e.target.value) })}
+          onChange={(e) => handlePaintChange({ metalness: parseFloat(e.target.value) })}
           className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer slider-thumb backdrop-blur-sm"
         />
       </div>
@@ -117,7 +129,7 @@ export default function PaintControls() {
           max="1"
           step="0.01"
           value={activeConfig.roughness}
-          onChange={(e) => setPaintConfig({ roughness: parseFloat(e.target.value) })}
+          onChange={(e) => handlePaintChange({ roughness: parseFloat(e.target.value) })}
           className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer slider-thumb backdrop-blur-sm"
         />
       </div>
@@ -134,7 +146,7 @@ export default function PaintControls() {
           max="1"
           step="0.01"
           value={activeConfig.clearcoat}
-          onChange={(e) => setPaintConfig({ clearcoat: parseFloat(e.target.value) })}
+          onChange={(e) => handlePaintChange({ clearcoat: parseFloat(e.target.value) })}
           className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer slider-thumb backdrop-blur-sm"
         />
       </div>
@@ -146,7 +158,7 @@ export default function PaintControls() {
           {PRESETS.map((preset) => (
             <button
               key={preset.id}
-              onClick={() => setPaintConfig(preset)}
+              onClick={() => handlePaintChange(preset)}
               className="flex items-center gap-2 p-2.5 border border-white/10 bg-white/5 rounded-xl hover:bg-white/10 hover:border-blue-400/50 transition-all text-sm text-gray-200 backdrop-blur-sm hover:shadow-[0_4px_12px_rgba(59,130,246,0.2)]"
             >
               <div
