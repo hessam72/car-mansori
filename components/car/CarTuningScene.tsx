@@ -2,7 +2,12 @@
 
 import { Canvas } from '@react-three/fiber'
 import { AdaptiveDpr } from '@react-three/drei'
-import { ACESFilmicToneMapping } from 'three'
+import { AgXToneMapping } from 'three'
+
+// Color-accurate paint rendering: AgX keeps saturated paints on-hue
+// (ACESFilmic pushed pure red toward orange). Swap here for look-dev.
+const TONE_MAPPING = AgXToneMapping
+const TONE_MAPPING_EXPOSURE = 1.15
 import { ReflectiveFloor } from '@/components/store/ReflectiveFloor'
 import { PostProcessing } from '@/components/store/PostProcessing'
 import CarGroundShadows from './CarGroundShadows'
@@ -39,8 +44,8 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
           // AA lives in the composer (multisampling/SMAA per quality tier)
           antialias: false,
           powerPreference: 'high-performance',
-          toneMapping: ACESFilmicToneMapping,
-          toneMappingExposure: 1.2,
+          toneMapping: TONE_MAPPING,
+          toneMappingExposure: TONE_MAPPING_EXPOSURE,
         }}
         camera={{
           position: initialPosition,
