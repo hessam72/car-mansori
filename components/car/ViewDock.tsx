@@ -129,8 +129,9 @@ export default function ViewDock({ panelOpen, onOpenPanel }: ViewDockProps) {
           </div>
         )}
 
-        {/* The dock pill */}
-        <div className="scrollbar-hide flex max-w-[min(94vw,680px)] items-center gap-0.5 overflow-x-auto rounded-full border border-white/10 bg-black/50 px-2 py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+        {/* Dock row: scrollable pill + always-visible Customize (mobile) */}
+        <div className="flex max-w-[94vw] items-center gap-2">
+        <div className="scrollbar-hide flex min-w-0 max-w-[680px] items-center gap-0.5 overflow-x-auto rounded-full border border-white/10 bg-black/50 px-2 py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl">
           {PRESETS.map((preset) => {
             const Icon = presetIcons[preset] ?? ((p: any) => <MdOutlineViewInAr {...p} />)
             const active = activePreset === preset
@@ -182,15 +183,17 @@ export default function ViewDock({ panelOpen, onOpenPanel }: ViewDockProps) {
             <Home className="h-[18px] w-[18px]" />
           </button>
 
-          {/* Mobile: customization entry lives in the dock (no floating FAB) */}
-          <button
-            onClick={onOpenPanel}
-            className="ml-1 flex h-10 shrink-0 items-center gap-2 rounded-full bg-[#d4af37] px-4 text-[11px] font-semibold uppercase tracking-[0.15em] text-black transition-colors hover:bg-[#e2c25a] md:hidden"
-            aria-label="Open customization panel"
-          >
-            <MdTune className="h-4 w-4" />
-            Customize
-          </button>
+        </div>
+
+        {/* Mobile: customization entry — outside the scroll area so it can
+            never be hidden by horizontal overflow (no floating FAB) */}
+        <button
+          onClick={onOpenPanel}
+          className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full bg-[#d4af37] text-black shadow-[0_12px_40px_rgba(0,0,0,0.45)] transition-colors hover:bg-[#e2c25a] md:hidden"
+          aria-label="Open customization panel"
+        >
+          <MdTune className="h-5 w-5" />
+        </button>
         </div>
       </div>
     </div>

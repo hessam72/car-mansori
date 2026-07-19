@@ -54,10 +54,18 @@ export function QualityProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Read-only defaults for consumers rendered outside a provider (e.g. the
+// homepage hero embeds ConfigurableCar without one — throwing here crashed
+// its whole canvas). Setters are no-ops; the /car page always has the
+// real provider.
+const FALLBACK_QUALITY: QualityContextType = {
+  preset: DEFAULT_QUALITY,
+  settings: QUALITY_PRESETS[DEFAULT_QUALITY],
+  setPreset: () => {},
+  ssgiEnabled: false,
+  setSsgiEnabled: () => {},
+};
+
 export function useQuality() {
-  const context = useContext(QualityContext);
-  if (context === undefined) {
-    throw new Error('useQuality must be used within a QualityProvider');
-  }
-  return context;
+  return useContext(QualityContext) ?? FALLBACK_QUALITY;
 }
