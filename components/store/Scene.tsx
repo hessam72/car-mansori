@@ -190,7 +190,7 @@ export default function Scene() {
       {loadingPhase === 'ready' && <ProductInteraction onProductClick={setSelectedProduct} />}
 
       {/* Reflective Floor (Phase 9) */}
-      <ReflectiveFloor opacity={1} size={20} mixStrength={.9} blur={0} roughness={62} />
+      <ReflectiveFloor opacity={1} size={20} mixStrength={.9} blur={0} roughness={1} />
 
       {/* Post-Processing (Phase 10) */}
       <PostProcessing />

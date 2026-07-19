@@ -8,6 +8,8 @@ export interface QualitySettings {
   adaptiveDpr: boolean;
   /** Spotlight self-shadow map size */
   shadowResolution: number;
+  /** Mirror floor: the reflection pass re-renders the scene every drawn frame — disabled on low */
+  floorReflectionsEnabled: boolean;
   floorReflectionResolution: number;
   /** MSAA samples inside EffectComposer (canvas AA is bypassed by the composer) */
   multisampling: number;
@@ -35,6 +37,7 @@ export const QUALITY_PRESETS: Record<QualityPreset, QualitySettings> = {
     dpr: [0.5, 1],
     adaptiveDpr: true,
     shadowResolution: 512,
+    floorReflectionsEnabled: false,
     floorReflectionResolution: 128,
     multisampling: 0,
     enableSMAA: true,
@@ -53,6 +56,7 @@ export const QUALITY_PRESETS: Record<QualityPreset, QualitySettings> = {
     dpr: [1, 1.5],
     adaptiveDpr: true,
     shadowResolution: 1024,
+    floorReflectionsEnabled: true,
     floorReflectionResolution: 256,
     multisampling: 4,
     enableSMAA: false,
@@ -71,6 +75,7 @@ export const QUALITY_PRESETS: Record<QualityPreset, QualitySettings> = {
     dpr: [1, 1.75],
     adaptiveDpr: true,
     shadowResolution: 2048,
+    floorReflectionsEnabled: true,
     floorReflectionResolution: 512,
     multisampling: 4,
     enableSMAA: true,
@@ -89,6 +94,7 @@ export const QUALITY_PRESETS: Record<QualityPreset, QualitySettings> = {
     dpr: [1, 2],
     adaptiveDpr: true,
     shadowResolution: 2048,
+    floorReflectionsEnabled: true,
     floorReflectionResolution: 512,
     multisampling: 4,
     enableSMAA: true,

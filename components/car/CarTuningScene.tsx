@@ -101,8 +101,12 @@ export default function CarTuningScene({ modelPath, onBaseCarError }: CarTuningS
         {/* Studio Lighting */}
         <CarLighting />
 
-        {/* Reflective Floor */}
-        <ReflectiveFloor resolution={settings.floorReflectionResolution} />
+        {/* Reflective Floor — the reflection pass re-renders the scene every
+            drawn frame, so the low tier swaps to a plain matte floor */}
+        <ReflectiveFloor
+          resolution={settings.floorReflectionResolution}
+          enabled={settings.floorReflectionsEnabled}
+        />
 
         {/* Ground contact shadows (contact or accumulative per quality tier) */}
         <CarGroundShadows />

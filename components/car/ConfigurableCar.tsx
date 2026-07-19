@@ -92,15 +92,17 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
     // Skip paint application until user interacts with paint controls
     if (!paintInitialized) return
 
-    // Static exotic-paint properties + instant first coat
+    // Static exotic-paint properties + instant first coat. Exotic paint
+    // (iridescent color shift, glossy clearcoat) is exterior-only — interior
+    // trim/leather must not color-shift at viewing angles.
     paintTargets.forEach(({ material, zone }) => {
       const zoneConfig = paintConfig[zone]
-      if (material.clearcoat !== undefined) {
+      const isInterior = zone === 'interior'
+      if (material.clearcoat !== undefined && !isInterior) {
         material.clearcoatRoughness = 0.1
       }
-      // Iridescence for exotic paint effect (color shift at angles)
       if (material.iridescence !== undefined) {
-        material.iridescence = 0.3
+        material.iridescence = isInterior ? 0 : 0.3
         material.iridescenceIOR = 1.3
         material.iridescenceThicknessRange = [100, 800]
       }
@@ -199,12 +201,8 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
 
   // Initialize DoorController after car model loads
   useEffect(() => {
-    if (!carModel) {
-      console.log('[ConfigurableCar] Car model not ready yet')
-      return
-    }
+    if (!carModel) return
 
-    console.log('[ConfigurableCar] Car model loaded, initializing DoorController...')
     try {
       const controller = new DoorController(carModel, invalidate, {
         doorAngleDeg: 70,
@@ -213,10 +211,8 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
         durationSec: 1.2,
       })
       doorControllerRef.current = controller
-      console.log('[ConfigurableCar] ✓ DoorController initialized successfully')
-      console.log('[ConfigurableCar] ✓ Controller ref set:', !!doorControllerRef.current)
     } catch (error) {
-      console.error('[ConfigurableCar] ✗ DoorController initialization failed:', error)
+      console.error('[ConfigurableCar] DoorController initialization failed:', error)
     }
 
     // Don't cleanup - keep controller alive for entire component lifecycle
@@ -224,12 +220,8 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
 
   // React to openParts state changes
   useEffect(() => {
-    if (!doorControllerRef.current) {
-      console.log('[ConfigurableCar] State changed but controller not ready')
-      return
-    }
+    if (!doorControllerRef.current) return
 
-    console.log('[ConfigurableCar] openParts state changed:', openParts)
     const controller = doorControllerRef.current
 
     controller.openLeftFrontDoor(openParts.car_door_left)

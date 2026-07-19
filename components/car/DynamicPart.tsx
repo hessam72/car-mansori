@@ -14,6 +14,10 @@ interface DynamicPartProps {
   baseCarScene: THREE.Group
 }
 
+// Transition-frame scratch — never allocate inside useFrame
+const _scaleFrom = new THREE.Vector3()
+const _unitScale = new THREE.Vector3(1, 1, 1)
+
 // Helper: Find node by name (case-insensitive, recursive)
 function findNodeByName(parent: THREE.Object3D, name: string): THREE.Object3D | null {
   if (parent.name.toLowerCase() === name.toLowerCase()) {
@@ -239,12 +243,9 @@ function ModeledPart({ category, partConfig, baseCarScene }: ModeledPartProps) {
     // Fade in new parts with scale animation
     transition.newParts.forEach((part) => {
       const scaleProgress = Math.pow(fadeProgress, 0.5) // Ease-out scale
-      const targetScale = part.userData.originalScale || new THREE.Vector3(1, 1, 1)
-      part.scale.lerpVectors(
-        new THREE.Vector3(0.6, 0.6, 0.6).multiply(targetScale),
-        targetScale,
-        scaleProgress
-      )
+      const targetScale: THREE.Vector3 = part.userData.originalScale || _unitScale
+      _scaleFrom.set(0.6, 0.6, 0.6).multiply(targetScale)
+      part.scale.lerpVectors(_scaleFrom, targetScale, scaleProgress)
 
       part.traverse((child: any) => {
         if (child instanceof THREE.Mesh && child.material) {
