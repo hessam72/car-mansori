@@ -9,6 +9,14 @@ interface InteriorLookControlsProps {
   pitchLimit?: number
 }
 
+// Below this yaw+pitch delta the easing is done — snap and let the demand
+// loop go idle instead of invalidating forever
+const SETTLE_EPSILON = 1e-4
+
+// Frame-loop scratch — never allocate inside useFrame
+const _lookDir = new THREE.Vector3()
+const _lookTarget = new THREE.Vector3()
+
 export default function InteriorLookControls({
   sensitivity = 0.003,
   pitchLimit = Math.PI / 3 // 60 degrees
@@ -18,26 +26,41 @@ export default function InteriorLookControls({
   const previousPosition = useRef({ x: 0, y: 0 })
   const rotation = useRef({ yaw: 0, pitch: 0 })
   const smoothedRotation = useRef({ yaw: 0, pitch: 0 })
+  const settledRef = useRef(true)
 
-  // Apply camera rotation on every frame with smooth lerping
+  // Ease the camera toward the target rotation, then park. Frames are pumped
+  // only while easing — pointer input restarts the loop via invalidate().
   useFrame(() => {
-    // Lerp for smooth camera movement
-    const lerpFactor = 0.15
-    smoothedRotation.current.yaw += (rotation.current.yaw - smoothedRotation.current.yaw) * lerpFactor
-    smoothedRotation.current.pitch += (rotation.current.pitch - smoothedRotation.current.pitch) * lerpFactor
+    const rot = rotation.current
+    const smoothed = smoothedRotation.current
+    const dYaw = rot.yaw - smoothed.yaw
+    const dPitch = rot.pitch - smoothed.pitch
+    const settled = Math.abs(dYaw) + Math.abs(dPitch) < SETTLE_EPSILON
 
-    // Calculate look direction from smoothed rotation
-    const direction = new THREE.Vector3()
-    direction.x = Math.sin(smoothedRotation.current.yaw) * Math.cos(smoothedRotation.current.pitch)
-    direction.y = Math.sin(smoothedRotation.current.pitch)
-    direction.z = Math.cos(smoothedRotation.current.yaw) * Math.cos(smoothedRotation.current.pitch)
-    direction.normalize()
+    if (settled && settledRef.current) return // idle — nothing to do
 
-    // Update camera lookAt target
-    const lookAtTarget = new THREE.Vector3()
-    lookAtTarget.addVectors(camera.position, direction.multiplyScalar(5))
-    camera.lookAt(lookAtTarget)
-    invalidate()
+    if (settled) {
+      // Final frame of the ease: snap exactly onto the target and stop
+      smoothed.yaw = rot.yaw
+      smoothed.pitch = rot.pitch
+      settledRef.current = true
+    } else {
+      const lerpFactor = 0.15
+      smoothed.yaw += dYaw * lerpFactor
+      smoothed.pitch += dPitch * lerpFactor
+      settledRef.current = false
+      invalidate()
+    }
+
+    _lookDir
+      .set(
+        Math.sin(smoothed.yaw) * Math.cos(smoothed.pitch),
+        Math.sin(smoothed.pitch),
+        Math.cos(smoothed.yaw) * Math.cos(smoothed.pitch)
+      )
+      .normalize()
+    _lookTarget.copy(camera.position).addScaledVector(_lookDir, 5)
+    camera.lookAt(_lookTarget)
   })
 
   useEffect(() => {
@@ -65,6 +88,10 @@ export default function InteriorLookControls({
       rotation.current.pitch = Math.max(-pitchLimit, Math.min(pitchLimit, rotation.current.pitch))
 
       previousPosition.current = { x: point.clientX, y: point.clientY }
+
+      // Demand frameloop: wake the render loop so useFrame eases toward the
+      // new rotation (it parks itself once settled)
+      invalidate()
     }
 
     const handlePointerUp = () => {
@@ -96,7 +123,7 @@ export default function InteriorLookControls({
       domElement.removeEventListener('touchmove', handlePointerMove)
       domElement.removeEventListener('touchend', handlePointerUp)
     }
-  }, [camera, gl, sensitivity, pitchLimit])
+  }, [camera, gl, sensitivity, pitchLimit, invalidate])
 
   return null
 }
