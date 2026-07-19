@@ -17,11 +17,9 @@ import CarLighting from './CarLighting'
 import CarStudioEnvironment from './CarStudioEnvironment'
 import ConfigurableCar from './ConfigurableCar'
 import CameraControls from './CameraControls'
-import CameraPresets from './CameraPresets'
 import InteriorLookControls from './InteriorLookControls'
 import PartClickDetector from './PartClickDetector'
-import PartsTogglePanel from './PartsTogglePanel'
-import PerformanceMonitor from './PerformanceMonitor'
+import { PartErrorBoundary } from './PartErrorBoundary'
 import PhotoMode from './PhotoMode'
 import ShadowFreeze from './ShadowFreeze'
 import { useCameraStore } from '@/stores/cameraStore'
@@ -29,6 +27,8 @@ import { useQuality } from '@/contexts/QualityContext'
 
 interface CarTuningSceneProps {
   modelPath: string
+  /** Base-car GLB failed to load/parse — lets the page show a styled recovery overlay */
+  onBaseCarError?: (category: string, error: Error) => void
 }
 
 // Above ~4.5MP the extra pixels are invisible for this scene but the
@@ -42,7 +42,7 @@ function clampDprToBudget(dpr: [number, number]): [number, number] {
   return [dpr[0], Math.max(dpr[0], Math.min(dpr[1], budgetMax))]
 }
 
-export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
+export default function CarTuningScene({ modelPath, onBaseCarError }: CarTuningSceneProps) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   const initialPosition: [number, number, number] = isMobile ? [8, 3.2, 8] : [5, 2, 5]
   const { activePreset } = useCameraStore()
@@ -107,8 +107,11 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
         {/* Ground contact shadows (contact or accumulative per quality tier) */}
         <CarGroundShadows />
 
-        {/* Configurable Car with Part Swapping */}
-        <ConfigurableCar modelPath={modelPath} />
+        {/* Configurable Car with Part Swapping. A 404ing/corrupt base GLB is
+            caught here instead of white-screening the whole page. */}
+        <PartErrorBoundary category="base-car" onError={onBaseCarError}>
+          <ConfigurableCar modelPath={modelPath} />
+        </PartErrorBoundary>
 
         {/* Post Processing */}
         <PostProcessing />
@@ -122,18 +125,9 @@ export default function CarTuningScene({ modelPath }: CarTuningSceneProps) {
         {/* Part Click Detection */}
         <PartClickDetector />
 
-        {/* Path-traced photo mode (desktop button in PhotoModeUI) */}
+        {/* Path-traced photo mode (entry button in TopBar, overlay in PhotoModeUI) */}
         <PhotoMode />
-
-        {/* Performance Monitor */}
-        {/* <PerformanceMonitor /> */}
       </Canvas>
-
-      {/* Camera Presets UI */}
-      <CameraPresets />
-
-      {/* Parts Toggle Panel */}
-      <PartsTogglePanel />
     </div>
   )
 }

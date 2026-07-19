@@ -7,16 +7,13 @@ import PartsGrid from './PartsGrid'
 import partsConfig from '@/public/config/car-parts.json'
 import { useCarConfig } from '@/stores/carConfigStore'
 import './CustomizationPanel.css'
-import {
-   IoColorPalette, IoCarSport, IoClose, IoChevronBack
-} from 'react-icons/io5'
+import { IoColorPalette, IoCarSport, IoClose, IoChevronBack } from 'react-icons/io5'
 import {
   GiCarWheel, GiWingCloak, GiCarDoor,
   GiMirrorMirror,
   GiSmokingPipe
 } from 'react-icons/gi'
 import { TbCarSuv } from 'react-icons/tb'
-import { MdTune } from 'react-icons/md'
 
 // Preload all parts in a category into the same drei cache the scene reads from
 function preloadCategory(categoryId: string) {
@@ -43,9 +40,18 @@ const CATEGORIES = [
   { id: 'side-skirts', name: 'Side Skirts', icon: TbCarSuv },
 ]
 
-export default function CustomizationPanel() {
+interface CustomizationPanelProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+/**
+ * Right-side customization drawer (desktop) / bottom sheet (mobile).
+ * Controlled by the page so the rest of the chrome can re-center over the
+ * visible stage. Category rail is vertical on desktop, a strip on mobile.
+ */
+export default function CustomizationPanel({ open, onOpenChange }: CustomizationPanelProps) {
   const [activeTab, setActiveTab] = useState('paint')
-  const [isExpanded, setIsExpanded] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const selectedParts = useCarConfig((s) => s.selectedParts)
   const loadingParts = useCarConfig((s) => s.loadingParts)
@@ -84,179 +90,190 @@ export default function CustomizationPanel() {
     }
   }, [activeTab])
 
+  // Escape closes the reset dialog
+  useEffect(() => {
+    if (!showResetConfirm) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowResetConfirm(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showResetConfirm])
+
+  const anyLoading = Object.values(loadingParts).some(Boolean)
+  const activeCategory = CATEGORIES.find((c) => c.id === activeTab)
+
   return (
     <>
-      {/* Mobile FAB - Shows when collapsed */}
-      <button
-        onClick={() => setIsExpanded(true)}
-        className={`
-          fixed bottom-6 right-6 z-50 md:hidden
-          w-14 h-14 rounded-full
-          bg-gradient-to-br from-blue-500 to-blue-600
-          hover:from-blue-600 hover:to-blue-700
-          shadow-[0_8px_24px_rgba(59,130,246,0.4)]
-          hover:shadow-[0_12px_32px_rgba(59,130,246,0.5)]
-          border border-blue-400/30
-          backdrop-blur-xl
-          flex items-center justify-center
-          transition-all duration-300
-          ${isExpanded ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}
-        `}
-        aria-label="Open customization panel"
-      >
-        <MdTune className="text-white text-2xl" />
-      </button>
-
-      {/* Mobile Backdrop */}
-      {isExpanded && (
+      {/* Mobile backdrop */}
+      {open && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300"
-          onClick={() => setIsExpanded(false)}
+          className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 md:hidden"
+          onClick={() => onOpenChange(false)}
         />
       )}
 
-      {/* Main Panel */}
+      {/* Desktop collapsed rail */}
+      {!open && (
+        <button
+          onClick={() => onOpenChange(true)}
+          className="fixed right-0 top-0 z-50 hidden h-screen w-16 flex-col items-center justify-center gap-4 border-l border-white/10 bg-black/50 backdrop-blur-xl transition-colors hover:bg-black/70 md:flex"
+          aria-label="Open customization panel"
+        >
+          <IoChevronBack className="text-lg text-white/60" />
+          <span
+            className="text-[10px] uppercase tracking-[0.35em] text-white/45"
+            style={{ writingMode: 'vertical-rl' }}
+          >
+            Customize
+          </span>
+        </button>
+      )}
+
+      {/* Main panel */}
       <div
-        className={` cmpanel
-          fixed z-50 flex flex-col
-          transition-all duration-300 ease-in-out
-          bg-white/10 backdrop-blur-3xl
-          border-l border-white/20
-          shadow-[0_8px_32px_rgba(0,0,0,0.3)]
-
-          ${isExpanded
-            ? 'bottom-0 left-0 right-0 max-h-[85vh] rounded-t-3xl md:rounded-none'
-            : 'bottom-[-100%] left-0 right-0'
+        className={`cmpanel fixed z-50 flex flex-col border-white/10 bg-black/60 backdrop-blur-2xl transition-all duration-300 ease-in-out
+          ${open
+            ? 'bottom-0 left-0 right-0 max-h-[85vh] rounded-t-2xl border-t md:max-h-none md:rounded-none md:border-t-0'
+            : 'pointer-events-none bottom-[-100%] left-0 right-0'
           }
-
-          md:top-0 md:bottom-0 md:h-screen md:left-auto md:right-0
-          ${isExpanded ? 'md:w-96' : 'md:w-16'}
+          md:bottom-0 md:left-auto md:right-0 md:top-0 md:h-screen md:border-l
+          ${open ? 'md:w-96' : 'md:w-0 md:overflow-hidden md:border-l-0'}
         `}
       >
-        {/* Mobile Drag Handle */}
-        <div className="md:hidden flex justify-center pt-3 pb-2">
-          <div className="w-12 h-1.5 bg-gray-600 rounded-full" />
-        </div>
+        {open && (
+          <>
+            {/* Mobile drag handle */}
+            <div className="flex justify-center pb-1 pt-3 md:hidden">
+              <div className="h-1 w-10 rounded-full bg-white/20" />
+            </div>
 
-        {/* Header */}
-        <div className={`
-          p-4 border-b border-white/10
-          bg-gradient-to-b from-white/5 to-transparent
-          ${isExpanded ? 'md:p-6' : 'md:p-0 md:border-0'}
-        `}>
-          <div className="flex items-center justify-between">
-            {isExpanded ? (
-              <>
-                <div className="flex-1">
-                  <h2 className="text-xl md:text-2xl font-bold text-white mb-1">
-                    Customize Car
-                  </h2>
-                  <div className="text-xs md:text-sm text-gray-400">
-                    Total: <span className="text-lg md:text-xl font-bold text-blue-400">
-                      ${totalPrice.toLocaleString()}
-                    </span>
+            {/* Header */}
+            <div className="flex items-start justify-between px-5 pb-4 pt-3 md:px-6 md:pt-6">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.35em] text-white/45">Customize</p>
+                {anyLoading && (
+                  <div className="mt-1.5 flex items-center gap-2 text-[11px] text-white/50">
+                    <div className="h-3 w-3 animate-spin rounded-full border border-white/40 border-t-transparent" />
+                    Loading part…
                   </div>
-                  {Object.entries(loadingParts).some(([_, isLoading]) => isLoading) && (
-                    <div className="mt-2 flex items-center gap-2 text-xs text-blue-400">
-                      <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                      <span>Loading part...</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setIsExpanded(false)}
-                    className="p-2 hover:bg-white/10 rounded-xl transition-all backdrop-blur-sm"
-                    aria-label="Minimize panel"
-                  >
-                    <IoClose className="text-gray-300 hover:text-white text-xl" />
-                  </button>
-                </div>
-              </>
-            ) : (
-              <button
-                onClick={() => setIsExpanded(true)}
-                className="hidden md:flex w-full py-6 items-center justify-center hover:bg-white/10 transition-all backdrop-blur-sm"
-                aria-label="Expand panel"
-              >
-                <IoChevronBack className="text-gray-300 hover:text-white text-xl" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Category Tabs - Only show when expanded */}
-        {isExpanded && (
-          <div className="flex overflow-x-auto border-b border-white/10 bg-white/5 scrollbar-hide">
-            {CATEGORIES.map((cat) => {
-              const IconComponent = cat.icon
-              const isLoading = loadingParts[cat.id]
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveTab(cat.id)}
-                  className={`
-                    flex-shrink-0 px-3 md:px-4 py-3 text-xs md:text-sm font-medium
-                    transition-all duration-200 whitespace-nowrap
-                    flex items-center gap-2 relative
-                    ${
-                      activeTab === cat.id
-                        ? 'text-blue-400 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-gradient-to-r after:from-blue-400 after:to-blue-500 after:shadow-[0_0_8px_rgba(59,130,246,0.5)]'
-                        : 'text-gray-300 hover:text-white hover:bg-white/5'
-                    }
-                  `}
-                >
-                  {isLoading ? (
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <IconComponent className="text-base md:text-lg" />
-                  )}
-                  <span className="hidden sm:inline">{cat.name}</span>
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Content Area - Only show when expanded */}
-        {isExpanded && (
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 overscroll-contain" style={{ scrollBehavior: 'smooth' }}>
-            {/* Error Banner */}
-            {partLoadErrors[activeTab] && (
-              <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl backdrop-blur-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-red-400 mb-1">Failed to load part</h4>
-                    <p className="text-xs text-red-300/80">{partLoadErrors[activeTab]}</p>
-                  </div>
-                  <button
-                    onClick={() => setPartError(activeTab, null)}
-                    className="px-3 py-1 text-xs font-medium bg-red-500/20 text-red-300 hover:bg-red-500/30 rounded-lg transition-all"
-                  >
-                    Dismiss
-                  </button>
-                </div>
+                )}
               </div>
-            )}
+              <button
+                onClick={() => onOpenChange(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+                aria-label="Close customization panel"
+              >
+                <IoClose className="text-lg" />
+              </button>
+            </div>
 
-            {activeTab === 'paint' ? (
-              <PaintControls />
-            ) : (
-              <PartsGrid category={activeTab} />
-            )}
-          </div>
-        )}
+            {/* Body */}
+            <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+              {/* Mobile: horizontal category strip */}
+              <div className="scrollbar-hide flex shrink-0 overflow-x-auto border-y border-white/10 md:hidden">
+                {CATEGORIES.map((cat) => {
+                  const Icon = cat.icon
+                  const active = activeTab === cat.id
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setActiveTab(cat.id)}
+                      aria-current={active}
+                      className={`relative flex shrink-0 items-center gap-2 px-4 py-3 text-xs font-medium tracking-wide transition-colors ${
+                        active ? 'text-[#d4af37]' : 'text-white/55 hover:text-white'
+                      }`}
+                    >
+                      {loadingParts[cat.id] ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border border-current border-t-transparent" />
+                      ) : (
+                        <Icon className="text-base" />
+                      )}
+                      {cat.name}
+                      {active && <span className="absolute inset-x-4 bottom-0 h-px bg-[#d4af37]" />}
+                    </button>
+                  )
+                })}
+              </div>
 
-        {/* Footer - Only show when expanded */}
-        {isExpanded && (
-          <div className="p-4 md:p-6 border-t border-white/10 bg-gradient-to-t from-white/5 to-transparent">
-            <button
-              onClick={() => setShowResetConfirm(true)}
-              className="w-full px-4 py-3 bg-white/10 text-gray-200 rounded-xl hover:bg-white/15 transition-all font-medium text-sm md:text-base hover:shadow-[0_4px_16px_rgba(255,255,255,0.1)] backdrop-blur-sm border border-white/10"
-            >
-              Reset to Default
-            </button>
-          </div>
+              {/* Desktop: vertical category rail */}
+              <div className="hidden w-14 shrink-0 flex-col gap-1 border-r border-white/10 py-2 md:flex">
+                {CATEGORIES.map((cat) => {
+                  const Icon = cat.icon
+                  const active = activeTab === cat.id
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setActiveTab(cat.id)}
+                      aria-label={cat.name}
+                      aria-current={active}
+                      title={cat.name}
+                      className={`relative mx-auto flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
+                        active
+                          ? 'bg-[#d4af37]/10 text-[#d4af37]'
+                          : 'text-white/50 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      {loadingParts[cat.id] ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border border-current border-t-transparent" />
+                      ) : (
+                        <Icon className="text-lg" />
+                      )}
+                      {active && (
+                        <span className="absolute -left-[5px] top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-full bg-[#d4af37]" />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Content */}
+              <div
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 md:p-6"
+                style={{ scrollBehavior: 'smooth' }}
+              >
+                <h3 className="mb-5 hidden text-xs font-medium uppercase tracking-[0.25em] text-white/70 md:block">
+                  {activeCategory?.name}
+                </h3>
+
+                {/* Error Banner */}
+                {partLoadErrors[activeTab] && (
+                  <div className="mb-4 rounded-xl border border-red-400/25 bg-red-500/10 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <h4 className="mb-1 text-sm font-medium text-red-300">Failed to load part</h4>
+                        <p className="text-xs text-red-200/70">{partLoadErrors[activeTab]}</p>
+                      </div>
+                      <button
+                        onClick={() => setPartError(activeTab, null)}
+                        className="rounded-full border border-red-400/30 px-3 py-1 text-[11px] font-medium text-red-300 transition-colors hover:bg-red-500/20"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'paint' ? <PaintControls /> : <PartsGrid category={activeTab} />}
+              </div>
+            </div>
+
+            {/* Footer: price + reset */}
+            <div className="flex shrink-0 items-center justify-between border-t border-white/10 px-5 py-4 md:px-6">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-white/40">Total</p>
+                <p className="text-lg font-light tabular-nums tracking-wide text-white">
+                  ${totalPrice.toLocaleString()}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowResetConfirm(true)}
+                className="text-[11px] uppercase tracking-[0.2em] text-white/50 transition-colors hover:text-white"
+              >
+                Reset
+              </button>
+            </div>
+          </>
         )}
       </div>
 
@@ -264,32 +281,37 @@ export default function CustomizationPanel() {
       {showResetConfirm && (
         <>
           <div
-            className="fixed inset-0 bg-black/40 z-[60] backdrop-blur-md"
+            className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
             onClick={() => setShowResetConfirm(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] w-[90%] max-w-md">
-            <div className="bg-white/10 backdrop-blur-3xl rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/20">
-              <h3 className="text-xl font-bold text-white mb-2">Reset Configuration?</h3>
-              <p className="text-gray-300 text-sm mb-6">
-                This will reset all customizations to default. This action cannot be undone.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowResetConfirm(false)}
-                  className="flex-1 px-4 py-2.5 bg-white/10 text-gray-200 rounded-xl hover:bg-white/15 transition-all font-medium border border-white/10 backdrop-blur-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    useCarConfig.getState().resetConfig()
-                    setShowResetConfirm(false)
-                  }}
-                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all font-medium shadow-[0_4px_16px_rgba(239,68,68,0.4)]"
-                >
-                  Reset
-                </button>
-              </div>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reset-dialog-title"
+            className="fixed left-1/2 top-1/2 z-[70] w-[90%] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-[#0d0d12]/95 p-6 shadow-[0_24px_64px_rgba(0,0,0,0.6)] backdrop-blur-2xl"
+          >
+            <h3 id="reset-dialog-title" className="text-base font-medium tracking-wide text-white">
+              Reset configuration?
+            </h3>
+            <p className="mt-2 text-sm text-white/50">
+              All paint and part selections return to stock. This cannot be undone.
+            </p>
+            <div className="mt-6 flex gap-2.5">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="flex-1 rounded-full border border-white/15 px-4 py-2.5 text-xs font-medium uppercase tracking-[0.15em] text-white/70 transition-colors hover:border-white/35 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  useCarConfig.getState().resetConfig()
+                  setShowResetConfirm(false)
+                }}
+                className="flex-1 rounded-full border border-red-400/40 bg-red-500/10 px-4 py-2.5 text-xs font-medium uppercase tracking-[0.15em] text-red-300 transition-colors hover:bg-red-500/20"
+              >
+                Reset
+              </button>
             </div>
           </div>
         </>

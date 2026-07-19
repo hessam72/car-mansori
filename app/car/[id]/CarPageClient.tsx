@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { useGLTF } from '@react-three/drei'
+import { useGLTF, useEnvironment } from '@react-three/drei'
 import CustomizationPanel from '@/components/car/CustomizationPanel'
 import PhotoModeUI from '@/components/car/PhotoModeUI'
-import QualitySelector from '@/components/car/QualitySelector'
+import TopBar from '@/components/car/TopBar'
+import ViewDock from '@/components/car/ViewDock'
+import CarLoadingOverlay from '@/components/car/CarLoadingOverlay'
 import partsConfig from '@/public/config/car-parts.json'
-import { useCarConfig } from '@/stores/carConfigStore'
+import { useCarConfig, DEFAULT_PARTS } from '@/stores/carConfigStore'
 import { isARCapable } from '@/lib/device-utils'
 import { QualityProvider } from '@/contexts/QualityContext'
 
@@ -17,6 +19,7 @@ useGLTF.setDecoderPath('/draco/')
 
 const CarTuningScene = dynamic(() => import('@/components/car/CarTuningScene'), {
   ssr: false,
+  loading: () => <div className="h-screen w-screen bg-[#060608]" />,
 })
 
 const ARCarViewer = dynamic(() => import('@/components/car/ARCarViewer'), {
@@ -37,100 +40,99 @@ export interface Car {
   }
 }
 
-const DEFAULT_PARTS: Record<string, string> = {
-  wheels: 'wheel-stock',
-  spoilers: 'spoiler-stock',
-  hoods: 'hood-stock',
-  bumpers: 'bumper-front-stock',
-  mirrors: 'mirror-stock',
-  exhaust: 'exhaust-stock',
-  'side-skirts': 'skirts-none',
-}
+const STUDIO_HDR = '/hdr/main_hdr.exr'
 
-export default function CarPageClient({ car }: { car: Car | null }) {
+export default function CarPageClient({ car }: { car: Car }) {
   const [showAR, setShowAR] = useState(false)
   const [arSupported, setArSupported] = useState(false)
+  const [panelOpen, setPanelOpen] = useState(false)
+  const [sceneKey, setSceneKey] = useState(0)
+  const [baseCarError, setBaseCarError] = useState<string | null>(null)
   const resetConfig = useCarConfig((s) => s.resetConfig)
 
   useEffect(() => {
     setArSupported(isARCapable())
+    // Desktop opens with the panel visible — customization is the product
+    if (window.matchMedia('(min-width: 768px)').matches) setPanelOpen(true)
   }, [])
 
   useEffect(() => {
-    if (!car) return
-
     resetConfig(DEFAULT_PARTS)
 
-    // Warm the drei cache: base car + the stock parts the scene renders first
+    // Warm the drei cache: base car + the stock parts the scene renders first,
+    // plus the studio EXR (the largest single asset)
     useGLTF.preload(car.model_path)
     Object.entries(DEFAULT_PARTS).forEach(([category, partId]) => {
       const parts: any[] = partsConfig[category as keyof typeof partsConfig] || []
       const part = parts.find((p) => p.id === partId)
       if (part?.model_path) useGLTF.preload(part.model_path)
     })
+    useEnvironment.preload({ files: STUDIO_HDR })
   }, [car, resetConfig])
 
-  if (!car) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-black text-white">
-        Car not found
-      </div>
-    )
+  const handleBaseCarError = useCallback((_category: string, error: Error) => {
+    setBaseCarError(error.message || 'Failed to load the 3D model')
+  }, [])
+
+  const retryScene = () => {
+    // Purge the cached rejection, re-warm and remount the whole scene
+    useGLTF.clear(car.model_path)
+    useGLTF.preload(car.model_path)
+    setBaseCarError(null)
+    setSceneKey((k) => k + 1)
   }
 
   return (
     <QualityProvider>
-      <div className="h-screen w-screen overflow-hidden relative">
-        <CarTuningScene modelPath={car.model_path} />
+      {/* dir=ltr: the configurator UI is English inside an RTL document —
+          without this, flex order and text alignment mirror incorrectly */}
+      <div className="car-page relative h-screen w-screen overflow-hidden bg-[#060608]" dir="ltr">
+        <CarTuningScene key={sceneKey} modelPath={car.model_path} onBaseCarError={handleBaseCarError} />
 
-        {/* Car Info Overlay */}
-        <div className="absolute top-8 left-8 text-white pointer-events-none z-5">
-          <h1 className="text-4xl font-bold mb-2">{car.name}</h1>
-          <p className="text-xl text-gray-300">{car.name_fa}</p>
-        </div>
-
-        {/* Quality Selector */}
-        <QualitySelector />
-
-        {/* Photo Mode (desktop only) */}
-        <PhotoModeUI />
-
-        {/* Customization Panel */}
-        <CustomizationPanel />
-
-      {/* AR Button */}
-      {arSupported && (
-        <button
-          onClick={() => setShowAR(true)}
-          className="fixed bottom-32 right-8 px-6 py-3 bg-white hover:bg-gray-100 text-black font-semibold rounded-xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 z-10"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
-            />
-          </svg>
-          View in AR
-        </button>
-      )}
-
-      {/* AR Viewer Modal */}
-      {showAR && (
-        <ARCarViewer
-          glbPath={car.model_path}
-          usdzPath={car.usdz_path}
+        <TopBar
           carName={car.name}
           carNameFa={car.name_fa}
-          onClose={() => setShowAR(false)}
+          arSupported={arSupported}
+          onOpenAR={() => setShowAR(true)}
+          panelOpen={panelOpen}
         />
-      )}
+
+        <ViewDock panelOpen={panelOpen} onOpenPanel={() => setPanelOpen(true)} />
+
+        {/* Photo-mode progress/save overlay (entry button lives in TopBar) */}
+        <PhotoModeUI />
+
+        <CustomizationPanel open={panelOpen} onOpenChange={setPanelOpen} />
+
+        {/* AR Viewer Modal */}
+        {showAR && (
+          <ARCarViewer
+            glbPath={car.model_path}
+            usdzPath={car.usdz_path}
+            carName={car.name}
+            carNameFa={car.name_fa}
+            onClose={() => setShowAR(false)}
+          />
+        )}
+
+        {/* Base model failed to load — styled recovery instead of a dead black stage */}
+        {baseCarError && (
+          <div className="absolute inset-0 z-[150] flex flex-col items-center justify-center gap-4 bg-[#060608]/95 px-6 text-center">
+            <p className="text-[10px] uppercase tracking-[0.45em] text-[#d4af37]/70">Configurator</p>
+            <h2 className="text-xl font-extralight uppercase tracking-[0.2em] text-white">
+              Model could not be loaded
+            </h2>
+            <p className="max-w-sm text-sm text-white/40">{baseCarError}</p>
+            <button
+              onClick={retryScene}
+              className="mt-2 rounded-full border border-white/15 px-6 py-2.5 text-xs uppercase tracking-[0.2em] text-white/70 transition-colors hover:border-white/40 hover:text-white"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
+        <CarLoadingOverlay carName={car.name} carNameFa={car.name_fa} />
       </div>
     </QualityProvider>
   )

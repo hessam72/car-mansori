@@ -34,6 +34,17 @@ export interface CarConfigState {
   resetConfig: (defaultParts?: Record<string, string>) => void
 }
 
+/** Stock selection for every category — single source of truth for mount and reset */
+export const DEFAULT_PARTS: Record<string, string> = {
+  wheels: 'wheel-stock',
+  spoilers: 'spoiler-stock',
+  hoods: 'hood-stock',
+  bumpers: 'bumper-front-stock',
+  mirrors: 'mirror-stock',
+  exhaust: 'exhaust-stock',
+  'side-skirts': 'skirts-none',
+}
+
 const defaultPaintConfig: MultiZonePaintConfig = {
   body: {
     color: '#ff0000',
@@ -121,37 +132,27 @@ export const useCarConfig = create<CarConfigState>()(
       initializePaint: () =>
         set({ paintInitialized: true }),
 
-      togglePart: (partName) => {
-        console.log('[carConfigStore] togglePart called:', partName)
-        set((state) => {
-          const newState = !state.openParts[partName]
-          console.log(`  → ${partName}: ${state.openParts[partName]} → ${newState}`)
-          return {
-            openParts: {
-              ...state.openParts,
-              [partName]: newState,
-            },
-          }
-        })
-      },
+      togglePart: (partName) =>
+        set((state) => ({
+          openParts: {
+            ...state.openParts,
+            [partName]: !state.openParts[partName],
+          },
+        })),
 
-      openAllParts: () => {
-        console.log('[carConfigStore] openAllParts called')
+      openAllParts: () =>
         set((state) => ({
           openParts: Object.fromEntries(
             Object.keys(state.openParts).map((key) => [key, true])
           ),
-        }))
-      },
+        })),
 
-      closeAllParts: () => {
-        console.log('[carConfigStore] closeAllParts called')
+      closeAllParts: () =>
         set((state) => ({
           openParts: Object.fromEntries(
             Object.keys(state.openParts).map((key) => [key, false])
           ),
-        }))
-      },
+        })),
 
       getTotalPrice: () => {
         // Will be implemented with part price lookup from car-parts.json
@@ -160,7 +161,9 @@ export const useCarConfig = create<CarConfigState>()(
         return 0
       },
 
-      resetConfig: (defaultParts = {}) =>
+      // Defaulting to the stock parts (not {}) keeps the car complete when
+      // the panel's Reset action calls this with no arguments
+      resetConfig: (defaultParts = DEFAULT_PARTS) =>
         set({
           selectedParts: defaultParts,
           paintConfig: defaultPaintConfig,

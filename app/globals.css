@@ -357,13 +357,24 @@ canvas {
 
 /* ─────────────────────────────────────────────
    Custom cursor
+   The configurator (.car-page) is excluded — precision pointing on its
+   small controls needs the native cursor (incl. grab/grabbing set inline
+   by the 3D controls), so the hide rule must not match there.
 ───────────────────────────────────────────── */
-* {
+*:not(.car-page):not(.car-page *) {
   cursor: none !important;
 }
 
 @media (pointer: coarse) {
   * { cursor: auto !important; }
+}
+
+/* ─────────────────────────────────────────────
+   Keyboard focus — visible ring on all pages
+───────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.9);
+  outline-offset: 2px;
 }
 
 /* ─────────────────────────────────────────────

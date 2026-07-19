@@ -1,20 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { usePhotoMode } from '@/stores/photoModeStore'
 
-const isDesktop = () =>
-  typeof window !== 'undefined' &&
-  window.innerWidth >= 1024 &&
-  !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
-
 /**
- * DOM chrome for photo mode: desktop-only entry button plus the overlay
- * (progress, save, exit) shown while the path tracer is working. The overlay
- * blocks scene/tuning interaction so the traced snapshot stays consistent.
+ * Photo-mode overlay: progress, save and exit while the path tracer works.
+ * The overlay blocks scene/tuning interaction so the traced snapshot stays
+ * consistent. The entry button lives in TopBar.
  */
 export default function PhotoModeUI() {
-  const [desktop, setDesktop] = useState(false)
   const active = usePhotoMode((s) => s.active)
   const status = usePhotoMode((s) => s.status)
   const buildProgress = usePhotoMode((s) => s.buildProgress)
@@ -22,45 +15,36 @@ export default function PhotoModeUI() {
   const setActive = usePhotoMode((s) => s.setActive)
   const requestSave = usePhotoMode((s) => s.requestSave)
 
-  useEffect(() => {
-    setDesktop(isDesktop())
-  }, [])
+  if (!active) return null
 
-  if (!desktop) return null
-
-  if (!active) {
-    return (
-      <button
-        onClick={() => setActive(true)}
-        className="fixed bottom-48 right-8 px-5 py-3 bg-black/70 hover:bg-black/90 text-white font-semibold rounded-xl shadow-lg border border-white/20 transition-all flex items-center gap-2 z-10"
-        title="Path-traced beauty shot"
-      >
-        📷 Photo Mode
-      </button>
-    )
-  }
+  const statusText =
+    status === 'building'
+      ? `Building scene… ${Math.round(buildProgress * 100)}%`
+      : status === 'rendering'
+        ? `Refining · ${samples} samples`
+        : 'Preparing…'
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-auto">
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/80 text-white px-6 py-3 rounded-xl border border-white/10">
-        <span className="font-mono text-sm">
-          {status === 'building'
-            ? `Building scene… ${Math.round(buildProgress * 100)}%`
-            : `Refining ${samples} samples`}
+      <div className="absolute left-1/2 top-5 flex -translate-x-1/2 items-center gap-4 rounded-full border border-white/10 bg-black/75 py-2 pl-5 pr-2 backdrop-blur-2xl">
+        <span className="text-[11px] uppercase tracking-[0.2em] text-white/70 tabular-nums">
+          {statusText}
         </span>
-        <button
-          onClick={requestSave}
-          disabled={status !== 'rendering'}
-          className="px-4 py-1.5 bg-white text-black rounded-lg text-sm font-semibold disabled:opacity-40"
-        >
-          Save PNG
-        </button>
-        <button
-          onClick={() => setActive(false)}
-          className="px-4 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-semibold"
-        >
-          Exit
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={requestSave}
+            disabled={status !== 'rendering'}
+            className="rounded-full bg-[#d4af37] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-black transition-colors hover:bg-[#e2c25a] disabled:cursor-default disabled:opacity-40"
+          >
+            Save PNG
+          </button>
+          <button
+            onClick={() => setActive(false)}
+            className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-white/70 transition-colors hover:border-white/25 hover:text-white"
+          >
+            Exit
+          </button>
+        </div>
       </div>
     </div>
   )
