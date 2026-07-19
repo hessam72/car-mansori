@@ -1,6 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+// Registers the <model-viewer> custom element. Without this side-effect
+// import the tag renders as an inert unknown element and AR never works.
+// The dist bundle ships its own three copy — the package peers three@^0.183
+// while this project pins 0.170, so the ESM build must not be used. This
+// file is only ever loaded via next/dynamic, so the library stays in the
+// on-demand AR chunk, not the base /car bundle.
+import '@google/model-viewer/dist/model-viewer.min.js'
 import { isARCapable, getARModeName } from '@/lib/device-utils'
 
 interface ARCarViewerProps {
