@@ -5,13 +5,19 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { useLoader } from '@react-three/fiber'
 import { RigidBody } from '@react-three/rapier'
+import { useQuality } from '@/contexts/QualityContext'
+import { applyAnisotropy } from '@/lib/three/prepareCarMaterial'
 import type { ModelFile } from './hooks/useStoreConfig'
 
-// Configure DRACO loader globally
+// One shared DRACO decoder (each instance spins up its own wasm worker pool —
+// a new one per model was pure waste)
+let sharedDracoLoader: DRACOLoader | null = null
 const configureDracoLoader = () => {
-  const dracoLoader = new DRACOLoader()
-  dracoLoader.setDecoderPath('/draco/')
-  return dracoLoader
+  if (!sharedDracoLoader) {
+    sharedDracoLoader = new DRACOLoader()
+    sharedDracoLoader.setDecoderPath('/draco/')
+  }
+  return sharedDracoLoader
 }
 
 type ModelLoaderProps = {
@@ -37,9 +43,7 @@ export function ModelLoader({ files, onModelsLoaded, onProgress }: ModelLoaderPr
   }, [onProgress])
 
   useEffect(() => {
-    console.log(`Loaded ${loadedCount} of ${sortedFiles.length} models`)
     if (loadedCount >= sortedFiles.length && loadedCount > 0) {
-      console.log('All models loaded:', loadedCount)
       onModelsLoaded?.()
     }
   }, [loadedCount, sortedFiles.length, onModelsLoaded])
@@ -67,6 +71,9 @@ type ModelProps = {
 }
 
 function Model({ url, isWireframe, onLoaded }: ModelProps) {
+  // Texture sharpening follows the shared quality tier (4/4/8/16)
+  const { settings } = useQuality()
+
   // Use custom loader with DRACO support
   const gltf = useLoader(GLTFLoader, url, (loader) => {
     const dracoLoader = configureDracoLoader()
@@ -109,15 +116,11 @@ function Model({ url, isWireframe, onLoaded }: ModelProps) {
           obj.castShadow = true
           obj.receiveShadow = true
           if (obj.material) {
-            if (Array.isArray(obj.material)) {
-              obj.material.forEach((mat) => {
-                mat.envMapIntensity = 1
-                mat.needsUpdate = true
-              })
-            } else {
-              obj.material.envMapIntensity = 1
-              obj.material.needsUpdate = true
-            }
+            const materials = Array.isArray(obj.material) ? obj.material : [obj.material]
+            materials.forEach((mat) => {
+              mat.envMapIntensity = 1
+              mat.needsUpdate = true
+            })
           }
 
           // Ceiling double-sided rendering for reflections
@@ -133,7 +136,6 @@ function Model({ url, isWireframe, onLoaded }: ModelProps) {
 
           // String light emissive glow
           if (obj.name.toLowerCase().includes('light') && obj.material) {
-            console.log(`Applying emissive glow to ${obj.name}`)
             if (Array.isArray(obj.material)) {
               obj.material.forEach((mat) => {
                 mat.emissive = new THREE.Color('#f6ffc4')
@@ -159,6 +161,17 @@ function Model({ url, isWireframe, onLoaded }: ModelProps) {
 
     return clone
   }, [gltf.scene, isWireframe])
+
+  // Texture anisotropy follows the quality tier without re-cloning the model
+  useEffect(() => {
+    if (isWireframe) return
+    clonedScene.traverse((obj) => {
+      if (obj instanceof THREE.Mesh && obj.material) {
+        const materials = Array.isArray(obj.material) ? obj.material : [obj.material]
+        materials.forEach((mat) => applyAnisotropy(mat, settings.anisotropyLevel))
+      }
+    })
+  }, [clonedScene, isWireframe, settings.anisotropyLevel])
 
   if (isWireframe) {
     return (

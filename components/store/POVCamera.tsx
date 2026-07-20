@@ -7,14 +7,23 @@ interface POVCameraProps {
   gyroEnabled?: boolean
 }
 
+// Frame-loop scratch — never allocate inside useFrame
+const _euler = new THREE.Euler(0, 0, 0, 'YXZ')
+
+// Below this yaw+pitch delta the look-easing is done — snap and stop
+// requesting frames (matters under the demand frameloop)
+const SETTLE_EPSILON = 1e-4
+
 export function usePOVCamera(props?: POVCameraProps) {
   const { gyroEnabled = false } = props || {}
   const { camera, gl } = useThree()
+  const regress = useThree((s) => s.performance.regress)
   const targetYaw = useRef(0)
   const targetPitch = useRef(0)
   const currentYaw = useRef(0)
   const currentPitch = useRef(0)
   const isDragging = useRef(false)
+  const settledRef = useRef(true)
   const previousMouse = useRef({ x: 0, y: 0 })
   const previousOrientation = useRef<{ alpha: number; beta: number; gamma: number } | null>(null)
 
@@ -49,6 +58,9 @@ export function usePOVCamera(props?: POVCameraProps) {
       targetPitch.current = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetPitch.current))
 
       previousMouse.current = { x: e.clientX, y: e.clientY }
+
+      // Trade resolution for frame rate while look-dragging (AdaptiveDpr)
+      regress()
     }
 
     canvas.addEventListener('pointerdown', onPointerDown)
@@ -62,7 +74,7 @@ export function usePOVCamera(props?: POVCameraProps) {
       canvas.removeEventListener('pointermove', onPointerMove)
       canvas.removeEventListener('pointercancel', onPointerUp)
     }
-  }, [gl, gyroEnabled])
+  }, [gl, gyroEnabled, regress])
 
   // Gyroscope controls
   useEffect(() => {
@@ -121,16 +133,26 @@ export function usePOVCamera(props?: POVCameraProps) {
   }, [gyroEnabled])
 
   useFrame((_, delta) => {
-    // Smooth damping factor (higher = snappier, lower = smoother)
-    const dampingFactor = 15
-    const t = 1 - Math.exp(-dampingFactor * delta)
+    const dYaw = targetYaw.current - currentYaw.current
+    const dPitch = targetPitch.current - currentPitch.current
 
-    // Lerp current rotation towards target
-    currentYaw.current += (targetYaw.current - currentYaw.current) * t
-    currentPitch.current += (targetPitch.current - currentPitch.current) * t
+    if (Math.abs(dYaw) + Math.abs(dPitch) < SETTLE_EPSILON) {
+      if (settledRef.current) return // parked — nothing to do
+      // Final frame of the ease: snap exactly onto the target
+      currentYaw.current = targetYaw.current
+      currentPitch.current = targetPitch.current
+      settledRef.current = true
+    } else {
+      // Smooth damping factor (higher = snappier, lower = smoother)
+      const dampingFactor = 15
+      const t = 1 - Math.exp(-dampingFactor * delta)
+      currentYaw.current += dYaw * t
+      currentPitch.current += dPitch * t
+      settledRef.current = false
+    }
 
     // Apply smoothed rotation to camera
-    const euler = new THREE.Euler(currentPitch.current, currentYaw.current, 0, 'YXZ')
-    camera.quaternion.setFromEuler(euler)
+    _euler.set(currentPitch.current, currentYaw.current, 0)
+    camera.quaternion.setFromEuler(_euler)
   })
 }
