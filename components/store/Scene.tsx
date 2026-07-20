@@ -1,8 +1,10 @@
 'use client'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useLoader } from '@react-three/fiber'
+import type { RootState } from '@react-three/fiber'
 import { Environment } from '@react-three/drei'
 import * as THREE from 'three'
-import { Suspense } from 'react'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { Suspense, useMemo } from 'react'
 import { Physics } from '@react-three/rapier'
 import { useStoreConfig } from './hooks/useStoreConfig'
 import { ModelLoader } from './ModelLoader'
@@ -11,20 +13,29 @@ import { usePlayerController } from './PlayerController'
 import { RigidBody, CapsuleCollider } from '@react-three/rapier'
 import { VirtualJoystick } from './Joystick'
 import { usePOVCamera } from './POVCamera'
-import { ShadowSystem } from './ShadowSystem'
 import { ReflectiveFloor } from './ReflectiveFloor'
 import { PostProcessing } from './PostProcessing'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import ProductInteraction, { type ProductData } from './ProductInteraction'
 import ProductPopup from './ProductPopup'
 import { LoadingScreen } from './LoadingScreen'
 import { ModelsLoadingIndicator } from './ModelsLoadingIndicator'
-import { Stats } from '@react-three/drei'
 import { AudioPlayer } from './AudioPlayer'
 import { GyroToggle } from './GyroToggle'
 import { SceneTransition } from './SceneTransition'
 import { CameraTransition } from './CameraTransition'
 import { ParticleReveal } from './ParticleReveal'
+import { StoreQualityButton } from './StoreQualityButton'
+import { ActivityGovernor, markStoreActivity } from './activityGovernor'
+import { PerfLadder } from '@/components/three/PerfLadder'
+import { clampDprToBudget } from '@/lib/three/dprBudget'
+import { useQuality } from '@/contexts/QualityContext'
+import { PartErrorBoundary } from '@/components/car/PartErrorBoundary'
+
+// Demand frameloop with idle physics pause — the /car performance model
+// adapted for a walkable scene. Kill-switch: set to false to restore
+// frameloop="always" + variable timestep (all other quality wiring stays).
+const IDLE_DEMAND = true
 
 function ErrorScreen({ message }: { message: string }) {
   return (
@@ -72,13 +83,39 @@ type LoadingPhase = 'loading' | 'transitioning' | 'ready'
 
 export default function Scene() {
   const { config, loading, error } = useStoreConfig()
+  const { settings } = useQuality()
   const [joystickCallback, setJoystickCallback] = useState<((x: number, y: number) => void) | null>(null)
-  const [showClickHint, setShowClickHint] = useState(true)
   const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>('loading')
   const [loadedCount, setLoadedCount] = useState(0)
   const [totalCount, setTotalCount] = useState(0)
   const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(null)
   const [gyroEnabled, setGyroEnabled] = useState(false)
+  const [galleryError, setGalleryError] = useState<string | null>(null)
+  const [modelsKey, setModelsKey] = useState(0)
+
+  // Sustained-FPS ladder scale (same mechanism as /car)
+  const [perfScale, setPerfScale] = useState(1)
+  const dpr = useMemo<[number, number]>(() => {
+    const [min, max] = clampDprToBudget(settings.dpr)
+    return [min, Math.max(min, +(max * perfScale).toFixed(2))]
+  }, [settings.dpr, perfScale])
+
+  // Demand-loop idle state: physics pauses while parked
+  const [idle, setIdle] = useState(false)
+  const r3fRef = useRef<RootState | null>(null)
+
+  // DOM-side wake: stamp activity and kick one frame; the governor keeps
+  // the loop alive from there
+  const wake = useCallback(() => {
+    markStoreActivity()
+    r3fRef.current?.invalidate()
+  }, [])
+
+  useEffect(() => {
+    if (!IDLE_DEMAND) return
+    window.addEventListener('keydown', wake)
+    return () => window.removeEventListener('keydown', wake)
+  }, [wake])
 
   const handleModelsLoaded = useCallback(() => {
     setLoadingPhase('transitioning')
@@ -88,17 +125,24 @@ export default function Scene() {
     setLoadingPhase('ready')
   }, [])
 
+  const handleGalleryError = useCallback((_category: string, err: Error) => {
+    setGalleryError(err.message || 'Failed to load the gallery model')
+  }, [])
+
+  const retryGallery = useCallback(() => {
+    // Purge the cached rejections, then remount the loader block
+    config?.files.forEach((f) => useLoader.clear(GLTFLoader, f.url))
+    setLoadedCount(0)
+    setGalleryError(null)
+    setModelsKey((k) => k + 1)
+    wake()
+  }, [config, wake])
+
   useEffect(() => {
     if (config) {
       setTotalCount(config.files.length)
     }
   }, [config])
-
-  useEffect(() => {
-    const hideHint = () => setShowClickHint(false)
-    window.addEventListener('mousedown', hideHint, { once: true })
-    return () => window.removeEventListener('mousedown', hideHint)
-  }, [])
 
   if (loading) return <LoadingScreen />
   if (error) return <ErrorScreen message={error} />
@@ -106,99 +150,105 @@ export default function Scene() {
 
   return (
     <>
+      {/* Pointer input (look-drag, product clicks) wakes the demand loop */}
+      <div
+        className="h-full w-full"
+        onPointerDownCapture={wake}
+        onPointerMoveCapture={(e) => {
+          if (e.buttons !== 0) wake()
+        }}
+      >
       <Canvas
         style={{ touchAction: 'none' }}
-        // shadows
-        dpr={[1, 1.3]}
+        frameloop={IDLE_DEMAND ? 'demand' : 'always'}
+        dpr={dpr}
         gl={{
-          antialias: true,
+          // AA lives in the EffectComposer (multisampling/SMAA per quality
+          // tier) — canvas MSAA was paid for but never displayed
+          antialias: false,
+          powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 0.3,
         }}
         camera={{ position: [0, 1.6, 5], fov: 60, near: 0.1, far: 200 }}
+        onCreated={(state) => {
+          r3fRef.current = state
+        }}
       >
-        <Physics gravity={[0, -30, 0]} timeStep="vary">
-         {/* FPS Stats */}
-      {/* <Stats /> */}
-      {/* Dark background */}
-      {/* <color attach="background" args={['#1a1a1a']} /> */}
+        <Physics
+          gravity={[0, -30, 0]}
+          timeStep={IDLE_DEMAND ? 1 / 60 : 'vary'}
+          paused={IDLE_DEMAND && idle && loadingPhase === 'ready'}
+        >
+          {/* Sustained-FPS ladder + adaptive DPR during movement/look input
+              (shared with the /car scene) */}
+          <PerfLadder onScale={setPerfScale} adaptive={settings.adaptiveDpr} />
 
-      {/* HDRI lighting */}
-      <Suspense fallback={null}>
-        <Environment
-          files="/hdr/main_hdr.exr"
-          background={false}
-          environmentIntensity={.5}
-          resolution={256}
-          // blur={1}
-        />
-      </Suspense>
+          {/* Demand-loop governor: frames flow while there is input or a
+              transition; the loop parks (0 GPU) when the player stands still */}
+          <ActivityGovernor
+            forceActive={!IDLE_DEMAND || loadingPhase !== 'ready' || gyroEnabled}
+            onIdleChange={setIdle}
+          />
 
-      {/* Key light (sun) */}
-      {/* <directionalLight
-        position={[10, 5, 5]}
-        intensity={2.8}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-bias={-0.0004}
-        shadow-normalBias={0.025}
-      > */}
-                {/* Param	Value	Effect
-        left/right	±20	Shadow width: 40 units total
-        top/bottom	±20	Shadow depth: 40 units total
-        near	0.1	Closest shadow distance from light
-        far	60	Farthest shadow distance from light 
-           In your scene: Everything within ±20 units horizontally and up to 60 units deep will cast shadows. Objects outside this area won't cast shadows.  */}
-        {/* <orthographicCamera
-          attach="shadow-camera"
-          args={[-20, 20, 20, -20, 0.1, 60]}
-        />
-      </directionalLight> */}
+          {/* HDRI lighting — cubemap resolution follows the quality tier */}
+          <Suspense fallback={null}>
+            <Environment
+              files="/hdr/main_hdr.exr"
+              background={false}
+              environmentIntensity={1}
+              resolution={settings.envResolution}
+            />
+          </Suspense>
 
+          {/* Vitrine spotlight */}
+          <pointLight position={[0, 7, -1.5]} intensity={18} distance={12} decay={.7} color="#ffffff" />
 
+          {/* Load models from config. A 404ing/corrupt gallery GLB is caught
+              here instead of blanking the page. */}
+          <Suspense fallback={null} key={modelsKey}>
+            <PartErrorBoundary category="gallery" onError={handleGalleryError}>
+              <ModelLoader files={config.files} onModelsLoaded={handleModelsLoaded} onProgress={setLoadedCount} />
+            </PartErrorBoundary>
+          </Suspense>
 
-      {/* Fill light */}
-      {/* <directionalLight position={[0, 2, -5]} intensity={9} color="#000000" /> */}
+          {/* Scene transition effects */}
+          <SceneTransition
+            isTransitioning={loadingPhase === 'transitioning'}
+            onComplete={handleTransitionComplete}
+          />
+          <CameraTransition
+            isTransitioning={loadingPhase === 'transitioning'}
+            targetPosition={[0, 2.5, 5]}
+          />
+          <ParticleReveal isTransitioning={loadingPhase === 'transitioning'} />
 
-      {/* PCSS Soft Shadows */}
-      {/* <ShadowSystem size={25} samples={17} focus={0} /> */}
+          {/* Physics system - only after transition ready */}
+          {loadingPhase === 'ready' && <PhysicsManager onSetJoystickInput={setJoystickCallback} gyroEnabled={gyroEnabled} />}
 
-      {/* Vitrine spotlights */}
-      <pointLight position={[0, 7, -1.5]} intensity={18} distance={12} decay={.7} color="#ffffff" /> 
-      {/* <pointLight position={[6.5, 1.2, 0.05]} intensity={30} distance={10} decay={0.3} color="#ffffff" />  */}
+          {/* Product click interaction */}
+          {loadingPhase === 'ready' && <ProductInteraction onProductClick={setSelectedProduct} />}
 
-      {/* Load models from config */}
-      <Suspense fallback={null}>
-        <ModelLoader files={config.files} onModelsLoaded={handleModelsLoaded} onProgress={setLoadedCount} />
-      </Suspense>
+          {/* Reflective Floor — resolution/off-switch follow the quality tier
+              (the reflection pass re-renders the scene every drawn frame) */}
+          <ReflectiveFloor
+            opacity={1}
+            size={20}
+            mixStrength={.9}
+            blur={0}
+            roughness={1}
+            resolution={settings.floorReflectionResolution}
+            enabled={settings.floorReflectionsEnabled}
+          />
 
-      {/* Scene transition effects */}
-      <SceneTransition
-        isTransitioning={loadingPhase === 'transitioning'}
-        onComplete={handleTransitionComplete}
-      />
-      <CameraTransition
-        isTransitioning={loadingPhase === 'transitioning'}
-        targetPosition={[0, 2.5, 5]}
-      />
-      <ParticleReveal isTransitioning={loadingPhase === 'transitioning'} />
-
-      {/* Physics system - only after transition ready */}
-      {loadingPhase === 'ready' && <PhysicsManager onSetJoystickInput={setJoystickCallback} gyroEnabled={gyroEnabled} />}
-
-      {/* Product click interaction */}
-      {loadingPhase === 'ready' && <ProductInteraction onProductClick={setSelectedProduct} />}
-
-      {/* Reflective Floor (Phase 9) */}
-      <ReflectiveFloor opacity={1} size={20} mixStrength={.9} blur={0} roughness={62} />
-
-      {/* Post-Processing (Phase 10) */}
-      <PostProcessing />
-      </Physics>
+          {/* Post-Processing (tier-driven; SSGI lazy on ultra opt-in) */}
+          <PostProcessing />
+        </Physics>
       </Canvas>
+      </div>
 
       {/* Loading indicator while models load */}
-      {loadingPhase !== 'ready' && (
+      {loadingPhase !== 'ready' && !galleryError && (
         <ModelsLoadingIndicator
           fadeOut={loadingPhase === 'transitioning'}
           loadedCount={loadedCount}
@@ -206,17 +256,32 @@ export default function Scene() {
         />
       )}
 
-      {/* Virtual joystick for mobile - only after ready */}
-      {loadingPhase === 'ready' && joystickCallback && <VirtualJoystick onMove={joystickCallback} />}
-
-      {/* Drag to look around hint */}
-      {/* {modelsLoaded && showClickHint && (
-        <div className="fixed inset-0 flex items-center justify-center pointer-events-none">
-          <div className="bg-black/70 text-white px-6 py-3 rounded-lg text-sm">
-            Drag to look around • WASD to move
-          </div>
+      {/* Gallery model failed — styled recovery instead of a dead black stage */}
+      {galleryError && (
+        <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center gap-4 bg-[#060608]/95 px-6 text-center">
+          <p className="text-[10px] uppercase tracking-[0.45em] text-[#d4af37]/70">Gallery</p>
+          <h2 className="text-xl font-extralight uppercase tracking-[0.2em] text-white">
+            Gallery could not be loaded
+          </h2>
+          <p className="max-w-sm text-sm text-white/40">{galleryError}</p>
+          <button
+            onClick={retryGallery}
+            className="mt-2 rounded-full border border-white/15 px-6 py-2.5 text-xs uppercase tracking-[0.2em] text-white/70 transition-colors hover:border-white/40 hover:text-white"
+          >
+            Try again
+          </button>
         </div>
-      )} */}
+      )}
+
+      {/* Virtual joystick for mobile - only after ready */}
+      {loadingPhase === 'ready' && joystickCallback && (
+        <VirtualJoystick
+          onMove={(x, y) => {
+            markStoreActivity()
+            joystickCallback(x, y)
+          }}
+        />
+      )}
 
       {/* Product popup */}
       <ProductPopup product={selectedProduct} onClose={() => setSelectedProduct(null)} />
@@ -224,11 +289,14 @@ export default function Scene() {
       {/* Background audio */}
       <AudioPlayer />
 
+      {/* Graphics quality — same tiers/persistence as /car */}
+      <StoreQualityButton />
+
       {/* Gyroscope controls */}
       {loadingPhase === 'ready' && <GyroToggle onGyroChange={setGyroEnabled} />}
 
       {/* Bottom-left logo */}
-      <div style={{ 
+      <div style={{
     left:' 1rem',
     maxWidth: '12rem',
     height: 'auto',

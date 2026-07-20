@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 
 export default function CustomCursor() {
+  const pathname = usePathname();
+  // The configurator uses the native cursor (see globals.css) — skip the
+  // luxury cursor entirely there
+  const onCarPage = pathname?.startsWith("/car") ?? false;
   const dot = { x: useMotionValue(0), y: useMotionValue(0) };
   const ring = {
     x: useSpring(0, { stiffness: 120, damping: 18, mass: 0.6 }),
@@ -14,6 +19,7 @@ export default function CustomCursor() {
   const ringRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (onCarPage) return;
     const move = (e: MouseEvent) => {
       dot.x.set(e.clientX);
       dot.y.set(e.clientY);
@@ -45,7 +51,9 @@ export default function CustomCursor() {
     return () => {
       window.removeEventListener("mousemove", move);
     };
-  }, [dot.x, dot.y, ring.x, ring.y]);
+  }, [dot.x, dot.y, ring.x, ring.y, onCarPage]);
+
+  if (onCarPage) return null;
 
   return (
     // Only render on pointer: fine devices

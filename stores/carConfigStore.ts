@@ -16,6 +16,7 @@ export interface CarConfigState {
   selectedParts: Record<string, string>
   paintConfig: MultiZonePaintConfig
   activeZone: PaintZone
+  paintInitialized: boolean
   loadingParts: Record<string, boolean>
   partLoadErrors: Record<string, string>
   openParts: Record<string, boolean>
@@ -23,6 +24,7 @@ export interface CarConfigState {
   setPaintConfig: (config: Partial<PaintConfig>, zone?: PaintZone) => void
   setActiveZone: (zone: PaintZone) => void
   copyZoneToAll: (sourceZone: PaintZone) => void
+  initializePaint: () => void
   setPartLoading: (category: string, isLoading: boolean) => void
   setPartError: (category: string, error: string | null) => void
   togglePart: (partName: string) => void
@@ -30,6 +32,17 @@ export interface CarConfigState {
   closeAllParts: () => void
   getTotalPrice: () => number
   resetConfig: (defaultParts?: Record<string, string>) => void
+}
+
+/** Stock selection for every category — single source of truth for mount and reset */
+export const DEFAULT_PARTS: Record<string, string> = {
+  wheels: 'wheel-stock',
+  spoilers: 'spoiler-stock',
+  hoods: 'hood-stock',
+  bumpers: 'bumper-front-stock',
+  mirrors: 'mirror-stock',
+  exhaust: 'exhaust-stock',
+  'side-skirts': 'skirts-none',
 }
 
 const defaultPaintConfig: MultiZonePaintConfig = {
@@ -59,6 +72,7 @@ export const useCarConfig = create<CarConfigState>()(
       selectedParts: {},
       paintConfig: defaultPaintConfig,
       activeZone: 'body',
+      paintInitialized: false,
       loadingParts: {},
       partLoadErrors: {},
       openParts: {
@@ -115,37 +129,30 @@ export const useCarConfig = create<CarConfigState>()(
           }
         }),
 
-      togglePart: (partName) => {
-        console.log('[carConfigStore] togglePart called:', partName)
-        set((state) => {
-          const newState = !state.openParts[partName]
-          console.log(`  → ${partName}: ${state.openParts[partName]} → ${newState}`)
-          return {
-            openParts: {
-              ...state.openParts,
-              [partName]: newState,
-            },
-          }
-        })
-      },
+      initializePaint: () =>
+        set({ paintInitialized: true }),
 
-      openAllParts: () => {
-        console.log('[carConfigStore] openAllParts called')
+      togglePart: (partName) =>
+        set((state) => ({
+          openParts: {
+            ...state.openParts,
+            [partName]: !state.openParts[partName],
+          },
+        })),
+
+      openAllParts: () =>
         set((state) => ({
           openParts: Object.fromEntries(
             Object.keys(state.openParts).map((key) => [key, true])
           ),
-        }))
-      },
+        })),
 
-      closeAllParts: () => {
-        console.log('[carConfigStore] closeAllParts called')
+      closeAllParts: () =>
         set((state) => ({
           openParts: Object.fromEntries(
             Object.keys(state.openParts).map((key) => [key, false])
           ),
-        }))
-      },
+        })),
 
       getTotalPrice: () => {
         // Will be implemented with part price lookup from car-parts.json
@@ -154,11 +161,14 @@ export const useCarConfig = create<CarConfigState>()(
         return 0
       },
 
-      resetConfig: (defaultParts = {}) =>
+      // Defaulting to the stock parts (not {}) keeps the car complete when
+      // the panel's Reset action calls this with no arguments
+      resetConfig: (defaultParts = DEFAULT_PARTS) =>
         set({
           selectedParts: defaultParts,
           paintConfig: defaultPaintConfig,
           activeZone: 'body',
+          paintInitialized: false,
           loadingParts: {},
           partLoadErrors: {},
           openParts: {

@@ -1,14 +1,11 @@
 'use client'
 
-import { useCarConfig, type PaintZone } from '@/stores/carConfigStore'
-import { IoCarSport } from 'react-icons/io5'
-import { MdAutoAwesome } from 'react-icons/md'
-import { GiCarSeat } from 'react-icons/gi'
+import { useCarConfig, type PaintZone, type PaintConfig } from '@/stores/carConfigStore'
 
-const ZONES: { id: PaintZone; name: string; icon: any }[] = [
-  { id: 'body', name: 'Body', icon: IoCarSport },
-  { id: 'trim', name: 'Trim', icon: MdAutoAwesome },
-  { id: 'interior', name: 'Interior', icon: GiCarSeat },
+const ZONES: { id: PaintZone; name: string }[] = [
+  { id: 'body', name: 'Body' },
+  { id: 'trim', name: 'Trim' },
+  { id: 'interior', name: 'Interior' },
 ]
 
 const PRESETS = [
@@ -20,140 +17,135 @@ const PRESETS = [
   { id: 'pearl-white', name: 'Pearl White', color: '#f5f5f5', metalness: 0.8, roughness: 0.2, clearcoat: 0.9 },
 ]
 
+const SLIDERS: { key: keyof Pick<PaintConfig, 'metalness' | 'roughness' | 'clearcoat'>; label: string }[] = [
+  { key: 'metalness', label: 'Metalness' },
+  { key: 'roughness', label: 'Roughness' },
+  { key: 'clearcoat', label: 'Clearcoat' },
+]
+
+const MICRO_LABEL = 'block text-[10px] uppercase tracking-[0.3em] text-white/45'
+
 export default function PaintControls() {
   const paintConfig = useCarConfig((s) => s.paintConfig)
   const activeZone = useCarConfig((s) => s.activeZone)
   const setActiveZone = useCarConfig((s) => s.setActiveZone)
   const setPaintConfig = useCarConfig((s) => s.setPaintConfig)
   const copyZoneToAll = useCarConfig((s) => s.copyZoneToAll)
+  const initializePaint = useCarConfig((s) => s.initializePaint)
 
   // Get active zone config
   const activeConfig = paintConfig[activeZone]
 
+  // Wrapper to initialize paint on first user interaction
+  const handlePaintChange = (config: Parameters<typeof setPaintConfig>[0], zone?: PaintZone) => {
+    initializePaint()
+    setPaintConfig(config, zone)
+  }
+
+  const handleCopyZone = (zone: PaintZone) => {
+    initializePaint()
+    copyZoneToAll(zone)
+  }
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Zone Selector */}
       <div>
-        <label className="block text-sm font-medium text-gray-200 mb-3">Paint Zone</label>
-        <div className="flex gap-2">
+        <span id="paint-zone-label" className={`${MICRO_LABEL} mb-3`}>Paint Zone</span>
+        <div
+          role="radiogroup"
+          aria-labelledby="paint-zone-label"
+          className="flex rounded-full border border-white/10 bg-white/5 p-1"
+        >
           {ZONES.map((zone) => {
-            const IconComponent = zone.icon
+            const active = activeZone === zone.id
             return (
               <button
                 key={zone.id}
+                role="radio"
+                aria-checked={active}
                 onClick={() => setActiveZone(zone.id)}
-                className={`
-                  flex-1 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
-                  flex items-center justify-center gap-2 backdrop-blur-sm
-                  ${
-                    activeZone === zone.id
-                      ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-[0_4px_16px_rgba(59,130,246,0.4)] border border-blue-400/30'
-                      : 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10'
-                  }
-                `}
+                className={`flex-1 rounded-full py-2 text-xs font-medium tracking-wide transition-colors ${
+                  active ? 'bg-[#d4af37]/15 text-[#d4af37]' : 'text-white/55 hover:text-white'
+                }`}
               >
-                <IconComponent className="text-base" />
                 {zone.name}
               </button>
             )
           })}
         </div>
+        <button
+          onClick={() => handleCopyZone(activeZone)}
+          className="mt-2.5 text-[11px] tracking-wide text-white/45 transition-colors hover:text-white"
+        >
+          Copy {ZONES.find((z) => z.id === activeZone)?.name} to all zones
+        </button>
       </div>
-
-      {/* Copy to All Zones Button */}
-      <button
-        onClick={() => copyZoneToAll(activeZone)}
-        className="w-full px-3 py-2.5 bg-white/5 text-gray-300 rounded-xl hover:bg-white/10 transition-all text-sm font-medium border border-white/10 backdrop-blur-sm"
-      >
-        Copy {ZONES.find((z) => z.id === activeZone)?.name} to All Zones
-      </button>
 
       {/* Color Picker */}
       <div>
-        <label className="block text-sm font-medium text-gray-200 mb-3">Color</label>
+        <label htmlFor="paint-color" className={`${MICRO_LABEL} mb-3`}>Color</label>
         <div className="flex items-center gap-3">
           <input
+            id="paint-color"
             type="color"
             value={activeConfig.color}
-            onChange={(e) => setPaintConfig({ color: e.target.value })}
-            className="w-16 h-16 rounded-xl border-2 border-white/20 cursor-pointer bg-white/5 backdrop-blur-sm shadow-inner"
+            onChange={(e) => handlePaintChange({ color: e.target.value })}
+            className="h-12 w-12 shrink-0 cursor-pointer rounded-full border border-white/15 bg-transparent p-1"
+            aria-label="Paint color"
           />
           <input
+            id="paint-color-hex"
             type="text"
             value={activeConfig.color}
-            onChange={(e) => setPaintConfig({ color: e.target.value })}
-            className="flex-1 px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl uppercase font-mono text-sm text-gray-200 focus:border-blue-400 focus:outline-none transition-all backdrop-blur-sm focus:bg-white/10"
+            onChange={(e) => handlePaintChange({ color: e.target.value })}
+            className="w-full min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 font-mono text-sm uppercase text-white/80 transition-colors focus:border-[#d4af37]/60 focus:bg-white/10 focus:outline-none"
             placeholder="#ff0000"
+            aria-label="Paint color hex value"
           />
         </div>
       </div>
 
-      {/* Metalness Slider */}
-      <div>
-        <label className="flex justify-between text-sm font-medium text-gray-200 mb-3">
-          <span>Metalness</span>
-          <span className="text-blue-400 font-mono bg-white/5 px-2 py-0.5 rounded-lg">{activeConfig.metalness.toFixed(2)}</span>
-        </label>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={activeConfig.metalness}
-          onChange={(e) => setPaintConfig({ metalness: parseFloat(e.target.value) })}
-          className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer slider-thumb backdrop-blur-sm"
-        />
-      </div>
-
-      {/* Roughness Slider */}
-      <div>
-        <label className="flex justify-between text-sm font-medium text-gray-200 mb-3">
-          <span>Roughness</span>
-          <span className="text-blue-400 font-mono bg-white/5 px-2 py-0.5 rounded-lg">{activeConfig.roughness.toFixed(2)}</span>
-        </label>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={activeConfig.roughness}
-          onChange={(e) => setPaintConfig({ roughness: parseFloat(e.target.value) })}
-          className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer slider-thumb backdrop-blur-sm"
-        />
-      </div>
-
-      {/* Clearcoat Slider */}
-      <div>
-        <label className="flex justify-between text-sm font-medium text-gray-200 mb-3">
-          <span>Clearcoat</span>
-          <span className="text-blue-400 font-mono bg-white/5 px-2 py-0.5 rounded-lg">{activeConfig.clearcoat.toFixed(2)}</span>
-        </label>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={activeConfig.clearcoat}
-          onChange={(e) => setPaintConfig({ clearcoat: parseFloat(e.target.value) })}
-          className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer slider-thumb backdrop-blur-sm"
-        />
-      </div>
+      {/* Material Sliders */}
+      {SLIDERS.map(({ key, label }) => (
+        <div key={key}>
+          <label htmlFor={`paint-${key}`} className="mb-3 flex items-baseline justify-between">
+            <span className={MICRO_LABEL}>{label}</span>
+            <span className="font-mono text-xs tabular-nums text-white/60">
+              {activeConfig[key].toFixed(2)}
+            </span>
+          </label>
+          <input
+            id={`paint-${key}`}
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={activeConfig[key]}
+            onChange={(e) => handlePaintChange({ [key]: parseFloat(e.target.value) })}
+            className="slider-thumb h-1 w-full cursor-pointer appearance-none rounded-full bg-white/15"
+          />
+        </div>
+      ))}
 
       {/* Presets */}
       <div>
-        <label className="block text-sm font-medium text-gray-200 mb-3">Presets</label>
-        <div className="grid grid-cols-2 gap-2">
+        <span className={`${MICRO_LABEL} mb-3`}>Presets</span>
+        <div className="grid grid-cols-3 gap-3">
           {PRESETS.map((preset) => (
             <button
               key={preset.id}
-              onClick={() => setPaintConfig(preset)}
-              className="flex items-center gap-2 p-2.5 border border-white/10 bg-white/5 rounded-xl hover:bg-white/10 hover:border-blue-400/50 transition-all text-sm text-gray-200 backdrop-blur-sm hover:shadow-[0_4px_12px_rgba(59,130,246,0.2)]"
+              onClick={() => handlePaintChange(preset)}
+              className="group flex flex-col items-center gap-2"
+              aria-label={`Apply ${preset.name} preset`}
             >
-              <div
-                className="w-8 h-8 rounded-lg border-2 border-white/20 shadow-[inset_0_2px_8px_rgba(0,0,0,0.3)]"
+              <span
+                className="h-10 w-10 rounded-full border border-white/15 shadow-[inset_0_2px_6px_rgba(0,0,0,0.35)] transition-all group-hover:border-[#d4af37]/70 group-hover:shadow-[0_0_0_2px_rgba(212,175,55,0.25)]"
                 style={{ backgroundColor: preset.color }}
               />
-              <span className="text-xs">{preset.name}</span>
+              <span className="text-[10px] leading-tight text-white/50 transition-colors group-hover:text-white/80">
+                {preset.name}
+              </span>
             </button>
           ))}
         </div>

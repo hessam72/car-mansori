@@ -4,6 +4,12 @@ import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import nipplejs from 'nipplejs'
 
+// Frame-loop scratch — never allocate (or mutate a shared basis) inside the
+// movement update
+const _forward = new THREE.Vector3()
+const _right = new THREE.Vector3()
+const _UP = new THREE.Vector3(0, 1, 0)
+
 export function useJoystickControls(playerVelocity: React.RefObject<THREE.Vector3>) {
   const { camera } = useThree()
   const keysPressed = useRef<Record<string, boolean>>({})
@@ -30,19 +36,16 @@ export function useJoystickControls(playerVelocity: React.RefObject<THREE.Vector
     joystickInput.current = { x, y }
   }, [])
 
-  const updateMovement = (delta: number) => {
-    // console.log('Updating movement with delta:', delta)
+  /** Applies input to playerVelocity; returns whether any input is active */
+  const updateMovement = (_delta: number): boolean => {
     const speed = 4 // units/second
     const keys = keysPressed.current
 
     // Get camera direction (ignore Y component for movement)
-    const forward = new THREE.Vector3()
-    camera.getWorldDirection(forward)
-    forward.y = 0
-    forward.normalize()
-
-    const right = new THREE.Vector3()
-    right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize()
+    camera.getWorldDirection(_forward)
+    _forward.y = 0
+    _forward.normalize()
+    _right.crossVectors(_forward, _UP).normalize()
 
     // Reset horizontal velocity each frame (Rapier damping handles deceleration)
     if (playerVelocity.current) {
@@ -50,18 +53,23 @@ export function useJoystickControls(playerVelocity: React.RefObject<THREE.Vector
       playerVelocity.current.z = 0
     }
 
-    // Apply WASD keyboard input
-    if (keys['w']) playerVelocity.current?.add(forward.multiplyScalar(speed))
-    if (keys['s']) playerVelocity.current?.add(forward.multiplyScalar(-speed))
-    if (keys['a']) playerVelocity.current?.add(right.multiplyScalar(-speed))
-    if (keys['d']) playerVelocity.current?.add(right.multiplyScalar(speed))
+    // addScaledVector never mutates the basis vectors — the old
+    // add(forward.multiplyScalar(...)) chain corrupted them when opposing
+    // keys (W+S / A+D) were held together
+    let hasInput = false
+    if (keys['w']) { playerVelocity.current?.addScaledVector(_forward, speed); hasInput = true }
+    if (keys['s']) { playerVelocity.current?.addScaledVector(_forward, -speed); hasInput = true }
+    if (keys['a']) { playerVelocity.current?.addScaledVector(_right, -speed); hasInput = true }
+    if (keys['d']) { playerVelocity.current?.addScaledVector(_right, speed); hasInput = true }
 
     // Apply virtual joystick input
     const { x, y } = joystickInput.current
     if (x !== 0 || y !== 0) {
-      playerVelocity.current?.add(right.multiplyScalar(x * speed))
-      playerVelocity.current?.add(forward.multiplyScalar(y * speed))
+      playerVelocity.current?.addScaledVector(_right, x * speed)
+      playerVelocity.current?.addScaledVector(_forward, y * speed)
+      hasInput = true
     }
+    return hasInput
   }
 
   return { updateMovement, setJoystickInput }

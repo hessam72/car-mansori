@@ -1,3 +1,7 @@
+// Self-contained dist bundle (its own three inlined) — imported for the
+// custom-element registration side effect only
+declare module '@google/model-viewer/dist/model-viewer.min.js'
+
 declare namespace JSX {
   interface IntrinsicElements {
     'model-viewer': ModelViewerJSX & React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>

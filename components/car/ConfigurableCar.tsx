@@ -8,6 +8,8 @@ import { DynamicPart } from './DynamicPart'
 import { PartErrorBoundary } from './PartErrorBoundary'
 import { DoorController } from '@/lib/DoorController'
 import { useQuality } from '@/contexts/QualityContext'
+import { prepareCarObject } from '@/lib/three/prepareCarMaterial'
+import { useCubeReflections } from '@/lib/three/useCubeReflections'
 import * as THREE from 'three'
 
 // Use the local DRACO decoder instead of drei's default CDN
@@ -28,8 +30,10 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
   const doorControllerRef = useRef<DoorController | null>(null)
 
   const paintConfig = useCarConfig((s) => s.paintConfig)
+  const paintInitialized = useCarConfig((s) => s.paintInitialized)
   const setPartError = useCarConfig((s) => s.setPartError)
   const openParts = useCarConfig((s) => s.openParts)
+  const selectedParts = useCarConfig((s) => s.selectedParts)
   const { settings } = useQuality()
 
   const handlePartError = (category: string, error: Error) => {
@@ -53,15 +57,13 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
       return mesh.userData?.userdata?.[key] ?? mesh.userData?.[key]
     }
 
-    // Set shadows and collect paintable materials
+    // Shadow flags + env boost for every surface (shared helper keeps swapped
+    // parts visually in sync with the body)
+    prepareCarObject(clone)
+
+    // Collect paintable materials
     clone.traverse((child) => {
       if (child instanceof THREE.Mesh) {
-        child.castShadow = true
-        child.receiveShadow = true
-        if (child.material) {
-          child.material.envMapIntensity = 1.5
-        }
-
         const paintableValue = getUserData(child, 'paintable')
         const isPaintable = paintableValue === true || paintableValue === 1
         const nameMatch =
@@ -87,15 +89,20 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
   const paintScratchRef = useRef(new THREE.Color())
 
   useEffect(() => {
-    // Static exotic-paint properties + instant first coat
+    // Skip paint application until user interacts with paint controls
+    if (!paintInitialized) return
+
+    // Static exotic-paint properties + instant first coat. Exotic paint
+    // (iridescent color shift, glossy clearcoat) is exterior-only — interior
+    // trim/leather must not color-shift at viewing angles.
     paintTargets.forEach(({ material, zone }) => {
       const zoneConfig = paintConfig[zone]
-      if (material.clearcoat !== undefined) {
+      const isInterior = zone === 'interior'
+      if (material.clearcoat !== undefined && !isInterior) {
         material.clearcoatRoughness = 0.1
       }
-      // Iridescence for exotic paint effect (color shift at angles)
       if (material.iridescence !== undefined) {
-        material.iridescence = 0.3
+        material.iridescence = isInterior ? 0 : 0.3
         material.iridescenceIOR = 1.3
         material.iridescenceThicknessRange = [100, 800]
       }
@@ -112,7 +119,7 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
       paintAnimatingRef.current = true
     }
     invalidate()
-  }, [paintConfig, paintTargets, invalidate])
+  }, [paintConfig, paintTargets, paintInitialized, invalidate])
 
   useFrame((_, delta) => {
     if (!paintAnimatingRef.current) return
@@ -154,38 +161,48 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
     }
   }, [paintTargets])
 
-  // Apply anisotropic filtering based on quality settings
+  // Env intensity + anisotropic filtering follow quality settings
   useEffect(() => {
-    if (!settings.enableAnisotropicFiltering || !carModel) return
-
-    carModel.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.material) {
-        const materials = Array.isArray(child.material) ? child.material : [child.material]
-        materials.forEach((mat: THREE.Material) => {
-          if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial) {
-            // Apply anisotropy to all texture maps
-            const textureProps = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap'] as const
-            textureProps.forEach((prop) => {
-              const texture = mat[prop]
-              if (texture instanceof THREE.Texture) {
-                texture.anisotropy = settings.anisotropyLevel
-              }
-            })
-          }
-        })
-      }
+    if (!carModel) return
+    prepareCarObject(carModel, {
+      envMapIntensity: settings.envIntensity,
+      anisotropy: settings.anisotropyLevel,
     })
     invalidate()
-  }, [settings.enableAnisotropicFiltering, settings.anisotropyLevel, carModel, invalidate])
+  }, [settings.envIntensity, settings.anisotropyLevel, carModel, invalidate])
+
+  // True reflections (high/ultra): one-shot cube capture of floor + baked
+  // ground shadow + studio env, applied as a real envMap on car materials.
+  // Captures are frame-counted (not wall-clock) so they always land after
+  // the ~50-frame shadow bake, however slow the GPU. The car is hidden in
+  // its own capture, so paint changes never require one.
+  const scheduleReflectionCapture = useCubeReflections(
+    carModel,
+    settings.cubeReflections,
+    settings.cubeReflectionResolution
+  )
+
+  useEffect(() => {
+    // Initial: alongside the first shadow bake
+    scheduleReflectionCapture(60)
+  }, [scheduleReflectionCapture])
+
+  useEffect(() => {
+    // Part swap: wait out the fade (~0.7s), then bake + capture
+    const t = setTimeout(() => scheduleReflectionCapture(60), 950)
+    return () => clearTimeout(t)
+  }, [selectedParts, scheduleReflectionCapture])
+
+  useEffect(() => {
+    // Door/hood/trunk: wait out the animation (~1.2s), then bake + capture
+    const t = setTimeout(() => scheduleReflectionCapture(60), 1450)
+    return () => clearTimeout(t)
+  }, [openParts, scheduleReflectionCapture])
 
   // Initialize DoorController after car model loads
   useEffect(() => {
-    if (!carModel) {
-      console.log('[ConfigurableCar] Car model not ready yet')
-      return
-    }
+    if (!carModel) return
 
-    console.log('[ConfigurableCar] Car model loaded, initializing DoorController...')
     try {
       const controller = new DoorController(carModel, invalidate, {
         doorAngleDeg: 70,
@@ -194,10 +211,8 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
         durationSec: 1.2,
       })
       doorControllerRef.current = controller
-      console.log('[ConfigurableCar] ✓ DoorController initialized successfully')
-      console.log('[ConfigurableCar] ✓ Controller ref set:', !!doorControllerRef.current)
     } catch (error) {
-      console.error('[ConfigurableCar] ✗ DoorController initialization failed:', error)
+      console.error('[ConfigurableCar] DoorController initialization failed:', error)
     }
 
     // Don't cleanup - keep controller alive for entire component lifecycle
@@ -205,12 +220,8 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
 
   // React to openParts state changes
   useEffect(() => {
-    if (!doorControllerRef.current) {
-      console.log('[ConfigurableCar] State changed but controller not ready')
-      return
-    }
+    if (!doorControllerRef.current) return
 
-    console.log('[ConfigurableCar] openParts state changed:', openParts)
     const controller = doorControllerRef.current
 
     controller.openLeftFrontDoor(openParts.car_door_left)

@@ -1,6 +1,6 @@
 # Quality Tier System
 
-Dynamic graphics quality management system for the /car page with user-selectable presets (Low/Medium/High/Ultra).
+Dynamic graphics quality management for the /car page with user-selectable presets (Low/Medium/High/Ultra), plus the rendering-quality subsystems each tier drives.
 
 ---
 
@@ -10,345 +10,147 @@ Dynamic graphics quality management system for the /car page with user-selectabl
 **Config:** `lib/config/quality.ts`
 **Context:** `contexts/QualityContext.tsx`
 **UI:** `components/car/QualitySelector.tsx` (top-right overlay)
-**Persistence:** localStorage (`car-quality-preset`)
+**Persistence:** localStorage (`car-quality-preset`, `car-experimental-ssgi`)
 **Default:** Medium preset
 
+Stack: three 0.170 · @react-three/fiber 8 · drei 9.122 · @react-three/postprocessing 2.19 · realism-effects 1.1.2 · three-gpu-pathtracer 0.0.23
+
+> three version note: realism-effects relies on `WebGLMultipleRenderTargets`, which was removed in three r172 — keep three ≤ 0.171 while the experimental SSGI mode exists.
+
 ---
 
-## Architecture
+## Quality Settings Interface
 
-### Quality Settings Interface
 ```ts
 interface QualitySettings {
-  dpr: [number, number]                    // Device pixel ratio [min, max]
-  adaptiveDpr: boolean                     // Drop DPR during camera movement
-  shadowResolution: number                 // Shadow map size (256-2048)
-  floorReflectionResolution: number        // Floor reflection texture (128-2048)
-  meshReflectorResolution: number          // MeshReflector resolution
-  multisampling: number                    // MSAA samples (0/4/8)
-  enableN8AO: boolean                      // Ambient occlusion effect
-  enableSMAA: boolean                      // Anti-aliasing post-processing
-  enableAnisotropicFiltering: boolean      // Texture filtering
-  anisotropyLevel: number                  // Anisotropy samples (1-16)
+  dpr: [number, number]              // Device pixel ratio [min, max]
+  adaptiveDpr: boolean               // Drop DPR during camera movement
+  shadowResolution: number           // Spotlight self-shadow map size
+  floorReflectionResolution: number  // MeshReflector render target
+  multisampling: number              // MSAA samples inside EffectComposer
+  enableSMAA: boolean                // Edge AA (composer bypasses canvas AA!)
+  enableN8AO: boolean                // Ambient occlusion effect
+  n8aoQuality: 'performance' | 'medium' | 'high'
+  anisotropyLevel: number            // Texture anisotropy — always applied
+  groundShadows: 'contact' | 'accumulative'
+  groundShadowResolution: number
+  envResolution: number              // Studio environment cubemap size
+  envIntensity: number               // scene.environmentIntensity / envMapIntensity
+  cubeReflections: boolean           // True reflections via one-shot CubeCamera
+  cubeReflectionResolution: number
+  experimentalSSGI: boolean          // Gates the SSGI/TRAA opt-in toggle
 }
 ```
+
+## Presets (summary)
+
+| Setting | Low | Medium | High | Ultra |
+|---|---|---|---|---|
+| dpr | 0.5–1 (adaptive) | 1–1.5 (adaptive) | 1–1.75 | 1–2 |
+| AA | SMAA | MSAA 4 | MSAA 4 + SMAA | MSAA 4 + SMAA |
+| Shadow map | 512 | 1024 | 2048 | 2048 |
+| Floor reflection | 128 | 512 | 1024 | 2048 |
+| Ground shadows | contact 256 | contact 512 | accumulative 1024 | accumulative 1024 |
+| N8AO | – | – | medium | high |
+| Anisotropy | 4 | 4 | 8 | 16 |
+| Env resolution | 256 | 512 | 1024 | 1024 |
+| Cube reflections | – | – | 256 | 512 |
+| SSGI toggle offered | – | – | – | ✓ (off by default) |
+
+Exact values: [lib/config/quality.ts](../lib/config/quality.ts)
 
 ---
 
-## Quality Presets
+## Rendering subsystems
 
-### Low (Mobile/Performance)
-```ts
-{
-  dpr: [0.5, 1],
-  adaptiveDpr: true,
-  shadowResolution: 256,
-  floorReflectionResolution: 128,
-  meshReflectorResolution: 512,
-  multisampling: 0,
-  enableN8AO: false,
-  enableSMAA: false,
-  enableAnisotropicFiltering: false,
-  anisotropyLevel: 1
-}
-```
-**Target:** 30+ FPS on mobile, integrated GPUs
-**VRAM:** ~200-300MB
-**Features:** Basic rendering, adaptive DPR enabled
+### Anti-aliasing — `components/store/PostProcessing.tsx`
+The EffectComposer renders offscreen, so canvas `antialias` never applies; AA must come from composer MSAA (`multisampling`) and/or SMAA. Every tier now has AA.
 
-### Medium (Default/Balanced)
-```ts
-{
-  dpr: [1, 1.5],
-  adaptiveDpr: true,
-  shadowResolution: 512,
-  floorReflectionResolution: 256,
-  meshReflectorResolution: 1024,
-  multisampling: 0,
-  enableN8AO: false,
-  enableSMAA: false,
-  enableAnisotropicFiltering: false,
-  anisotropyLevel: 1
-}
-```
-**Target:** 60 FPS on mid-range GPUs
-**VRAM:** ~400-600MB
-**Features:** Balanced quality/performance
+### Studio environment — `components/car/CarStudioEnvironment.tsx`
+`<Environment files resolution frames={1}>` renders the EXR base plus a Lightformer rig (overhead strips, side softboxes, rim/front cards, dome ring) into one cubemap, once. `environmentIntensity` maps to `scene.environmentIntensity` (r163+). Rotate the rig via its group to aim highlights.
 
-### High (Desktop/Quality)
-```ts
-{
-  dpr: [1, 1.75],
-  adaptiveDpr: false,
-  shadowResolution: 1024,
-  floorReflectionResolution: 512,
-  meshReflectorResolution: 1024,
-  multisampling: 4,
-  enableN8AO: true,
-  enableSMAA: true,
-  enableAnisotropicFiltering: true,
-  anisotropyLevel: 4
-}
-```
-**Target:** 60 FPS on dedicated GPUs (GTX 1060+)
-**VRAM:** ~800MB-1.2GB
-**Features:** N8AO, SMAA, texture filtering, fixed DPR
+### Ground shadows — `components/car/CarGroundShadows.tsx`
+Low/Medium: drei ContactShadows. High/Ultra: AccumulativeShadows + RandomizedLight, baked over ~45 frames (demand-loop safe), re-baked after part swaps (~0.9s delay) and door animations (~1.4s delay). Wrapped in `userData.photoModeHide` so photo mode can hide the raster catchers.
 
-### Ultra (High-End/Maximum Quality)
-```ts
-{
-  dpr: [1, 2],
-  adaptiveDpr: false,
-  shadowResolution: 2048,
-  floorReflectionResolution: 2048,
-  meshReflectorResolution: 2048,
-  multisampling: 8,
-  enableN8AO: true,
-  enableSMAA: true,
-  enableAnisotropicFiltering: true,
-  anisotropyLevel: 16
-}
-```
-**Target:** 60 FPS on high-end GPUs (RTX 3060+)
-**VRAM:** ~1.5-2.5GB
-**Features:** Maximum shadow resolution, reflections, post-processing
+### Material prep — `lib/three/prepareCarMaterial.ts`
+Single source of truth for envMapIntensity + anisotropy + shadow flags; applied to the base car (`ConfigurableCar`) and every DynamicPart clone so swapped parts match the body. DynamicPart materials return to opaque (`transparent=false, depthWrite=true`) after fades.
+
+### True reflections — `lib/three/useCubeReflections.ts` (High/Ultra)
+One-shot CubeCamera capture (car hidden, `scene.background = scene.environment`) applied as a real `envMap` to car materials; `needsPMREMUpdate` refreshes PMREM. Captures are **frame-counted** (≈60 rendered frames after trigger) so they always land after the shadow bake finishes on any GPU speed. Re-captures on part/door changes only — paint recolors never need one.
+
+### Tone mapping — `components/car/CarTuningScene.tsx`
+`NeutralToneMapping` (Khronos PBR Neutral): brand-accurate paint hues. AgX constant kept nearby for look-dev.
+
+### Photo mode — `components/car/PhotoMode.tsx` + `PhotoModeUI.tsx` (desktop)
+three-gpu-pathtracer progressive render; r3f frameloop frozen (`never`) while active; save-to-PNG reads canvas in-tick. Max 250 samples.
+
+### Experimental SSGI/TRAA — `components/store/PostProcessing.tsx` (Ultra, opt-in)
+realism-effects `VelocityDepthNormalPass + SSGIEffect + TRAAEffect` replaces N8AO/SMAA/MSAA. Temporal accumulation requires continuous frames, so the demand loop is driven while enabled. Known-fragile library — behind `experimentalSSGI` gate + localStorage toggle.
 
 ---
 
-## Component Integration
+## Performance architecture
 
-### CarTuningScene.tsx
-**Controls:** DPR, AdaptiveDpr, floor reflection resolution
+The scene runs `frameloop="demand"` — it renders only on invalidation, so an idle car costs nothing. Frame drops therefore come from **per-interactive-frame cost** and **one-shot spikes**, which these systems target. Ordered by impact:
 
-```tsx
-const { settings } = useQuality()
+### Frozen static shadows — `components/car/ShadowFreeze.tsx`
+`gl.shadowMap.autoUpdate` is turned **off**; shadow maps re-render only during frame-counted windows (`needsUpdate=true` for ~150 rendered frames) opened on mount, part swaps, door animations and quality changes. Orbiting a static car no longer repays a 2048² depth pass every frame. The AccumulativeShadows bake runs *inside* these windows, so soft ground shadows are unaffected.
 
-<Canvas
-  dpr={settings.dpr}
-  // ...
->
-  {settings.adaptiveDpr && <AdaptiveDpr pixelated />}
-  <ReflectiveFloor resolution={settings.floorReflectionResolution} />
-</Canvas>
-```
+### On-change ContactShadows — `CarGroundShadows.tsx`
+The low/medium contact catcher uses `frames={160}` and a `key` keyed to part/door state, so it renders scene-from-below + blur only right after geometry changes instead of every frame. (High/ultra use the already-baked AccumulativeShadows.)
 
-### CarLighting.tsx
-**Controls:** Shadow map resolution
+### Cube-capture floor swap — `lib/three/useCubeReflections.ts`
+During a reflection capture the `reflective-floor` mesh is temporarily swapped to a plain dark material, so the 6 cube faces don't each re-render the live MeshReflector (was a 6× scene-render spike after every tuning change). Visually identical inside a rough paint reflection.
 
-```tsx
-const { settings } = useQuality()
+### DPR pixel budget — `CarTuningScene.tsx` `clampDprToBudget()`
+Effective max DPR is capped so total pixels stay ≤ ~4.5MP (`min(tierMax, sqrt(BUDGET/(w·h)))`, never below native). Only bites on 4K/5K screens where DPR 2 was invisible overspend against a real fill-rate cost (× MSAA × post).
 
-<spotLight
-  castShadow
-  shadow-mapSize-width={settings.shadowResolution}
-  shadow-mapSize-height={settings.shadowResolution}
-/>
-```
+### Reflector resolution cap — `lib/config/quality.ts`
+`floorReflectionResolution` 128/256/512/512. The reflector re-renders the scene into its FBO whenever it's visible; on a roughness-1, depth-faded floor, 1024/2048 targets looked identical to 512 — pure savings on the single most expensive recurring pass.
 
-### PostProcessing.tsx
-**Controls:** Multisampling, N8AO, SMAA
+### Half-res AO — `PostProcessing.tsx`
+N8AO runs with `halfRes` (+ depth-aware upsampling): ~3× cheaper AO, near-identical on a car scene.
 
-```tsx
-const { settings } = useQuality()
+### Adaptive DPR ladder — `CarTuningScene.tsx`
+`AdaptiveDpr` (all tiers) drops resolution *during* camera motion and snaps back on the idle frame — the drop is hidden by motion. On top, drei `PerformanceMonitor` steps the tier's max DPR down a ladder (×1 → ×0.85 → ×0.7) on sustained FPS decline and back up on incline (`flipflops` guard locks a stable point; an `fps>=5` filter ignores the poisoned sample a demand-loop idle gap produces). Quality yields only under real load and recovers automatically; silent, no UI.
 
-<EffectComposer multisampling={settings.multisampling}>
-  {settings.enableN8AO && <N8AO {...} />}
-  {settings.enableSMAA && <SMAA />}
-</EffectComposer>
-```
+### Mobile default — `contexts/QualityContext.tsx`
+First visit on a `<768px` screen with nothing stored defaults to the **low** preset instead of medium.
 
-### ConfigurableCar.tsx
-**Controls:** Anisotropic filtering on textures
-
-```tsx
-const { settings } = useQuality()
-
-useEffect(() => {
-  if (!settings.enableAnisotropicFiltering) return
-
-  carModel.traverse((child) => {
-    // Apply anisotropy to map, normalMap, roughnessMap, etc.
-    texture.anisotropy = settings.anisotropyLevel
-  })
-}, [settings.enableAnisotropicFiltering, settings.anisotropyLevel])
-```
-
-### ReflectiveFloor.tsx
-**Controls:** MeshReflector resolution (via props)
-
-```tsx
-<MeshReflectorMaterial resolution={resolution} />
-```
-
----
-
-## UI Component
-
-### QualitySelector.tsx
-Position: `absolute top-4 right-4`
-Style: Dark overlay with 4 buttons (Low/Medium/High/Ultra)
-State: Active preset highlighted with blue background
-
-```tsx
-<QualitySelector />
-```
+> **Measuring frame rate:** must be done on real GPU hardware. Software-GL/headless environments render the whole scene at <1 FPS, drowning these deltas in noise.
 
 ---
 
 ## Usage
 
-### User Flow
-1. Navigate to `/car/[id]`
-2. Click quality button in top-right (default: Medium)
-3. Selection saved to localStorage
-4. Settings applied immediately (invalidates canvas)
-5. Persists across sessions
-
-### Developer Flow
 ```tsx
-// Wrap page with QualityProvider
 <QualityProvider>
   <CarTuningScene />
   <QualitySelector />
 </QualityProvider>
 
-// Access settings in any child component
-const { preset, settings, setPreset } = useQuality()
+const { preset, settings, setPreset, ssgiEnabled, setSsgiEnabled } = useQuality()
 ```
 
----
-
-## Performance Impact
-
-### DPR (Device Pixel Ratio)
-- **Low (0.5-1):** 25-100% of native resolution
-- **Medium (1-1.5):** 100-225% pixel count
-- **High (1-1.75):** 100-306% pixel count
-- **Ultra (1-2):** 100-400% pixel count (Retina)
-
-Impact: **HIGH** (linear with screen area)
-
-### Shadow Resolution
-- **256:** 65k pixels per shadow map
-- **512:** 262k pixels (4x Low)
-- **1024:** 1M pixels (16x Low)
-- **2048:** 4M pixels (64x Low)
-
-Impact: **MEDIUM** (one shadow-casting light)
-
-### Floor Reflection Resolution
-- **128:** 16k pixels
-- **256:** 65k pixels
-- **512:** 262k pixels
-- **2048:** 4M pixels
-
-Impact: **MEDIUM-HIGH** (rendered every frame)
-
-### Multisampling (MSAA)
-- **0:** No MSAA
-- **4:** 4x samples per pixel
-- **8:** 8x samples per pixel
-
-Impact: **MEDIUM** (depends on fragment complexity)
-
-### N8AO (Ambient Occlusion)
-Screen-space effect, multiple samples per pixel
-
-Impact: **HIGH** (expensive post-processing)
-
-### SMAA (Anti-Aliasing)
-Edge-detection AA, cheaper than MSAA
-
-Impact: **LOW-MEDIUM** (efficient post-processing)
-
-### Anisotropic Filtering
-Texture sampling quality for oblique angles
-
-Impact: **LOW** (GPU optimized)
-
----
-
-## Best Practices
-
-### Auto-Detection
-Consider detecting GPU tier on mount:
-```ts
-const gl = canvas.getContext('webgl2')
-const debugInfo = gl.getExtension('WEBGL_debug_renderer_info')
-const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)
-// Parse renderer string → suggest preset
-```
-
-### Performance Monitoring
-Use PerformanceMonitor to auto-downgrade:
-```tsx
-<PerformanceMonitor
-  onDecline={() => autoDowngradeQuality()}
-/>
-```
-
-### Responsive Defaults
-```ts
-const isMobile = window.innerWidth < 768
-const defaultPreset = isMobile ? 'low' : 'medium'
-```
-
----
-
-## Future Enhancements
-
-### Planned
-- [ ] Auto-detect GPU tier on first visit
-- [ ] FPS-based auto-adjustment
-- [ ] Per-setting custom mode (advanced users)
-- [ ] Performance stats overlay
-- [ ] Quality comparison screenshots
-
-### Advanced Settings (Custom Mode)
-Individual control sliders for:
-- DPR (0.5-2.0)
-- Shadow resolution (256-4096)
-- Reflection resolution (128-4096)
-- Post-processing toggles
-- Anisotropy level (1-16)
+Settings apply immediately; canvas invalidates on change; persists across sessions.
 
 ---
 
 ## Troubleshooting
 
-### Issue: Quality changes not applied
-**Cause:** Component not wrapped in QualityProvider
-**Fix:** Ensure `<QualityProvider>` wraps Canvas
-
-### Issue: Settings don't persist
-**Cause:** localStorage disabled/private mode
-**Fix:** Fallback to session state
-
-### Issue: Ultra preset causes stuttering
-**Cause:** GPU VRAM exceeded
-**Fix:** Auto-downgrade or warn user
-
-### Issue: Mobile performance poor on Low
-**Cause:** Device limitations
-**Fix:** Consider dropping to DPR 0.5, disable reflections
+- **Quality changes not applied** → component not inside `QualityProvider`
+- **No ground shadow after a part swap** → re-bake timers (0.9s/1.4s) run after transitions; check `CarGroundShadows` mounted
+- **Paint reflections stale after door open** → re-capture is scheduled ~1.45s after `openParts` changes and lands ~60 rendered frames later (after the shadow re-bake)
+- **SSGI black screen / artifacts** → turn the toggle off (localStorage `car-experimental-ssgi=0`); library is experimental
+- **Ultra stutters** → VRAM bound; drop floor reflection/env resolution first
 
 ---
 
 ## File Reference
 
-**Config:**
-- [lib/config/quality.ts](../lib/config/quality.ts)
-
-**Context:**
-- [contexts/QualityContext.tsx](../contexts/QualityContext.tsx)
-
-**Components:**
-- [components/car/QualitySelector.tsx](../components/car/QualitySelector.tsx)
-- [components/car/CarTuningScene.tsx](../components/car/CarTuningScene.tsx)
-- [components/car/CarLighting.tsx](../components/car/CarLighting.tsx)
-- [components/car/ConfigurableCar.tsx](../components/car/ConfigurableCar.tsx)
-- [components/store/ReflectiveFloor.tsx](../components/store/ReflectiveFloor.tsx)
-- [components/store/PostProcessing.tsx](../components/store/PostProcessing.tsx)
-
-**Page:**
-- [app/car/[id]/CarPageClient.tsx](../app/car/[id]/CarPageClient.tsx)
+**Config/Context:** `lib/config/quality.ts`, `contexts/QualityContext.tsx`
+**Scene:** `components/car/CarTuningScene.tsx`, `CarStudioEnvironment.tsx`, `CarGroundShadows.tsx`, `CarLighting.tsx`, `ConfigurableCar.tsx`, `DynamicPart.tsx`, `PhotoMode.tsx`, `PhotoModeUI.tsx`
+**Shared:** `lib/three/prepareCarMaterial.ts`, `lib/three/useCubeReflections.ts`
+**Post:** `components/store/PostProcessing.tsx`
+**UI:** `components/car/QualitySelector.tsx`
+**Page:** `app/car/[id]/CarPageClient.tsx`

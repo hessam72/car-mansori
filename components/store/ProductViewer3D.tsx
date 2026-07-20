@@ -104,7 +104,7 @@ export default function ProductViewer3D({ glbPath }: ProductViewer3DProps) {
         <Environment
           files="/hdr/main_hdr.exr"
           background={false}
-          environmentIntensity={.5}
+          environmentIntensity={1} /* was a no-op pre-r163; 1 preserves the rendered look */
           resolution={256}
           // blur={1}
         />
