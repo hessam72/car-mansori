@@ -3,14 +3,35 @@
     {
       "id": "mall",
       "sun": {
-        "enabled": true,
-        "position": [8, 7, -6],
-        "target": [0, 0.5, 0],
-        "intensity": 20,
-        "color": "#ffe3c2",
-        "soft": { "size": 20, "samples": 16, "focus": 0 },
-        "shadow": { "left": -14, "right": 14, "top": 14, "bottom": -14, "near": 0.5, "far": 45, "bias": -0.0001, "normalBias": 0.03 }
-      },
+    "enabled": true,
+    "position": [
+      10,
+      9,
+      -7.5
+    ],
+    "target": [
+      -1.5,
+      0.5,
+      0
+    ],
+    "intensity": 22,
+    "color": "#ffe3c2",
+    "soft": {
+      "size": 20,
+      "samples": 16,
+      "focus": 0
+    },
+    "shadow": {
+      "left": 4,
+      "right": -4,
+      "top": -4,
+      "bottom": 4,
+      "near": 0.5,
+      "far": 45,
+      "bias": -0.0001,
+      "normalBias": 0.03
+    }
+  },
       "files": [
         {
           "priority": 0,
@@ -21,7 +42,7 @@
         {
           "priority": 1,
           "quality": "high",
-          "url": "/store-models/main.glb"
+          "url": "/store-models/scene_with_window.glb"
         }
 
 

@@ -17,7 +17,7 @@ const nextConfig = {
   transpilePackages: ['three', '@react-three/fiber', '@react-three/drei', '@react-three/postprocessing'],
   compiler: {
     // Strip console.* from production bundles (debug logging stays in dev)
-    removeConsole: { exclude: ['error', 'warn'] },
+    // removeConsole: { exclude: ['error', 'warn'] },
   },
   async headers() {
     return IMMUTABLE_ASSET_PATHS.map((source) => ({
