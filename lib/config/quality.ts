@@ -21,6 +21,12 @@ export interface QualitySettings {
   /** Ground contact: cheap blurred contact vs temporal accumulative soft shadows */
   groundShadows: GroundShadowMode;
   groundShadowResolution: number;
+  /** Store lamps: instantiate real point lights (emissive glow is always on) */
+  lampLights: boolean;
+  /** Store lamps: cap on total point lights (protects the per-fragment light budget) */
+  lampMaxLights: number;
+  /** Store lamps: how many lamps cast a (cube-PCF) shadow — 0 disables */
+  lampShadowCasters: number;
   /** Studio environment cubemap resolution */
   envResolution: number;
   /** envMapIntensity applied to car materials */
@@ -46,6 +52,9 @@ export const QUALITY_PRESETS: Record<QualityPreset, QualitySettings> = {
     anisotropyLevel: 4,
     groundShadows: 'contact',
     groundShadowResolution: 256,
+    lampLights: false,
+    lampMaxLights: 0,
+    lampShadowCasters: 0,
     envResolution: 256,
     envIntensity: 1.5,
     cubeReflections: false,
@@ -65,6 +74,9 @@ export const QUALITY_PRESETS: Record<QualityPreset, QualitySettings> = {
     anisotropyLevel: 4,
     groundShadows: 'contact',
     groundShadowResolution: 512,
+    lampLights: true,
+    lampMaxLights: 6,
+    lampShadowCasters: 0,
     envResolution: 512,
     envIntensity: 1.5,
     cubeReflections: false,
@@ -84,6 +96,9 @@ export const QUALITY_PRESETS: Record<QualityPreset, QualitySettings> = {
     anisotropyLevel: 8,
     groundShadows: 'accumulative',
     groundShadowResolution: 1024,
+    lampLights: true,
+    lampMaxLights: 8,
+    lampShadowCasters: 1,
     envResolution: 1024,
     envIntensity: 1.5,
     cubeReflections: true,
@@ -103,6 +118,9 @@ export const QUALITY_PRESETS: Record<QualityPreset, QualitySettings> = {
     anisotropyLevel: 16,
     groundShadows: 'accumulative',
     groundShadowResolution: 1024,
+    lampLights: true,
+    lampMaxLights: 12,
+    lampShadowCasters: 2,
     envResolution: 1024,
     envIntensity: 1.5,
     cubeReflections: true,

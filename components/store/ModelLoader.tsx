@@ -147,6 +147,16 @@ function Model({ url, isWireframe, onLoaded }: ModelProps) {
             }
           }
 
+          // Lamp fixtures: tag as an anchor for LampLights (which drops a real
+          // point light at each + sets the shade's emissive glow). castShadow
+          // off so a shadow-casting lamp can't occlude its own bulb, and so the
+          // glowing shade doesn't throw a hard sun shadow. Naming contract:
+          // one mesh per fixture named *lamp*; avoid *light*/*glass*/*ceiling*.
+          if (obj.name.toLowerCase().includes('lamp')) {
+            obj.userData.isLamp = true
+            obj.castShadow = false
+          }
+
           // String light emissive glow
           if (obj.name.toLowerCase().includes('light') && obj.material) {
             if (Array.isArray(obj.material)) {

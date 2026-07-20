@@ -32,6 +32,18 @@
           "normalBias": 0.03
         }
       },
+      "lamps": {
+        "enabled": true,
+        "color": "#ffd6aa",
+        "intensity": 20,
+        "distance": 6,
+        "decay": 2,
+        "offsetY": -0.15,
+        "emissiveIntensity": 2.5,
+        "shadowMapSize": 512,
+        "bias": -0.005,
+        "normalBias": 0.02
+      },
       "files": [
         {
           "priority": 0,

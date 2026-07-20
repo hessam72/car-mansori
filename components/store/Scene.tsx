@@ -17,6 +17,7 @@ import { ReflectiveFloor } from './ReflectiveFloor'
 import { PostProcessing } from './PostProcessing'
 import { ShadowSystem } from './ShadowSystem'
 import { SunLight } from './SunLight'
+import { LampLights } from './LampLights'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import ProductInteraction, { type ProductData } from './ProductInteraction'
 import ProductPopup from './ProductPopup'
@@ -221,6 +222,11 @@ export default function Scene() {
               <SunLight sun={config.sun} />
             </>
           )}
+
+          {/* Lamps — meshes named *lamp* become real point lights + emissive
+              glow. Glow is all-tier; real lights/shadows follow the quality tier.
+              Re-collects anchors on gallery retry via modelsKey. */}
+          <LampLights active={loadingPhase !== 'loading'} revision={modelsKey} config={config.lamps} />
 
           {/* Load models from config. A 404ing/corrupt gallery GLB is caught
               here instead of blanking the page. */}

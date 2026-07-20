@@ -44,11 +44,34 @@ export type SunConfig = {
   shadow: SunShadowConfig
 }
 
+/** Per-store lamps: meshes named *lamp* become real point lights + emissive glow */
+export type LampConfig = {
+  /** Master on/off for the whole lamp feature (per store) */
+  enabled: boolean
+  color: string
+  /** Point-light intensity (candela — physical units at exposure 0.3) */
+  intensity: number
+  /** Falloff range in world units (0 = infinite) */
+  distance: number
+  /** Physical inverse-square falloff = 2 */
+  decay: number
+  /** Vertical offset of the light from the mesh origin (drop to the bulb, below the shade) */
+  offsetY: number
+  /** Emissive glow strength on the shade material (feeds Bloom) */
+  emissiveIntensity: number
+  /** Cube shadow-map size per face for the capped shadow-casting lamps */
+  shadowMapSize: number
+  bias: number
+  normalBias: number
+}
+
 export type StoreConfig = {
   id: string
   files: ModelFile[]
   /** Optional window-sunlight config; missing → feature off. Merged over DEFAULT_SUN. */
   sun?: DeepPartial<SunConfig>
+  /** Optional lamp config; missing → feature off. Merged over DEFAULT_LAMP. */
+  lamps?: DeepPartial<LampConfig>
 }
 
 export type StoresData = {
