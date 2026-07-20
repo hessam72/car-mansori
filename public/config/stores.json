@@ -3,61 +3,56 @@
     {
       "id": "mall",
       "sun": {
-    "enabled": true,
-    "position": [
-      10,
-      9,
-      -7.5
-    ],
-    "target": [
-      -1.5,
-      0.5,
-      0
-    ],
-    "intensity": 22,
-    "color": "#ffe3c2",
-    "soft": {
-      "size": 20,
-      "samples": 16,
-      "focus": 0
-    },
-    "shadow": {
-      "left": 4,
-      "right": -4,
-      "top": -4,
-      "bottom": 4,
-      "near": 0.5,
-      "far": 45,
-      "bias": -0.0001,
-      "normalBias": 0.03
-    }
-  },
+        "enabled": true,
+        "position": [
+          0,
+          6.5,
+          -25
+        ],
+        "target": [
+          0.5,
+          0.5,
+          -7.5
+        ],
+        "intensity": 18,
+        "color": "#ffe3c2",
+        "soft": {
+          "size": 20,
+          "samples": 16,
+          "focus": 0
+        },
+        "shadow": {
+          "left": 18,
+          "right": -18,
+          "top": -18,
+          "bottom": 18,
+          "near": 0.5,
+          "far": 45,
+          "bias": -0.0001,
+          "normalBias": 0.03
+        }
+      },
       "files": [
         {
           "priority": 0,
           "quality": "low",
           "url": "/store-models/wireframe.glb"
         },
-
         {
           "priority": 1,
           "quality": "high",
-          "url": "/store-models/scene_with_window.glb"
+          "url": "/store-models/room.glb"
         }
-
-
       ]
     },
     {
       "id": "test",
-      
-     "files": [
+      "files": [
         {
           "priority": 0,
           "quality": "low",
           "url": "/store-models/test/no-light.glb"
         }
-      
       ]
     }
   ]
