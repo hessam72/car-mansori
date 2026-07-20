@@ -48,7 +48,7 @@ export default function CarTuningScene({ modelPath, onBaseCarError }: CarTuningS
   }, [settings.dpr, perfScale])
 
   return (
-    <div className="w-full h-screen">
+    <div className="w-full h-screen" style={{ cursor: 'auto' }}>
       <Canvas
         shadows
         frameloop="demand"
