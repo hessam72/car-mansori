@@ -9,6 +9,13 @@ interface ParticleRevealProps {
   count?: number
 }
 
+// Frame-loop scratch — the old code allocated Matrix4/Quaternion/Vector3/Color
+// per particle per frame (1500× per frame) right during the reveal
+const _matrix = new THREE.Matrix4()
+const _quat = new THREE.Quaternion()
+const _scale = new THREE.Vector3()
+const _color = new THREE.Color()
+
 export function ParticleReveal({
   isTransitioning,
   duration = 4000,
@@ -56,25 +63,23 @@ export function ParticleReveal({
     const progress = Math.min(elapsed / duration, 1)
 
     // Fade + disperse
-    const matrix = new THREE.Matrix4()
-    const color = new THREE.Color()
-
     for (let i = 0; i < count; i++) {
       const pos = particles.positions[i]
       const vel = particles.velocities[i]
 
       // Move outward
-      pos.add(vel.clone().multiplyScalar(1 - progress))
+      pos.addScaledVector(vel, 1 - progress)
 
       // Scale down
       const scale = (1 - progress) * 0.03
 
-      matrix.compose(pos, new THREE.Quaternion(), new THREE.Vector3(scale, scale, scale))
-      meshRef.current.setMatrixAt(i, matrix)
+      _scale.setScalar(scale)
+      _matrix.compose(pos, _quat, _scale)
+      meshRef.current.setMatrixAt(i, _matrix)
 
       // Fade color (amber to transparent)
-      color.setHex(0xffb300)
-      meshRef.current.setColorAt(i, color.multiplyScalar(1 - progress))
+      _color.setHex(0xffb300).multiplyScalar(1 - progress)
+      meshRef.current.setColorAt(i, _color)
     }
 
     meshRef.current.instanceMatrix.needsUpdate = true

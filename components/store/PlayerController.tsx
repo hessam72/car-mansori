@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { usePhysics } from './PhysicsSystem'
 import { useJoystickControls } from './Joystick'
+import { markStoreActivity } from './activityGovernor'
 import { useRef } from 'react'
 
 export function usePlayerPhysics(physics: ReturnType<typeof usePhysics>) {
@@ -53,7 +54,15 @@ export function usePlayerController(physics: ReturnType<typeof usePhysics>) {
     if (!rigidBodyRef.current) return
 
     // Apply WASD/joystick input
-    updateMovement(delta)
+    const hasInput = updateMovement(delta)
+
+    // While moving: keep the demand loop alive (covers a joystick held
+    // still, which emits no DOM events) and let AdaptiveDpr trade
+    // resolution for frame rate — same idiom OrbitControls gives /car
+    if (hasInput) {
+      markStoreActivity()
+      state.performance.regress()
+    }
 
     // Apply computed velocity to Rapier rigid body
     rigidBodyRef.current.setLinvel(

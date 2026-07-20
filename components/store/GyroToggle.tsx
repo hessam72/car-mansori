@@ -60,15 +60,15 @@ export function GyroToggle({ onGyroChange }: GyroToggleProps) {
   return (
     <button
       onClick={toggleGyro}
-      // style={{opacity:'0.04'}}
-      className={`fixed top-4 right-4 z-50 text-white p-3 rounded-full transition-colors ${
+      aria-pressed={isGyroEnabled}
+      className={`fixed top-4 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border bg-black/40 backdrop-blur-md transition-colors duration-200 ${
         isGyroEnabled
-          ? 'bg-yellow-500/70 hover:bg-yellow-600/80'
-          : 'bg-black/50 hover:bg-black/70'
+          ? 'border-[#d4af37]/50 text-[#d4af37]'
+          : 'border-white/10 text-white/70 hover:border-white/30 hover:text-white'
       }`}
       aria-label={isGyroEnabled ? 'Disable gyroscope controls' : 'Enable gyroscope controls'}
     >
-      {isGyroEnabled ? <MdScreenRotationAlt size={24} /> : <MdScreenRotation size={24} />}
+      {isGyroEnabled ? <MdScreenRotationAlt size={18} /> : <MdScreenRotation size={18} />}
     </button>
   )
 }
