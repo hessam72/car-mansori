@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { AdaptiveDpr, PerformanceMonitor as DreiPerformanceMonitor } from '@react-three/drei'
 import { NeutralToneMapping } from 'three'
+import { PerfLadder } from '@/components/three/PerfLadder'
+import { clampDprToBudget } from '@/lib/three/dprBudget'
 
 // Color-accurate paint rendering: Khronos PBR Neutral keeps brand colors
 // on-hue (ACESFilmic pushed pure red toward orange). Swap here for look-dev
@@ -29,17 +30,6 @@ interface CarTuningSceneProps {
   modelPath: string
   /** Base-car GLB failed to load/parse — lets the page show a styled recovery overlay */
   onBaseCarError?: (category: string, error: Error) => void
-}
-
-// Above ~4.5MP the extra pixels are invisible for this scene but the
-// fill-rate cost (× MSAA, × post) is very real on 4K/5K screens. Caps the
-// tier's max DPR to the budget; never clamps below native (1).
-const PIXEL_BUDGET = 4.5e6
-function clampDprToBudget(dpr: [number, number]): [number, number] {
-  if (typeof window === 'undefined') return dpr
-  const area = window.innerWidth * window.innerHeight
-  const budgetMax = Math.max(1, Math.sqrt(PIXEL_BUDGET / area))
-  return [dpr[0], Math.max(dpr[0], Math.min(dpr[1], budgetMax))]
 }
 
 export default function CarTuningScene({ modelPath, onBaseCarError }: CarTuningSceneProps) {
@@ -78,19 +68,9 @@ export default function CarTuningScene({ modelPath, onBaseCarError }: CarTuningS
           far: 1000,
         }}
       >
-        {/* Drops DPR while the camera moves (OrbitControls regress), restores when idle */}
-        {settings.adaptiveDpr && <AdaptiveDpr pixelated />}
-
-        {/* Sustained-FPS watchdog driving the DPR ladder. The fps>=5 guard
-            skips the poisoned sample a demand-frameloop idle gap produces. */}
-        <DreiPerformanceMonitor
-          flipflops={4}
-          onDecline={(api) => {
-            if (api.fps >= 5) setPerfScale((s) => Math.max(0.7, +(s - 0.15).toFixed(2)))
-          }}
-          onIncline={() => setPerfScale((s) => Math.min(1, +(s + 0.15).toFixed(2)))}
-          onFallback={() => setPerfScale(0.7)}
-        />
+        {/* Sustained-FPS ladder + adaptive DPR during camera interaction
+            (shared with the /store scene) */}
+        <PerfLadder onScale={setPerfScale} adaptive={settings.adaptiveDpr} />
 
         {/* Shadow maps re-render only when shadow content can change */}
         <ShadowFreeze />
