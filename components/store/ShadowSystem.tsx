@@ -1,3 +1,4 @@
+'use client'
 import { SoftShadows } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
@@ -12,9 +13,12 @@ export function ShadowSystem({
   samples?: number
   focus?: number
 }) {
-  const { scene, gl } = useThree()
+  const { scene, gl, invalidate } = useThree()
 
-  // Force material update when shadow params change
+  // drei SoftShadows swaps the global shadow shader chunk + recompiles on
+  // mount / param change, but skips array materials and never repaints. Cover
+  // both gaps: force array-material recompile, then invalidate so the newly
+  // compiled state actually draws under frameloop='demand'.
   useEffect(() => {
     scene.traverse((obj) => {
       if (obj instanceof THREE.Mesh && obj.material) {
@@ -22,7 +26,8 @@ export function ShadowSystem({
       }
     })
     gl.shadowMap.needsUpdate = true
-  }, [size, samples, focus, scene, gl])
+    invalidate()
+  }, [size, samples, focus, scene, gl, invalidate])
 
   return (
     <SoftShadows

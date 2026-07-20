@@ -15,6 +15,8 @@ import { VirtualJoystick } from './Joystick'
 import { usePOVCamera } from './POVCamera'
 import { ReflectiveFloor } from './ReflectiveFloor'
 import { PostProcessing } from './PostProcessing'
+import { ShadowSystem } from './ShadowSystem'
+import { SunLight } from './SunLight'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import ProductInteraction, { type ProductData } from './ProductInteraction'
 import ProductPopup from './ProductPopup'
@@ -159,6 +161,7 @@ export default function Scene() {
         }}
       >
       <Canvas
+        shadows
         style={{ touchAction: 'none' }}
         frameloop={IDLE_DEMAND ? 'demand' : 'always'}
         dpr={dpr}
@@ -201,8 +204,23 @@ export default function Scene() {
             />
           </Suspense>
 
-          {/* Vitrine spotlight */}
+          {/* Vitrine spotlight — kept shadowless on purpose (PCSS is global) */}
           <pointLight position={[0, 7, -1.5]} intensity={18} distance={12} decay={.7} color="#ffffff" />
+
+          {/* Sun through the window + PCSS soft shadows — per-store on/off in
+              stores.json. SoftShadows patches the global shadow shader chunk;
+              mounting it here (Canvas is up only after config resolves) means
+              GLB materials stream in and compile against the patched chunk. */}
+          {config.sun?.enabled && (
+            <>
+              <ShadowSystem
+                size={config.sun.soft?.size ?? 20}
+                samples={config.sun.soft?.samples ?? 16}
+                focus={config.sun.soft?.focus ?? 0}
+              />
+              <SunLight sun={config.sun} />
+            </>
+          )}
 
           {/* Load models from config. A 404ing/corrupt gallery GLB is caught
               here instead of blanking the page. */}
@@ -239,6 +257,7 @@ export default function Scene() {
             roughness={1}
             resolution={settings.floorReflectionResolution}
             enabled={settings.floorReflectionsEnabled}
+            receiveShadow={config.sun?.enabled ?? false}
           />
 
           {/* Post-Processing (tier-driven; SSGI lazy on ultra opt-in) */}

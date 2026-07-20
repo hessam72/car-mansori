@@ -10,6 +10,8 @@ interface ReflectiveFloorProps {
   resolution?: number
   /** When false, renders a plain matte floor — skips the per-frame reflection render pass entirely */
   enabled?: boolean
+  /** Opt-in shadow receiver (default off so /car + hero are unchanged; /store enables it for the window sun) */
+  receiveShadow?: boolean
 }
 
 // NOTE: prop defaults intentionally equal the values that used to be
@@ -24,13 +26,14 @@ export function ReflectiveFloor({
   opacity = 1,
   resolution = 1024,
   enabled = true,
+  receiveShadow = false,
 }: ReflectiveFloorProps) {
   return (
     <mesh
       name="reflective-floor"
       rotation={[-Math.PI / 2, 0, 0]}
       position={[0, -.9, 0]}
-      // receiveShadow
+      receiveShadow={receiveShadow}
     >
       <planeGeometry args={[size, size]} />
       {enabled ? (

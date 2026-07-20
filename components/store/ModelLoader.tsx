@@ -115,10 +115,23 @@ function Model({ url, isWireframe, onLoaded }: ModelProps) {
           // Visual models: visible with shadows
           obj.castShadow = true
           obj.receiveShadow = true
+
+          // Glass window panes must NOT cast — the shadow depth pass is
+          // alpha-blind, so a pane would black out the whole sun patch. Any
+          // other window mesh (frames/mullions) keeps casting and paints the
+          // window pattern on the floor. GLB naming contract: name panes *glass*.
+          if (obj.name.toLowerCase().includes('glass')) {
+            obj.castShadow = false
+          }
+
           if (obj.material) {
             const materials = Array.isArray(obj.material) ? obj.material : [obj.material]
             materials.forEach((mat) => {
               mat.envMapIntensity = 1
+              // Cast from both faces so thin single-plane walls / window frames
+              // are reliable regardless of GLB winding (affects depth pass only;
+              // mat.side / the ceiling DoubleSide rule below are untouched).
+              mat.shadowSide = THREE.DoubleSide
               mat.needsUpdate = true
             })
           }
