@@ -14,7 +14,7 @@
           0.5,
           -7.5
         ],
-        "intensity": 18,
+        "intensity": 1,
         "color": "#ffe3c2",
         "soft": {
           "size": 20,
@@ -34,15 +34,15 @@
       },
       "lamps": {
         "enabled": true,
-        "color": "#ffd6aa",
-        "intensity": 10,
-        "distance": 16,
+        "color": "#ffe8d1",
+        "intensity": 2.8,
+        "distance": 55,
         "decay": 2,
-        "offsetY": -0.15,
-        "emissiveIntensity": 2.5,
-        "shadowMapSize": 512,
-        "bias": -0.005,
-        "normalBias": 0.02
+        "offsetY": -0.5,
+        "emissiveIntensity": 3.5,
+        "shadowMapSize": 1024,
+        "bias": -0.001,
+        "normalBias": 0.01
       },
       "files": [
         {
