@@ -35,8 +35,8 @@
       "lamps": {
         "enabled": true,
         "color": "#ffd6aa",
-        "intensity": 20,
-        "distance": 6,
+        "intensity": 10,
+        "distance": 16,
         "decay": 2,
         "offsetY": -0.15,
         "emissiveIntensity": 2.5,
