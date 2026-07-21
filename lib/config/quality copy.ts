@@ -4,29 +4,22 @@ export type N8AOQuality = 'performance' | 'medium' | 'high';
 export type GroundShadowMode = 'contact' | 'accumulative';
 
 export interface QualitySettings {
-  /** Device pixel ratio [min, max] — capped by DPR pixel budget on high-res screens */
   dpr: [number, number];
-  /** Drop DPR during camera movement, snap back on idle frame (hidden by motion) */
   adaptiveDpr: boolean;
   /** Spotlight self-shadow map size */
   shadowResolution: number;
   /** Mirror floor: the reflection pass re-renders the scene every drawn frame — disabled on low */
   floorReflectionsEnabled: boolean;
-  /** MeshReflector render target resolution (128/256/512/512 — capped due to roughness-1 floor) */
   floorReflectionResolution: number;
   /** MSAA samples inside EffectComposer (canvas AA is bypassed by the composer) */
   multisampling: number;
-  /** Edge AA via SMAA pass — every tier has AA (SMAA or MSAA or both) */
   enableSMAA: boolean;
-  /** Ambient occlusion effect (half-res with depth-aware upsampling) */
-  enableN8AO: boolean; // causing ghost error 
-  /** N8AO quality mode — performance/medium/high */
+  enableN8AO: boolean;
   n8aoQuality: N8AOQuality;
   /** Texture anisotropy — always applied, nearly free on modern GPUs */
   anisotropyLevel: number;
   /** Ground contact: cheap blurred contact vs temporal accumulative soft shadows */
   groundShadows: GroundShadowMode;
-  /** Ground shadow catcher resolution (ContactShadows or AccumulativeShadows render target) */
   groundShadowResolution: number;
   /** Store lamps: instantiate real point lights (emissive glow is always on) */
   lampLights: boolean;
@@ -40,7 +33,6 @@ export interface QualitySettings {
   envIntensity: number;
   /** True reflections of floor/studio on paint via one-shot CubeCamera */
   cubeReflections: boolean;
-  /** CubeCamera render target resolution for true reflections (256/512) */
   cubeReflectionResolution: number;
   /** Gates availability of the experimental SSGI/TRAA toggle (ultra only) */
   experimentalSSGI: boolean;
@@ -55,8 +47,8 @@ export const QUALITY_PRESETS: Record<QualityPreset, QualitySettings> = {
     floorReflectionResolution: 128,
     multisampling: 0,
     enableSMAA: true,
-     enableN8AO: true,
-    n8aoQuality: 'high',
+    enableN8AO: false,
+    n8aoQuality: 'performance',
     anisotropyLevel: 4,
     groundShadows: 'contact',
     groundShadowResolution: 256,
@@ -95,12 +87,10 @@ export const QUALITY_PRESETS: Record<QualityPreset, QualitySettings> = {
     dpr: [1, 1.75],
     adaptiveDpr: true,
     shadowResolution: 2048,
-    
     floorReflectionsEnabled: true,
     floorReflectionResolution: 512,
-
     multisampling: 4,
-    enableSMAA: false,
+    enableSMAA: true,
     enableN8AO: true,
     n8aoQuality: 'medium',
     anisotropyLevel: 8,
