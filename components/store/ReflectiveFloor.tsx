@@ -71,14 +71,14 @@ export function ReflectiveFloor({
           resolution={resolution}
           mixBlur={blur}
           mixStrength={mixStrength}
-          mirror={0.6}
-          depthScale={4}
+          mirror={0}
+          depthScale={1}
           minDepthThreshold={0}
           maxDepthThreshold={.5}
           roughness={roughness}
           metalness={.6}
           color="#ffffff"
-          opacity={opacity}
+          opacity={.5}
           map={textures?.map}
           // normalMap={textures?.normalMap}
           // roughnessMap={textures?.roughnessMap}
