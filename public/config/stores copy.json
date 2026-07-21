@@ -1,0 +1,71 @@
+{
+  "stores": [
+    {
+      "id": "mall",
+      "sun": {
+        "enabled": true,
+        "position": [
+          0,
+          6.5,
+          -25
+        ],
+        "target": [
+          0.5,
+          0.5,
+          -7.5
+        ],
+        "intensity": 1,
+        "color": "#ffe3c2",
+        "soft": {
+          "size": 20,
+          "samples": 16,
+          "focus": 0
+        },
+        "shadow": {
+          "left": 18,
+          "right": -18,
+          "top": -18,
+          "bottom": 18,
+          "near": 0.5,
+          "far": 45,
+          "bias": -0.0001,
+          "normalBias": 0.03
+        }
+      },
+      "lamps": {
+        "enabled": true,
+        "color": "#ffe8d1",
+        "intensity": 2.8,
+        "distance": 55,
+        "decay": 2,
+        "offsetY": -0.5,
+        "emissiveIntensity": 3.5,
+        "shadowMapSize": 1024,
+        "bias": -0.001,
+        "normalBias": 0.01
+      },
+      "files": [
+        {
+          "priority": 0,
+          "quality": "low",
+          "url": "/store-models/wireframe.glb"
+        },
+        {
+          "priority": 1,
+          "quality": "high",
+          "url": "/store-models/room.glb"
+        }
+      ]
+    },
+    {
+      "id": "test",
+      "files": [
+        {
+          "priority": 0,
+          "quality": "low",
+          "url": "/store-models/test/no-light.glb"
+        }
+      ]
+    }
+  ]
+}

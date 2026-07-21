@@ -77,7 +77,7 @@ export default function TopBar({ carName, carNameFa, arSupported, onOpenAR, pane
         </div>
 
         <div className="flex items-center gap-2.5">
-          {desktop && !photoActive && (
+          {/* {desktop && !photoActive && (
             <button
               onClick={() => setPhotoActive(true)}
               className={GHOST_BTN}
@@ -86,7 +86,7 @@ export default function TopBar({ carName, carNameFa, arSupported, onOpenAR, pane
             >
               <Camera className="h-[18px] w-[18px]" />
             </button>
-          )}
+          )} */}
 
           {arSupported && (
             <button onClick={onOpenAR} className={GHOST_BTN} aria-label="View in AR" title="View in AR">
