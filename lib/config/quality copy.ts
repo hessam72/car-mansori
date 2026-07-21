@@ -4,29 +4,22 @@ export type N8AOQuality = 'performance' | 'medium' | 'high';
 export type GroundShadowMode = 'contact' | 'accumulative';
 
 export interface QualitySettings {
-  /** Device pixel ratio [min, max] — capped by DPR pixel budget on high-res screens */
   dpr: [number, number];
-  /** Drop DPR during camera movement, snap back on idle frame (hidden by motion) */
   adaptiveDpr: boolean;
   /** Spotlight self-shadow map size */
   shadowResolution: number;
   /** Mirror floor: the reflection pass re-renders the scene every drawn frame — disabled on low */
   floorReflectionsEnabled: boolean;
-  /** MeshReflector render target resolution (128/256/512/512 — capped due to roughness-1 floor) */
   floorReflectionResolution: number;
   /** MSAA samples inside EffectComposer (canvas AA is bypassed by the composer) */
   multisampling: number;
-  /** Edge AA via SMAA pass — every tier has AA (SMAA or MSAA or both) */
   enableSMAA: boolean;
-  /** Ambient occlusion effect (half-res with depth-aware upsampling) */
-  enableN8AO: boolean; // causing ghost error 
-  /** N8AO quality mode — performance/medium/high */
+  enableN8AO: boolean;
   n8aoQuality: N8AOQuality;
   /** Texture anisotropy — always applied, nearly free on modern GPUs */
   anisotropyLevel: number;
   /** Ground contact: cheap blurred contact vs temporal accumulative soft shadows */
   groundShadows: GroundShadowMode;
-  /** Ground shadow catcher resolution (ContactShadows or AccumulativeShadows render target) */
   groundShadowResolution: number;
   /** Store lamps: instantiate real point lights (emissive glow is always on) */
   lampLights: boolean;
@@ -40,7 +33,6 @@ export interface QualitySettings {
   envIntensity: number;
   /** True reflections of floor/studio on paint via one-shot CubeCamera */
   cubeReflections: boolean;
-  /** CubeCamera render target resolution for true reflections (256/512) */
   cubeReflectionResolution: number;
   /** Gates availability of the experimental SSGI/TRAA toggle (ultra only) */
   experimentalSSGI: boolean;
@@ -74,7 +66,7 @@ export const QUALITY_PRESETS: Record<QualityPreset, QualitySettings> = {
     adaptiveDpr: true,
     shadowResolution: 1024,
     floorReflectionsEnabled: true,
-    floorReflectionResolution: 1024,
+    floorReflectionResolution: 256,
     multisampling: 4,
     enableSMAA: false,
     enableN8AO: false,
@@ -94,49 +86,45 @@ export const QUALITY_PRESETS: Record<QualityPreset, QualitySettings> = {
   high: {
     dpr: [1, 1.75],
     adaptiveDpr: true,
-    shadowResolution: 128,
-
+    shadowResolution: 2048,
     floorReflectionsEnabled: true,
-    floorReflectionResolution: 1024,
-
+    floorReflectionResolution: 512,
     multisampling: 4,
     enableSMAA: true,
-    enableN8AO: false,
-    n8aoQuality: 'performance',
+    enableN8AO: true,
+    n8aoQuality: 'medium',
     anisotropyLevel: 8,
-    groundShadows: 'contact',
-    groundShadowResolution: 128,
+    groundShadows: 'accumulative',
+    groundShadowResolution: 1024,
     lampLights: true,
-    lampMaxLights: 80,
+    lampMaxLights: 8,
     lampShadowCasters: 1,
     envResolution: 1024,
     envIntensity: 1.5,
-    cubeReflections: false,
-    cubeReflectionResolution: 1024,
+    cubeReflections: true,
+    cubeReflectionResolution: 256,
     experimentalSSGI: false,
   },
   ultra: {
-  dpr: [1, 1.75],
+    dpr: [1, 2],
     adaptiveDpr: true,
-    shadowResolution: 128,
-
+    shadowResolution: 2048,
     floorReflectionsEnabled: true,
-    floorReflectionResolution: 1024,
-
+    floorReflectionResolution: 512,
     multisampling: 4,
     enableSMAA: true,
-    enableN8AO: false,
-    n8aoQuality: 'performance',
-    anisotropyLevel: 8,
-    groundShadows: 'contact',
-    groundShadowResolution: 128,
+    enableN8AO: true,
+    n8aoQuality: 'high',
+    anisotropyLevel: 16,
+    groundShadows: 'accumulative',
+    groundShadowResolution: 1024,
     lampLights: true,
-    lampMaxLights: 80,
-    lampShadowCasters: 1,
+    lampMaxLights: 12,
+    lampShadowCasters: 2,
     envResolution: 1024,
     envIntensity: 1.5,
-    cubeReflections: false,
-    cubeReflectionResolution: 1024,
+    cubeReflections: true,
+    cubeReflectionResolution: 512,
     experimentalSSGI: true,
   },
 };
