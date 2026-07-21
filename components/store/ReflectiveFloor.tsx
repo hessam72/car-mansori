@@ -25,7 +25,7 @@ interface ReflectiveFloorProps {
 // (/store Scene, homepage hero, /car) render identically now that the
 // props are actually honored.
 export function ReflectiveFloor({
-  size = 60,
+  size = 30,
   mixStrength = 0.85,
   blur = 0,
   roughness = 1,
