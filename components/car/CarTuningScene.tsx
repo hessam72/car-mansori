@@ -12,7 +12,6 @@ import { clampDprToBudget } from '@/lib/three/dprBudget'
 const TONE_MAPPING = NeutralToneMapping
 const TONE_MAPPING_EXPOSURE = 1.0
 import { ReflectiveFloor } from '@/components/store/ReflectiveFloor'
-import { TexturedFloor } from '@/components/store/TexturedFloor'
 import { PostProcessing } from '@/components/store/PostProcessing'
 import CarGroundShadows from './CarGroundShadows'
 import CarLighting from './CarLighting'
@@ -84,14 +83,12 @@ export default function CarTuningScene({ modelPath, onBaseCarError }: CarTuningS
 
         {/* Reflective Floor — the reflection pass re-renders the scene every
             drawn frame, so the low tier swaps to a plain matte floor */}
-        {/* <ReflectiveFloor
+        <ReflectiveFloor
           resolution={settings.floorReflectionResolution}
           enabled={settings.floorReflectionsEnabled}
           anisotropy={settings.anisotropyLevel}
-        /> */}
-
-        {/* Temporary: Simple textured floor without reflections for debugging */}
-        <TexturedFloor  />
+          textureRepeat={2}
+        />
 
         {/* Ground contact shadows (contact or accumulative per quality tier) */}
         <CarGroundShadows />

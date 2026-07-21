@@ -10,8 +10,8 @@ interface TexturedFloorProps {
 
 export function TexturedFloor({
   size = 20,
-  textureRepeat = 3,
-  anisotropy = 16,
+  textureRepeat = 2,
+  anisotropy = 0,
 }: TexturedFloorProps) {
   // Load wood plank texture
   const texture = useTexture('/textures/floor/plank_flooring_04_diff_1k.jpg')

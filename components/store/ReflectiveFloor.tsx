@@ -33,7 +33,7 @@ export function ReflectiveFloor({
   resolution = 1024,
   enabled = true,
   receiveShadow = false,
-  textureRepeat = 30,
+  textureRepeat = 2,
   anisotropy = 16,
 }: ReflectiveFloorProps) {
   // Load PBR textures only when reflections are enabled (High/Ultra quality tiers)
@@ -71,14 +71,14 @@ export function ReflectiveFloor({
           resolution={resolution}
           mixBlur={blur}
           mixStrength={mixStrength}
-          mirror={0}
-          depthScale={1}
+          mirror={0.6}
+          depthScale={4}
           minDepthThreshold={0}
           maxDepthThreshold={.5}
           roughness={roughness}
           metalness={.6}
           color="#ffffff"
-          opacity={.5}
+          opacity={1}
           map={textures?.map}
           // normalMap={textures?.normalMap}
           // roughnessMap={textures?.roughnessMap}
