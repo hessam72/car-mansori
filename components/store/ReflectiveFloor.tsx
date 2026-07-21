@@ -1,4 +1,6 @@
-import { MeshReflectorMaterial } from '@react-three/drei'
+import { MeshReflectorMaterial, useTexture } from '@react-three/drei'
+import { useEffect } from 'react'
+import * as THREE from 'three'
 
 interface ReflectiveFloorProps {
   size?: number
@@ -12,6 +14,10 @@ interface ReflectiveFloorProps {
   enabled?: boolean
   /** Opt-in shadow receiver (default off so /car + hero are unchanged; /store enables it for the window sun) */
   receiveShadow?: boolean
+  /** Number of times texture repeats across floor (default: 30 for 60×60 floor with 2m tiles) */
+  textureRepeat?: number
+  /** Anisotropy level for texture sharpening (from quality settings, default: 16) */
+  anisotropy?: number
 }
 
 // NOTE: prop defaults intentionally equal the values that used to be
@@ -27,7 +33,31 @@ export function ReflectiveFloor({
   resolution = 1024,
   enabled = true,
   receiveShadow = false,
+  textureRepeat = 30,
+  anisotropy = 16,
 }: ReflectiveFloorProps) {
+  // Load PBR textures only when reflections are enabled (High/Ultra quality tiers)
+  // TODO: Normal and roughness maps are .exr format - convert to .png for compatibility
+  const textures = enabled
+    ? useTexture({
+        map: '/textures/floor/plank_flooring_04_diff_1k.jpg',
+        // normalMap: '/textures/floor/plank_flooring_04_nor_gl_1k.png',
+        // roughnessMap: '/textures/floor/plank_flooring_04_rough_1k.png',
+      })
+    : null
+
+  // Configure texture repeat and wrapping
+  useEffect(() => {
+    if (textures) {
+      Object.values(textures).forEach((texture) => {
+        if (texture) {
+          texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+          texture.repeat.set(textureRepeat, textureRepeat)
+          texture.anisotropy = anisotropy
+        }
+      })
+    }
+  }, [textures, textureRepeat, anisotropy])
   return (
     <mesh
       name="reflective-floor"
@@ -47,8 +77,11 @@ export function ReflectiveFloor({
           maxDepthThreshold={.5}
           roughness={roughness}
           metalness={.6}
-          color="#3f3d39"
+          color="#ffffff"
           opacity={opacity}
+          map={textures?.map}
+          // normalMap={textures?.normalMap}
+          // roughnessMap={textures?.roughnessMap}
         />
       ) : (
         // Same base look without the reflection FBO — used by low quality tier
