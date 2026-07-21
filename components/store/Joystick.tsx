@@ -78,6 +78,13 @@ export function useJoystickControls(playerVelocity: React.RefObject<THREE.Vector
 // Virtual joystick component for mobile
 export function VirtualJoystick({ onMove }: { onMove: (x: number, y: number) => void }) {
   const zoneRef = useRef<HTMLDivElement>(null)
+  const onMoveRef = useRef(onMove)
+  const isTouchActiveRef = useRef(false)
+
+  // Update ref when callback changes without recreating manager
+  useEffect(() => {
+    onMoveRef.current = onMove
+  }, [onMove])
 
   useEffect(() => {
     if (!zoneRef.current) return
@@ -90,19 +97,33 @@ export function VirtualJoystick({ onMove }: { onMove: (x: number, y: number) => 
       size: 120,
     })
 
+    manager.on('start', () => {
+      isTouchActiveRef.current = true
+    })
+
     manager.on('move', (evt) => {
       if (!evt.data?.angle) return
       const angle = evt.data.angle.radian
       const force = Math.min(evt.data.force, 2) / 2
       const x = Math.cos(angle) * force
       const y = Math.sin(angle) * force
-      onMove(x, y)
+      onMoveRef.current(x, y)
     })
 
-    manager.on('end', () => onMove(0, 0))
+    manager.on('end', () => {
+      onMoveRef.current(0, 0)
+      isTouchActiveRef.current = false
+    })
 
-    return () => manager.destroy()
-  }, [onMove])
+    return () => {
+      // Wait for touch to end before destroying
+      if (isTouchActiveRef.current) {
+        manager.on('end', () => manager.destroy())
+      } else {
+        manager.destroy()
+      }
+    }
+  }, [])
 
   return (
     <div
