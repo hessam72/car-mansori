@@ -116,7 +116,7 @@ export const QUALITY_PRESETS: Record<QualityPreset, QualitySettings> = {
     experimentalSSGI: false,
   },
   ultra: {
-  dpr: [1, 1.75],
+
     dpr: [1, 2],
     adaptiveDpr: true,
     shadowResolution: 2048,

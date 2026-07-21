@@ -33,14 +33,14 @@ export function ReflectiveFloor({
   resolution = 1024,
   enabled = true,
   receiveShadow = false,
-  textureRepeat = 2,
+  textureRepeat = 1,
   anisotropy = 16,
 }: ReflectiveFloorProps) {
   // Load PBR textures only when reflections are enabled (High/Ultra quality tiers)
   // TODO: Normal and roughness maps are .exr format - convert to .png for compatibility
   const textures = enabled
     ? useTexture({
-        map: '/textures/floor/plank_flooring_04_diff_1k.jpg',
+        map: '/textures/white/exterior_wall_cladding_03_diff_1k.jpg',
         // normalMap: '/textures/floor/plank_flooring_04_nor_gl_1k.png',
         // roughnessMap: '/textures/floor/plank_flooring_04_rough_1k.png',
       })
