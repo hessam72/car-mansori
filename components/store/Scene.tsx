@@ -132,6 +132,11 @@ export default function Scene() {
     setGalleryError(err.message || 'Failed to load the gallery model')
   }, [])
 
+  const handleJoystickMove = useCallback((x: number, y: number) => {
+    markStoreActivity()
+    joystickCallback?.(x, y)
+  }, [joystickCallback])
+
   const retryGallery = useCallback(() => {
     // Purge the cached rejections, then remount the loader block
     config?.files.forEach((f) => useLoader.clear(GLTFLoader, f.url))
@@ -300,12 +305,7 @@ export default function Scene() {
 
       {/* Virtual joystick for mobile - only after ready */}
       {loadingPhase === 'ready' && joystickCallback && (
-        <VirtualJoystick
-          onMove={(x, y) => {
-            markStoreActivity()
-            joystickCallback(x, y)
-          }}
-        />
+        <VirtualJoystick onMove={handleJoystickMove} />
       )}
 
       {/* Product popup */}
