@@ -87,7 +87,7 @@ export default function CarTuningScene({ modelPath, onBaseCarError }: CarTuningS
           resolution={settings.floorReflectionResolution}
           enabled={settings.floorReflectionsEnabled}
           anisotropy={settings.anisotropyLevel}
-          textureRepeat={2}
+          textureRepeat={1}
         />
 
         {/* Ground contact shadows (contact or accumulative per quality tier) */}
