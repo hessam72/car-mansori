@@ -32,6 +32,17 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
     router.push('/car/sample-car')
   }
 
+  // Extract English name (assumes format like "Porsche 911 Turbo S")
+  const getEnglishName = (nameFa: string) => {
+    // Map Persian names to English
+    const nameMap: Record<string, string> = {
+      'پورشه 911 توربو اس': 'Porsche 911 Turbo S',
+      'فراری SF90 استرادال': 'Ferrari SF90 Stradale',
+      'لامبورگینی اونتادور SVJ': 'Lamborghini Aventador SVJ'
+    }
+    return nameMap[nameFa] || nameFa
+  }
+
   return (
     <Billboard
       position={product.billboardPosition}
@@ -41,25 +52,46 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
       lockZ={false}
     >
       <group ref={groupRef}>
-        {/* Background panel */}
-        <RoundedBox args={[3.5, 4, 0.1]} radius={0.1} position={[0, 0, -0.05]}>
-          <meshStandardMaterial color="#1a1a1a" opacity={0.95} transparent />
+        {/* Glass background panel */}
+        <RoundedBox args={[4, 4.5, 0.08]} radius={0.15} position={[0, 0, -0.05]}>
+          <meshPhysicalMaterial
+            color="#0a0a0a"
+            metalness={0.9}
+            roughness={0.1}
+            opacity={0.85}
+            transparent
+            clearcoat={1}
+            clearcoatRoughness={0.1}
+          />
         </RoundedBox>
 
-        {/* Border */}
-        <RoundedBox args={[3.6, 4.1, 0.08]} radius={0.12} position={[0, 0, -0.06]}>
-          <meshStandardMaterial color="#ff0000" opacity={0.8} transparent />
+        {/* Subtle border accent */}
+        <RoundedBox args={[4.05, 4.55, 0.06]} radius={0.16} position={[0, 0, -0.06]}>
+          <meshStandardMaterial
+            color="#d4af37"
+            metalness={0.95}
+            roughness={0.2}
+            opacity={0.3}
+            transparent
+            emissive="#d4af37"
+            emissiveIntensity={0.2}
+          />
         </RoundedBox>
 
         {/* Close button */}
-        <group position={[1.5, 1.8, 0.1]} onClick={onClose}>
-          <RoundedBox args={[0.3, 0.3, 0.05]} radius={0.05}>
-            <meshStandardMaterial color="#ff0000" />
+        <group position={[1.7, 2.05, 0.1]} onClick={onClose}>
+          <RoundedBox args={[0.35, 0.35, 0.05]} radius={0.08}>
+            <meshPhysicalMaterial
+              color="#1a1a1a"
+              metalness={0.8}
+              roughness={0.2}
+              clearcoat={0.5}
+            />
           </RoundedBox>
           <Text
             position={[0, 0, 0.03]}
-            fontSize={0.2}
-            color="white"
+            fontSize={0.22}
+            color="#d4af37"
             anchorX="center"
             anchorY="middle"
           >
@@ -69,43 +101,96 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
 
         {/* Title */}
         <Text
-          position={[0, 1.6, 0]}
-          fontSize={0.25}
+          position={[0, 1.8, 0]}
+          fontSize={0.28}
           color="#ffffff"
           anchorX="center"
           anchorY="middle"
-          maxWidth={3}
+          maxWidth={3.5}
           textAlign="center"
+          letterSpacing={0.05}
         >
-          {product.name_fa}
+          {getEnglishName(product.name_fa)}
         </Text>
 
-        {/* Specs */}
+        {/* Divider line */}
+        <mesh position={[0, 1.5, 0]}>
+          <planeGeometry args={[3, 0.01]} />
+          <meshBasicMaterial color="#d4af37" opacity={0.4} transparent />
+        </mesh>
+
+        {/* Specs - left column */}
         <Text
-          position={[-1.5, 1.1, 0]}
-          fontSize={0.15}
-          color="#cccccc"
+          position={[-1.7, 1.15, 0]}
+          fontSize={0.13}
+          color="#999999"
           anchorX="left"
           anchorY="top"
-          maxWidth={3}
-          lineHeight={1.4}
+          maxWidth={1.5}
+          lineHeight={1.6}
         >
-          {`موتور: ${product.engine}\nقدرت: ${product.horsepower}\nگشتاور: ${product.torque}\nشتاب: ${product.acceleration}\nسرعت نهایی: ${product.topSpeed}\nگیربکس: ${product.transmission}`}
+          {'ENGINE\nPOWER\nTORQUE'}
+        </Text>
+
+        <Text
+          position={[-0.2, 1.15, 0]}
+          fontSize={0.13}
+          color="#ffffff"
+          anchorX="left"
+          anchorY="top"
+          maxWidth={1.8}
+          lineHeight={1.6}
+        >
+          {`${product.engine}\n${product.horsepower}\n${product.torque}`}
+        </Text>
+
+        {/* Specs - right section */}
+        <Text
+          position={[-1.7, 0.2, 0]}
+          fontSize={0.13}
+          color="#999999"
+          anchorX="left"
+          anchorY="top"
+          maxWidth={1.5}
+          lineHeight={1.6}
+        >
+          {'0-100 KM/H\nTOP SPEED\nTRANSMISSION'}
+        </Text>
+
+        <Text
+          position={[-0.2, 0.2, 0]}
+          fontSize={0.13}
+          color="#ffffff"
+          anchorX="left"
+          anchorY="top"
+          maxWidth={1.8}
+          lineHeight={1.6}
+        >
+          {`${product.acceleration}\n${product.topSpeed}\n${product.transmission}`}
         </Text>
 
         {/* Customize button */}
-        <group position={[0, -1.4, 0.1]} onClick={handleCustomize}>
-          <RoundedBox args={[2.5, 0.5, 0.1]} radius={0.1}>
-            <meshStandardMaterial color="#ff0000" />
+        <group position={[0, -1.6, 0.1]} onClick={handleCustomize}>
+          <RoundedBox args={[3, 0.55, 0.1]} radius={0.12}>
+            <meshPhysicalMaterial
+              color="#d4af37"
+              metalness={0.9}
+              roughness={0.1}
+              clearcoat={1}
+              emissive="#d4af37"
+              emissiveIntensity={0.3}
+            />
           </RoundedBox>
           <Text
             position={[0, 0, 0.06]}
-            fontSize={0.2}
-            color="white"
+            fontSize={0.18}
+            color="#0a0a0a"
             anchorX="center"
             anchorY="middle"
+            letterSpacing={0.1}
+            fontWeight={700}
           >
-            سفارشی‌سازی
+            CUSTOMIZE
           </Text>
         </group>
       </group>

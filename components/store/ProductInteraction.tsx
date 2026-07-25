@@ -72,13 +72,7 @@ export default function ProductInteraction({ onProductClick }: ProductInteractio
 
         if (foundProduct) {
           onProductClick(foundProduct)
-        } else {
-          // Click outside products - close billboard
-          onProductClick(null)
         }
-      } else {
-        // No intersections - close billboard
-        onProductClick(null)
       }
     }
 
