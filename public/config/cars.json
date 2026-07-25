@@ -3,7 +3,7 @@
     "id": "sample-car",
     "name": "Sample Car",
     "name_fa": "BMW M5",
-    "model_path": "/store-models/purche-with-parts.glb",
+    "model_path": "/models/car/supercars/purche-with-parts.glb",
     "usdz_path": "/models/car/car.usdz",
     "specs": {
       "engine": "V6 Turbo",
