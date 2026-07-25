@@ -57,11 +57,11 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
           <meshPhysicalMaterial
             color="#0a0a0a"
             metalness={0.9}
-            roughness={0.1}
-            opacity={0.85}
+            roughness={0.9}
+            opacity={.9}
             transparent
-            clearcoat={1}
-            clearcoatRoughness={0.1}
+            clearcoat={0.2}
+            clearcoatRoughness={0.5}
           />
         </RoundedBox>
 
@@ -69,12 +69,12 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
         <RoundedBox args={[4.05, 4.55, 0.06]} radius={0.16} position={[0, 0, -0.06]}>
           <meshStandardMaterial
             color="#d4af37"
-            metalness={0.95}
-            roughness={0.2}
+            metalness={0.4}
+            roughness={0.5}
             opacity={0.3}
             transparent
             emissive="#d4af37"
-            emissiveIntensity={0.2}
+            emissiveIntensity={0.15}
           />
         </RoundedBox>
 
@@ -83,9 +83,9 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
           <RoundedBox args={[0.35, 0.35, 0.05]} radius={0.08}>
             <meshPhysicalMaterial
               color="#1a1a1a"
-              metalness={0.8}
-              roughness={0.2}
-              clearcoat={0.5}
+              metalness={0.2}
+              roughness={0.7}
+              clearcoat={0.1}
             />
           </RoundedBox>
           <Text
@@ -175,10 +175,10 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
             <meshPhysicalMaterial
               color="#d4af37"
               metalness={0.9}
-              roughness={0.1}
-              clearcoat={1}
+              roughness={0.3}
+              clearcoat={0.3}
               emissive="#d4af37"
-              emissiveIntensity={0.3}
+              emissiveIntensity={0.25}
             />
           </RoundedBox>
           <Text
