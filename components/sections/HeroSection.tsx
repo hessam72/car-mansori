@@ -302,6 +302,7 @@ export default function HeroSection() {
               <HomeReflectiveFloor resolution={512} />
 
               <Suspense fallback={null}>
+              
                 <ConfigurableCar modelPath="/models/car/car.glb" />
                 <ScrollChapters3D scrollProgress={scrollYProgress} />
               </Suspense>
