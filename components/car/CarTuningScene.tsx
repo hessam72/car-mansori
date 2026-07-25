@@ -25,6 +25,7 @@ import PhotoMode from './PhotoMode'
 import ShadowFreeze from './ShadowFreeze'
 import { useCameraStore } from '@/stores/cameraStore'
 import { useQuality } from '@/contexts/QualityContext'
+import { CarReflectiveFloor } from '../store/CarReflectiveFloor'
 
 interface CarTuningSceneProps {
   modelPath: string
@@ -83,11 +84,9 @@ export default function CarTuningScene({ modelPath, onBaseCarError }: CarTuningS
 
         {/* Reflective Floor — the reflection pass re-renders the scene every
             drawn frame, so the low tier swaps to a plain matte floor */}
-        <ReflectiveFloor
+        <CarReflectiveFloor
           resolution={settings.floorReflectionResolution}
           enabled={settings.floorReflectionsEnabled}
-          anisotropy={settings.anisotropyLevel}
-          textureRepeat={2}
         />
 
         {/* Ground contact shadows (contact or accumulative per quality tier) */}

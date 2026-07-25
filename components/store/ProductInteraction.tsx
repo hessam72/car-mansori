@@ -5,12 +5,18 @@ import { useThree } from '@react-three/fiber'
 import { Raycaster, Vector2, Object3D } from 'three'
 
 export interface ProductData {
+  id: string
   category: string
   variant: string
-  price: string
-  weight: string
   name_fa: string
   glbPath: string
+  engine: string
+  horsepower: string
+  torque: string
+  acceleration: string
+  topSpeed: string
+  transmission: string
+  billboardPosition: [number, number, number]
 }
 
 interface ProductInteractionProps {

@@ -20,7 +20,7 @@ import { SunLight } from './SunLight'
 import { LampLights } from './LampLights'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import ProductInteraction, { type ProductData } from './ProductInteraction'
-import ProductPopup from './ProductPopup'
+import ProductBillboard3D from './ProductBillboard3D'
 import { LoadingScreen } from './LoadingScreen'
 import { ModelsLoadingIndicator } from './ModelsLoadingIndicator'
 import { AudioPlayer } from './AudioPlayer'
@@ -258,9 +258,26 @@ export default function Scene() {
           {/* Product click interaction */}
           {loadingPhase === 'ready' && <ProductInteraction onProductClick={setSelectedProduct} />}
 
+          {/* Product billboard - 3D popup */}
+          {loadingPhase === 'ready' && (
+            <ProductBillboard3D product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+          )}
+
           {/* Reflective Floor — resolution/off-switch follow the quality tier
               (the reflection pass re-renders the scene every drawn frame) */}
           <ReflectiveFloor
+            opacity={.1}
+            size={30}
+            mixStrength={.4}
+            blur={0.5
+
+            }
+            roughness={.8}
+            resolution={settings.floorReflectionResolution}
+            enabled={settings.floorReflectionsEnabled}
+            receiveShadow={config.sun?.enabled ?? false}
+          />  
+           {/* <ReflectiveFloor
             opacity={1}
             size={20}
             mixStrength={.9}
@@ -269,7 +286,7 @@ export default function Scene() {
             resolution={settings.floorReflectionResolution}
             enabled={settings.floorReflectionsEnabled}
             receiveShadow={config.sun?.enabled ?? false}
-          />
+          /> */}
 
           {/* Post-Processing (tier-driven; SSGI lazy on ultra opt-in) */}
           <PostProcessing />
@@ -307,9 +324,6 @@ export default function Scene() {
       {loadingPhase === 'ready' && joystickCallback && (
         <VirtualJoystick onMove={handleJoystickMove} />
       )}
-
-      {/* Product popup */}
-      <ProductPopup product={selectedProduct} onClose={() => setSelectedProduct(null)} />
 
       {/* Background audio */}
       <AudioPlayer />

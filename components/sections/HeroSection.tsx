@@ -13,13 +13,13 @@ import * as THREE from "three";
 import ConfigurableCar from "@/components/car/ConfigurableCar";
 import CameraControls from "@/components/car/CameraControls";
 import { LightFlickerController } from "@/components/car/LightFlickerController";
-import { ReflectiveFloor } from "@/components/store/ReflectiveFloor";
 import ScrollChapters3D from "@/components/home/ScrollChapters3D";
 import ScrollCameraRig from "@/components/home/ScrollCameraRig";
 import LoadingScreen from "@/components/home/LoadingScreen";
 import ChapterRail from "@/components/home/ChapterRail";
 import { useHomeScroll } from "@/hooks/useHomeScroll";
 import { useCarConfig } from "@/stores/carConfigStore";
+import { HomeReflectiveFloor } from "../store/HomeReflectiveFloor";
 
 /* ─────────────────────────────────────────────────────────────
    Scroll section height — increase for more scroll room per
@@ -299,7 +299,7 @@ export default function HeroSection() {
             }}
           >
             <LightFlickerController scrollProgress={scrollYProgress}>
-              <ReflectiveFloor resolution={512} />
+              <HomeReflectiveFloor resolution={512} />
 
               <Suspense fallback={null}>
                 <ConfigurableCar modelPath="/models/car/car.glb" />
