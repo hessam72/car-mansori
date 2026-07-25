@@ -24,7 +24,7 @@ interface ReflectiveFloorProps {
 // hardcoded in the JSX (roughness 1, mixBlur 0) so existing consumers
 // (/store Scene, homepage hero, /car) render identically now that the
 // props are actually honored.
-export function ReflectiveFloor({
+export function HomeReflectiveFloor({
   size = 30,
   mixStrength = 0.85,
   blur = 0,
@@ -41,7 +41,7 @@ export function ReflectiveFloor({
   const textures = useTexture(
   enabled
     ? {
-        map: '/textures/concrete_wall_009_diff_1k.jpg',
+        map: '/textures/Road015C_1K-JPG_Color.jpg',
       }
     : {}
 )
@@ -62,7 +62,7 @@ export function ReflectiveFloor({
     <mesh
       name="reflective-floor"
       rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, .3, 0]}
+      position={[0, -1, 0]}
       receiveShadow={receiveShadow}
     >
       <planeGeometry args={[size, size]} />
