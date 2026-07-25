@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useGLTF } from '@react-three/drei'
 import PaintControls from './PaintControls'
 import SuspensionControls from './SuspensionControls'
+import LightingControls from './LightingControls'
 import PartsGrid from './PartsGrid'
 import partsConfig from '@/public/config/car-parts.json'
 import { useCarConfig } from '@/stores/carConfigStore'
@@ -18,7 +19,7 @@ import {
   GiCarSpring
 } from 'react-icons/gi'
 import { TbCarSuv } from 'react-icons/tb'
-import { MdLightbulb } from 'react-icons/md'
+import { MdLightbulb, MdLightbulbOutline } from 'react-icons/md'
 import { FaCog } from 'react-icons/fa'
 
 // Preload all parts in a category into the same drei cache the scene reads from
@@ -38,6 +39,7 @@ function preloadCategory(categoryId: string) {
 const CATEGORIES = [
   { id: 'paint', name: 'Paint', icon: IoColorPalette },
   { id: 'suspension', name: 'Suspension', icon: GiCarSpring },
+  { id: 'lighting', name: 'Lighting', icon: MdLightbulbOutline },
   { id: 'wheels', name: 'Wheels', icon: GiCarWheel },
   { id: 'spoilers', name: 'Spoilers', icon: GiWingCloak },
   { id: 'hoods', name: 'Hoods', icon: IoCarSport },
@@ -78,7 +80,7 @@ export default function CustomizationPanel({ open, onOpenChange }: Customization
 
   // Preload current category parts immediately on tab change
   useEffect(() => {
-    if (activeTab !== 'paint' && activeTab !== 'suspension') {
+    if (activeTab !== 'paint' && activeTab !== 'suspension' && activeTab !== 'lighting') {
       preloadCategory(activeTab)
     }
   }, [activeTab])
@@ -86,7 +88,7 @@ export default function CustomizationPanel({ open, onOpenChange }: Customization
   // Prefetch adjacent categories during idle time
   useEffect(() => {
     const categories = CATEGORIES.filter(
-      (c) => c.id !== 'paint' && c.id !== 'suspension' && c.id !== activeTab
+      (c) => c.id !== 'paint' && c.id !== 'suspension' && c.id !== 'lighting' && c.id !== activeTab
     ).map((c) => c.id)
 
     if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
@@ -269,6 +271,8 @@ export default function CustomizationPanel({ open, onOpenChange }: Customization
                   <PaintControls />
                 ) : activeTab === 'suspension' ? (
                   <SuspensionControls />
+                ) : activeTab === 'lighting' ? (
+                  <LightingControls />
                 ) : (
                   <PartsGrid category={activeTab} />
                 )}

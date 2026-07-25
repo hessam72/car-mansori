@@ -2,12 +2,7 @@
 
 import { Environment, Lightformer } from '@react-three/drei'
 import { useQuality } from '@/contexts/QualityContext'
-
-interface CarStudioEnvironmentProps {
-  /** Y-rotation of the light rig (radians) to aim highlights — substitutes
-   *  for scene.environmentRotation, which needs three r163+ */
-  rotation?: number
-}
+import { useLightingStore } from '@/stores/lightingStore'
 
 /**
  * Automotive studio environment. The existing EXR renders as the virtual
@@ -16,18 +11,26 @@ interface CarStudioEnvironmentProps {
  * frames={1}: captured once into a cubemap on mount — zero per-frame cost;
  * re-captured automatically if the rig (rotation) or resolution changes.
  */
-export default function CarStudioEnvironment({ rotation = 0 }: CarStudioEnvironmentProps) {
+export default function CarStudioEnvironment() {
   const { settings } = useQuality()
+
+  // Get dynamic lighting environment values from store
+  const hdriPath = useLightingStore((s) => s.hdriPath)
+  const envRotation = useLightingStore((s) => s.envRotation)
+  const envIntensity = useLightingStore((s) => s.envIntensity)
+
+  // Convert degrees to radians for rotation
+  const rotationRadians = (envRotation * Math.PI) / 180
 
   return (
     <Environment
-      files="/hdr/main_hdr.exr"
+      files={hdriPath}
       background={false}
       resolution={settings.envResolution}
       frames={1}
-      environmentIntensity={settings.envIntensity}
+      environmentIntensity={envIntensity}
     >
-      <group rotation={[0, rotation, 0]}>
+      <group rotation={[0, rotationRadians, 0]}>
         {/* Overhead light-strip tunnel — the signature streaks along the body */}
         <Lightformer
           form="rect"

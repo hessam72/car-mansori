@@ -146,17 +146,43 @@ const envIntensity = useLightingStore((s) => s.envIntensity)
 - Render `<LightingControls />` when active
 
 #### 6. Download HDRI Assets
-**Sources** (all free CC0):
-- [Poly Haven](https://polyhaven.com/hdris)
-- [HDRI Haven](https://hdrihaven.com/)
+
+**✅ PHASE 4 IMPLEMENTATION STATUS: COMPLETE**
+All code is implemented. Only HDRI asset downloads remain.
 
 **Required files** (place in `/public/hdr/`):
-- `sunset.exr` - Warm outdoor lighting
-- `showroom.exr` - Bright indoor studio
-- `garage.exr` - Industrial indoor
 
-**Formats**: Use `.exr` (high dynamic range) or `.hdr`
-**Resolutions**: 2K (2048x1024) for quality tier medium/high, 1K for low
+1. **sunset.exr** - Warm outdoor lighting
+   - Recommended: [Kloppenheim 06](https://polyhaven.com/a/kloppenheim_06)
+   - Download 2K EXR format
+   - Rename to `sunset.exr`
+
+2. **showroom.exr** - Bright indoor studio
+   - Recommended: [Studio Small 09](https://polyhaven.com/a/studio_small_09)
+   - Download 2K EXR format
+   - Rename to `showroom.exr`
+
+3. **garage.exr** - Industrial indoor
+   - Recommended: [Industrial Sunset 02](https://polyhaven.com/a/industrial_sunset_02)
+   - Download 2K EXR format
+   - Rename to `garage.exr`
+
+**Download Instructions:**
+1. Visit [Poly Haven HDRIs](https://polyhaven.com/hdris)
+2. Search for the recommended HDRI name
+3. Click "Download" → Select "2K" resolution → Choose "EXR" format
+4. Rename the downloaded file as specified above
+5. Place in `/public/hdr/` directory
+
+**Note**: The existing `main_hdr.exr` is used for the "Studio" preset. If it doesn't exist, download any studio HDRI and name it `main_hdr.exr`
+
+**Alternative HDRIs** (if you want different aesthetics):
+- Sunset: `sunset_in_the_chalk_quarry_4k.exr`, `fireplace_4k.exr`
+- Showroom: `photo_studio_loft_hall_4k.exr`, `studio_garden_4k.exr`
+- Garage: `autoshop_01_4k.exr`, `warehouse_4k.exr`
+
+**Formats**: Use `.exr` (recommended) or `.hdr`
+**Resolutions**: 2K (2048x1024) for best quality, 1K for faster loading
 
 ---
 
