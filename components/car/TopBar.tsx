@@ -13,7 +13,6 @@ const isDesktop = () =>
 
 interface TopBarProps {
   carName: string
-  carNameFa?: string
   arSupported: boolean
   onOpenAR: () => void
   /** Desktop customization drawer state — the bar re-centers over the visible stage */
@@ -28,7 +27,7 @@ const GHOST_BTN =
  * (photo mode, AR, quality popover) on the right. Replaces the old floating
  * name overlay + always-open quality card + scattered action buttons.
  */
-export default function TopBar({ carName, carNameFa, arSupported, onOpenAR, panelOpen }: TopBarProps) {
+export default function TopBar({ carName, arSupported, onOpenAR, panelOpen }: TopBarProps) {
   const [desktop, setDesktop] = useState(false)
   const [qualityOpen, setQualityOpen] = useState(false)
   const qualityRef = useRef<HTMLDivElement>(null)
@@ -69,11 +68,6 @@ export default function TopBar({ carName, carNameFa, arSupported, onOpenAR, pane
           <h1 className="text-xl font-extralight uppercase leading-tight tracking-[0.18em] text-white md:text-2xl">
             {carName}
           </h1>
-          {carNameFa && (
-            <p className="mt-0.5 text-xs text-white/40" dir="rtl">
-              {carNameFa}
-            </p>
-          )}
         </div>
 
         <div className="flex items-center gap-2.5">

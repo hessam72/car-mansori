@@ -241,6 +241,10 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
     'mirrors',
     'exhaust',
     'side-skirts',
+    'seats',
+    'steering-wheels',
+    'brake-calipers',
+    'headlights',
   ]
 
   return (

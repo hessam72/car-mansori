@@ -11,9 +11,13 @@ import { IoColorPalette, IoCarSport, IoClose, IoChevronBack } from 'react-icons/
 import {
   GiCarWheel, GiWingCloak, GiCarDoor,
   GiMirrorMirror,
-  GiSmokingPipe
+  GiSmokingPipe,
+  GiSteeringWheel,
+  GiCarSeat
 } from 'react-icons/gi'
 import { TbCarSuv } from 'react-icons/tb'
+import { MdLightbulb } from 'react-icons/md'
+import { FaCog } from 'react-icons/fa'
 
 // Preload all parts in a category into the same drei cache the scene reads from
 function preloadCategory(categoryId: string) {
@@ -38,6 +42,10 @@ const CATEGORIES = [
   { id: 'mirrors', name: 'Mirrors', icon: GiMirrorMirror },
   { id: 'exhaust', name: 'Exhaust', icon: GiSmokingPipe },
   { id: 'side-skirts', name: 'Side Skirts', icon: TbCarSuv },
+  { id: 'seats', name: 'Seats', icon: GiCarSeat },
+  { id: 'steering-wheels', name: 'Steering', icon: GiSteeringWheel },
+  { id: 'brake-calipers', name: 'Calipers', icon: FaCog },
+  { id: 'headlights', name: 'Headlights', icon: MdLightbulb },
 ]
 
 interface CustomizationPanelProps {

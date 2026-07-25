@@ -7,7 +7,7 @@ import * as THREE from 'three'
 
 interface ProductData {
   id: string
-  name_fa: string
+  name: string
   engine: string
   horsepower: string
   torque: string
@@ -30,17 +30,6 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
 
   const handleCustomize = () => {
     router.push('/car/sample-car')
-  }
-
-  // Extract English name (assumes format like "Porsche 911 Turbo S")
-  const getEnglishName = (nameFa: string) => {
-    // Map Persian names to English
-    const nameMap: Record<string, string> = {
-      'پورشه 911 توربو اس': 'Porsche 911 Turbo S',
-      'فراری SF90 استرادال': 'Ferrari SF90 Stradale',
-      'لامبورگینی اونتادور SVJ': 'Lamborghini Aventador SVJ'
-    }
-    return nameMap[nameFa] || nameFa
   }
 
   return (
@@ -110,7 +99,7 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
           textAlign="center"
           letterSpacing={0.05}
         >
-          {getEnglishName(product.name_fa)}
+          {product.name}
         </Text>
 
         {/* Divider line */}

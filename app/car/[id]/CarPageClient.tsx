@@ -29,7 +29,6 @@ const ARCarViewer = dynamic(() => import('@/components/car/ARCarViewer'), {
 export interface Car {
   id: string
   name: string
-  name_fa: string
   model_path: string
   usdz_path: string
   specs: {
@@ -91,7 +90,6 @@ export default function CarPageClient({ car }: { car: Car }) {
 
         <TopBar
           carName={car.name}
-          carNameFa={car.name_fa}
           arSupported={arSupported}
           onOpenAR={() => setShowAR(true)}
           panelOpen={panelOpen}
@@ -110,7 +108,6 @@ export default function CarPageClient({ car }: { car: Car }) {
             glbPath={car.model_path}
             usdzPath={car.usdz_path}
             carName={car.name}
-            carNameFa={car.name_fa}
             onClose={() => setShowAR(false)}
           />
         )}
@@ -132,7 +129,7 @@ export default function CarPageClient({ car }: { car: Car }) {
           </div>
         )}
 
-        <CarLoadingOverlay carName={car.name} carNameFa={car.name_fa} />
+        <CarLoadingOverlay carName={car.name} />
       </div>
     </QualityProvider>
   )

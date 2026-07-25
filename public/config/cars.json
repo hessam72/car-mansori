@@ -1,8 +1,7 @@
 [
   {
     "id": "sample-car",
-    "name": "Sample Car",
-    "name_fa": "BMW M5",
+    "name": "BMW M5 Competition",
     "model_path": "/models/car/supercars/purche-with-parts.glb",
     "usdz_path": "/models/car/car.usdz",
     "specs": {

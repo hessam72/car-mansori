@@ -8,7 +8,7 @@ export interface ProductData {
   id: string
   category: string
   variant: string
-  name_fa: string
+  name: string
   glbPath: string
   engine: string
   horsepower: string

@@ -43,6 +43,10 @@ export const DEFAULT_PARTS: Record<string, string> = {
   mirrors: 'mirror-stock',
   exhaust: 'exhaust-stock',
   'side-skirts': 'skirts-none',
+  seats: 'seat-stock',
+  'steering-wheels': 'steering-stock',
+  'brake-calipers': 'caliper-stock',
+  headlights: 'headlight-stock',
 }
 
 const defaultPaintConfig: MultiZonePaintConfig = {

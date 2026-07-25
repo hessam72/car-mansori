@@ -5,7 +5,6 @@ import { useProgress } from '@react-three/drei'
 
 interface CarLoadingOverlayProps {
   carName: string
-  carNameFa?: string
 }
 
 /**
@@ -17,7 +16,7 @@ interface CarLoadingOverlayProps {
  * the first-load JS of the page whose loading time this overlay exists
  * to soften.
  */
-export default function CarLoadingOverlay({ carName, carNameFa }: CarLoadingOverlayProps) {
+export default function CarLoadingOverlay({ carName }: CarLoadingOverlayProps) {
   const { progress, active } = useProgress()
   const [done, setDone] = useState(false)
   const [hidden, setHidden] = useState(false)
@@ -60,11 +59,6 @@ export default function CarLoadingOverlay({ carName, carNameFa }: CarLoadingOver
         <h2 className="text-2xl font-extralight uppercase tracking-[0.2em] text-white md:text-3xl">
           {carName}
         </h2>
-        {carNameFa && (
-          <p className="text-sm text-white/35" dir="rtl">
-            {carNameFa}
-          </p>
-        )}
       </div>
 
       <div className="h-px w-64 overflow-hidden bg-white/10">
