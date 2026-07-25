@@ -79,6 +79,7 @@ export function ReflectiveFloor({
           metalness={.7}
           color="#ffffff"
           opacity={1}
+          // @ts-expect-error fdfdfd
           map={textures?.map}
           // normalMap={textures?.normalMap}
           // roughnessMap={textures?.roughnessMap}
