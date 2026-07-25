@@ -20,7 +20,7 @@ import { SunLight } from './SunLight'
 import { LampLights } from './LampLights'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import ProductInteraction, { type ProductData } from './ProductInteraction'
-import ProductPopup from './ProductPopup'
+import ProductBillboard3D from './ProductBillboard3D'
 import { LoadingScreen } from './LoadingScreen'
 import { ModelsLoadingIndicator } from './ModelsLoadingIndicator'
 import { AudioPlayer } from './AudioPlayer'
@@ -258,6 +258,11 @@ export default function Scene() {
           {/* Product click interaction */}
           {loadingPhase === 'ready' && <ProductInteraction onProductClick={setSelectedProduct} />}
 
+          {/* Product billboard - 3D popup */}
+          {loadingPhase === 'ready' && (
+            <ProductBillboard3D product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+          )}
+
           {/* Reflective Floor — resolution/off-switch follow the quality tier
               (the reflection pass re-renders the scene every drawn frame) */}
           <ReflectiveFloor
@@ -319,9 +324,6 @@ export default function Scene() {
       {loadingPhase === 'ready' && joystickCallback && (
         <VirtualJoystick onMove={handleJoystickMove} />
       )}
-
-      {/* Product popup */}
-      <ProductPopup product={selectedProduct} onClose={() => setSelectedProduct(null)} />
 
       {/* Background audio */}
       <AudioPlayer />

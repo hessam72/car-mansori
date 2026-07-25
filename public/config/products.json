@@ -1,28 +1,61 @@
 {
   "earring-gold": {
-    "category": "earrings",
-    "variant": "default",
-    "price": "2,500,000",
-    "weight": "3.2",
-    "name_fa": "گوشواره طلا",
-    "glbPath": "/models/earrings/default.glb"
+    "id": "porsche-911",
+    "category": "sports-car",
+    "variant": "turbo-s",
+    "name_fa": "پورشه 911 توربو اس",
+    "glbPath": "/models/earrings/default.glb",
+    "engine": "3.8L Twin-Turbo Flat-6",
+    "horsepower": "640 hp",
+    "torque": "590 lb-ft",
+    "acceleration": "2.6s (0-100 km/h)",
+    "topSpeed": "330 km/h",
+    "transmission": "8-Speed PDK",
+    "billboardPosition": [2, 2.5, 0]
   },
 
- "necklace-gold": {
-    "category": "necklace",
-    "variant": "native-american",
-    "price": "4,900,000",
-    "weight": "12.0",
-    "name_fa": "گردنبند طلا ",
-    "glbPath": "/models/necklace/native-american.glb"
+ "ferari": {
+    "id": "ferrari-sf90",
+    "category": "supercar",
+    "variant": "stradale",
+    "name_fa": "فراری SF90 استرادال",
+    "glbPath": "/models/necklace/native-american.glb",
+    "engine": "4.0L V8 + Electric",
+    "horsepower": "986 hp",
+    "torque": "800 Nm",
+    "acceleration": "2.5s (0-100 km/h)",
+    "topSpeed": "340 km/h",
+    "transmission": "8-Speed F1 DCT",
+    "billboardPosition": [-2, 2.5, 0]
   },
  "watch-sport": {
-    "category": "watch",
-    "variant": "default",
-    "price": "6,500,000",
-    "weight": "95.0",
-    "name_fa": "ساعت ورزشی",
-    "glbPath": "/models/watch/default.glb"
+    "id": "lamborghini-aventador",
+    "category": "supercar",
+    "variant": "svj",
+    "name_fa": "لامبورگینی اونتادور SVJ",
+    "glbPath": "/models/watch/default.glb",
+    "engine": "6.5L V12",
+    "horsepower": "770 hp",
+    "torque": "720 Nm",
+    "acceleration": "2.8s (0-100 km/h)",
+    "topSpeed": "350 km/h",
+    "transmission": "7-Speed ISR",
+    "billboardPosition": [0, 2.5, -2]
+  },
+
+ "benz": {
+    "id": "benz",
+    "category": "supercar",
+    "variant": "svj",
+    "name_fa": "لامبورگینی اونتادور SVJ",
+    "glbPath": "/models/watch/default.glb",
+    "engine": "6.5L V12",
+    "horsepower": "770 hp",
+    "torque": "720 Nm",
+    "acceleration": "2.8s (0-100 km/h)",
+    "topSpeed": "350 km/h",
+    "transmission": "7-Speed ISR",
+    "billboardPosition": [0, 2.5, -2]
   }
 
 
