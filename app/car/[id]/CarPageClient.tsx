@@ -4,12 +4,14 @@ import { useCallback, useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useGLTF, useEnvironment } from '@react-three/drei'
 import CustomizationPanel from '@/components/car/CustomizationPanel'
+import ComparisonSlider from '@/components/car/ComparisonSlider'
 import PhotoModeUI from '@/components/car/PhotoModeUI'
 import TopBar from '@/components/car/TopBar'
 import ViewDock from '@/components/car/ViewDock'
 import CarLoadingOverlay from '@/components/car/CarLoadingOverlay'
 import partsConfig from '@/public/config/car-parts.json'
 import { useCarConfig, DEFAULT_PARTS } from '@/stores/carConfigStore'
+import { useComparisonStore } from '@/stores/comparisonStore'
 import { isARCapable } from '@/lib/device-utils'
 import { QualityProvider } from '@/contexts/QualityContext'
 
@@ -48,6 +50,7 @@ export default function CarPageClient({ car }: { car: Car }) {
   const [sceneKey, setSceneKey] = useState(0)
   const [baseCarError, setBaseCarError] = useState<string | null>(null)
   const resetConfig = useCarConfig((s) => s.resetConfig)
+  const compareMode = useComparisonStore((s) => s.compareMode)
 
   useEffect(() => {
     setArSupported(isARCapable())
@@ -101,6 +104,9 @@ export default function CarPageClient({ car }: { car: Car }) {
         <PhotoModeUI />
 
         <CustomizationPanel open={panelOpen} onOpenChange={setPanelOpen} />
+
+        {/* Comparison Slider - Before/After view */}
+        {compareMode && <ComparisonSlider />}
 
         {/* AR Viewer Modal */}
         {showAR && (

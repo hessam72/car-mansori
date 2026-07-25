@@ -3,7 +3,7 @@
 import { useRef, useMemo, useEffect, Suspense } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { useThree, useFrame } from '@react-three/fiber'
-import { useCarConfig, PaintZone } from '@/stores/carConfigStore'
+import { useCarConfig, PaintZone, type MultiZonePaintConfig } from '@/stores/carConfigStore'
 import { DynamicPart } from './DynamicPart'
 import { PartErrorBoundary } from './PartErrorBoundary'
 import { DoorController } from '@/lib/DoorController'
@@ -18,6 +18,9 @@ useGLTF.setDecoderPath('/draco/')
 
 interface ConfigurableCarProps {
   modelPath: string
+  overrideSelectedParts?: Record<string, string>
+  overridePaintConfig?: MultiZonePaintConfig
+  overrideSuspensionHeight?: number
 }
 
 interface PaintTarget {
@@ -25,19 +28,29 @@ interface PaintTarget {
   zone: PaintZone
 }
 
-export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
+export default function ConfigurableCar({
+  modelPath,
+  overrideSelectedParts,
+  overridePaintConfig,
+  overrideSuspensionHeight,
+}: ConfigurableCarProps) {
   const groupRef = useRef<THREE.Group>(null!)
   const invalidate = useThree((s) => s.invalidate)
   const doorControllerRef = useRef<DoorController | null>(null)
   const suspensionControllerRef = useRef<SuspensionController | null>(null)
 
-  const paintConfig = useCarConfig((s) => s.paintConfig)
+  const storePaintConfig = useCarConfig((s) => s.paintConfig)
   const paintInitialized = useCarConfig((s) => s.paintInitialized)
   const setPartError = useCarConfig((s) => s.setPartError)
   const openParts = useCarConfig((s) => s.openParts)
-  const selectedParts = useCarConfig((s) => s.selectedParts)
-  const suspensionHeight = useCarConfig((s) => s.suspensionHeight)
+  const storeSelectedParts = useCarConfig((s) => s.selectedParts)
+  const storeSuspensionHeight = useCarConfig((s) => s.suspensionHeight)
   const { settings } = useQuality()
+
+  // Use overrides when provided, otherwise fallback to store values
+  const paintConfig = overridePaintConfig ?? storePaintConfig
+  const selectedParts = overrideSelectedParts ?? storeSelectedParts
+  const suspensionHeight = overrideSuspensionHeight ?? storeSuspensionHeight
 
   const handlePartError = (category: string, error: Error) => {
     setPartError(category, error.message)
