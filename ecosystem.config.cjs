@@ -1,9 +1,9 @@
 module.exports = {
   apps: [
     {
-      name: "vto-store",
+      name: "car-mansori",
       script: "node_modules/next/dist/bin/next",
-      args: "start -p 3021",
+      args: "start -p 3020",
       exec_mode: "fork",
       instances: 1,
       env: {

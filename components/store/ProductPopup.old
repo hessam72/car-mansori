@@ -68,7 +68,7 @@ export default function ProductPopup({ product, onClose }: ProductPopupProps) {
           <div className="flex gap-6 items-center">
             <div className="flex items-center gap-2">
               <span className="text-amber-200/70 text-sm">قیمت:</span>
-              <span className="text-lg font-semibold text-amber-300">{product.price} تومان</span>
+              <span className="text-lg font-semibold text-amber-300">{product?.price} تومان</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-amber-200/70 text-sm">وزن:</span>

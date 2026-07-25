@@ -79,6 +79,7 @@ export function CarReflectiveFloor({
           metalness={.7}
           color="#ffffff"
           opacity={1}
+          //@ts-expect-error rerere
           map={textures?.map}
           // normalMap={textures?.normalMap}
           // roughnessMap={textures?.roughnessMap}
