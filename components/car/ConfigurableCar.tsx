@@ -7,6 +7,7 @@ import { useCarConfig, PaintZone } from '@/stores/carConfigStore'
 import { DynamicPart } from './DynamicPart'
 import { PartErrorBoundary } from './PartErrorBoundary'
 import { DoorController } from '@/lib/DoorController'
+import { SuspensionController } from '@/lib/SuspensionController'
 import { useQuality } from '@/contexts/QualityContext'
 import { prepareCarObject } from '@/lib/three/prepareCarMaterial'
 import { useCubeReflections } from '@/lib/three/useCubeReflections'
@@ -28,12 +29,14 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
   const groupRef = useRef<THREE.Group>(null!)
   const invalidate = useThree((s) => s.invalidate)
   const doorControllerRef = useRef<DoorController | null>(null)
+  const suspensionControllerRef = useRef<SuspensionController | null>(null)
 
   const paintConfig = useCarConfig((s) => s.paintConfig)
   const paintInitialized = useCarConfig((s) => s.paintInitialized)
   const setPartError = useCarConfig((s) => s.setPartError)
   const openParts = useCarConfig((s) => s.openParts)
   const selectedParts = useCarConfig((s) => s.selectedParts)
+  const suspensionHeight = useCarConfig((s) => s.suspensionHeight)
   const { settings } = useQuality()
 
   const handlePartError = (category: string, error: Error) => {
@@ -218,6 +221,20 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
     // Don't cleanup - keep controller alive for entire component lifecycle
   }, [carModel])
 
+  // Initialize SuspensionController after group ref is ready
+  useEffect(() => {
+    if (!groupRef.current) return
+
+    try {
+      const controller = new SuspensionController(groupRef.current, invalidate)
+      suspensionControllerRef.current = controller
+    } catch (error) {
+      console.error('[ConfigurableCar] SuspensionController initialization failed:', error)
+    }
+
+    // Don't cleanup - keep controller alive for entire component lifecycle
+  }, [groupRef.current])
+
   // React to openParts state changes
   useEffect(() => {
     if (!doorControllerRef.current) return
@@ -231,6 +248,12 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
     controller.openHood(openParts.car_caput)
     controller.openTrunk(openParts.car_trunk)
   }, [openParts])
+
+  // React to suspension height changes
+  useEffect(() => {
+    if (!suspensionControllerRef.current) return
+    suspensionControllerRef.current.setHeight(suspensionHeight)
+  }, [suspensionHeight])
 
   // Part categories to render
   const partCategories = [

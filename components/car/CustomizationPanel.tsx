@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useGLTF } from '@react-three/drei'
 import PaintControls from './PaintControls'
+import SuspensionControls from './SuspensionControls'
 import PartsGrid from './PartsGrid'
 import partsConfig from '@/public/config/car-parts.json'
 import { useCarConfig } from '@/stores/carConfigStore'
@@ -13,7 +14,8 @@ import {
   GiMirrorMirror,
   GiSmokingPipe,
   GiSteeringWheel,
-  GiCarSeat
+  GiCarSeat,
+  GiCarSpring
 } from 'react-icons/gi'
 import { TbCarSuv } from 'react-icons/tb'
 import { MdLightbulb } from 'react-icons/md'
@@ -35,6 +37,7 @@ function preloadCategory(categoryId: string) {
 
 const CATEGORIES = [
   { id: 'paint', name: 'Paint', icon: IoColorPalette },
+  { id: 'suspension', name: 'Suspension', icon: GiCarSpring },
   { id: 'wheels', name: 'Wheels', icon: GiCarWheel },
   { id: 'spoilers', name: 'Spoilers', icon: GiWingCloak },
   { id: 'hoods', name: 'Hoods', icon: IoCarSport },
@@ -75,16 +78,16 @@ export default function CustomizationPanel({ open, onOpenChange }: Customization
 
   // Preload current category parts immediately on tab change
   useEffect(() => {
-    if (activeTab !== 'paint') {
+    if (activeTab !== 'paint' && activeTab !== 'suspension') {
       preloadCategory(activeTab)
     }
   }, [activeTab])
 
   // Prefetch adjacent categories during idle time
   useEffect(() => {
-    const categories = CATEGORIES.filter((c) => c.id !== 'paint' && c.id !== activeTab).map(
-      (c) => c.id
-    )
+    const categories = CATEGORIES.filter(
+      (c) => c.id !== 'paint' && c.id !== 'suspension' && c.id !== activeTab
+    ).map((c) => c.id)
 
     if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
       const idleCallback = window.requestIdleCallback(
@@ -262,7 +265,13 @@ export default function CustomizationPanel({ open, onOpenChange }: Customization
                   </div>
                 )}
 
-                {activeTab === 'paint' ? <PaintControls /> : <PartsGrid category={activeTab} />}
+                {activeTab === 'paint' ? (
+                  <PaintControls />
+                ) : activeTab === 'suspension' ? (
+                  <SuspensionControls />
+                ) : (
+                  <PartsGrid category={activeTab} />
+                )}
               </div>
             </div>
 
