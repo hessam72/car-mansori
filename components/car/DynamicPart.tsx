@@ -31,6 +31,21 @@ function findNodeByName(parent: THREE.Object3D, name: string): THREE.Object3D | 
   return null
 }
 
+// Helper: Check if object is a Group (contains children but is not a Mesh itself)
+// Groups are common in 3D models - e.g., Wheel_FL contains brake disc, tire, rim, etc.
+function isGroup(obj: THREE.Object3D): boolean {
+  return obj.type === 'Group' || (obj.children.length > 0 && !(obj instanceof THREE.Mesh))
+}
+
+// Helper: Count meshes in an object (handles both single Meshes and Groups)
+function countMeshes(obj: THREE.Object3D): number {
+  let count = 0
+  obj.traverse((child) => {
+    if (child instanceof THREE.Mesh) count++
+  })
+  return count
+}
+
 // Hide the given nodes, returning the ones that were visible so callers can restore them
 function hideNodes(baseCarScene: THREE.Object3D, names: string[]): THREE.Object3D[] {
   const hidden: THREE.Object3D[] = []
@@ -50,6 +65,7 @@ function hideNodes(baseCarScene: THREE.Object3D, names: string[]): THREE.Object3
 
 // Clone a part for placement. Geometries stay shared with the drei cache;
 // materials are cloned per instance so fade transitions never touch the cache.
+// Handles both single Meshes and Groups containing multiple meshes.
 function clonePartAt(
   gltfScene: THREE.Object3D,
   targetNode: THREE.Object3D,
@@ -64,9 +80,16 @@ function clonePartAt(
   // Store original scale for animation
   clone.userData.originalScale = targetNode.scale.clone()
 
+  // Log if this is a Group structure
+  if (isGroup(clone)) {
+    const meshCount = countMeshes(clone)
+    console.log(`[DynamicPart] Cloning Group "${clone.name}" (${clone.children.length} children, ${meshCount} meshes)`)
+  }
+
   // Per-clone materials, initialized for the fade-in transition. depthWrite
   // stays off while translucent so old/new parts don't occlude each other
   // mid-fade; finalizeFadedMaterials restores opaque state afterwards.
+  // traverse() recursively processes all meshes regardless of Group structure.
   clone.traverse((child: any) => {
     if (child instanceof THREE.Mesh && child.material) {
       const mat = (child.material as THREE.Material).clone() as THREE.MeshStandardMaterial
@@ -279,13 +302,16 @@ function ModeledPart({ category, partConfig, baseCarScene, onMounted }: ModeledP
           return
         }
 
+        const nodeType = isGroup(targetNode) ? 'Group' : targetNode.type
+        console.log(`[DynamicPart] Attaching to "${nodeName}" (${nodeType})`)
+
         const clone = clonePartAt(gltf.scene, targetNode, matOptions)
 
         // Add to same parent to maintain coordinate space
         targetNode.parent?.add(clone)
         addedClones.push(clone)
 
-        // Hide original node
+        // Hide original node (works for both Groups and Meshes)
         if (targetNode.visible) {
           targetNode.visible = false
           hiddenNodes.push(targetNode)
@@ -305,13 +331,16 @@ function ModeledPart({ category, partConfig, baseCarScene, onMounted }: ModeledP
         return
       }
 
+      const nodeType = isGroup(targetNode) ? 'Group' : targetNode.type
+      console.log(`[DynamicPart] Replacing "${partConfig.replaceNode}" (${nodeType})`)
+
       const clone = clonePartAt(gltf.scene, targetNode, matOptions)
 
       // Add to same parent to maintain coordinate space
       targetNode.parent?.add(clone)
       addedClones.push(clone)
 
-      // Hide original node
+      // Hide original node (works for both Groups and Meshes)
       if (targetNode.visible) {
         targetNode.visible = false
         hiddenNodes.push(targetNode)
