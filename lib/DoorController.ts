@@ -35,16 +35,16 @@ export class DoorController {
       durationSec = 1.2,
     } = options
 
-    // Get meshes by name (adjust to match your car model's mesh names)
-    console.log('[DoorController] Searching for meshes in scene...')
-    const leftFrontDoor = scene.getObjectByName('car_door_left') as THREE.Mesh
-    const rightFrontDoor = scene.getObjectByName('car_door_right') as THREE.Mesh
-    const leftBackDoor = scene.getObjectByName('car_door_back_left') as THREE.Mesh
-    const rightBackDoor = scene.getObjectByName('car_door_back_right') as THREE.Mesh
-    const hood = scene.getObjectByName('car_caput') as THREE.Mesh
-    const trunk = scene.getObjectByName('car_trunk') as THREE.Mesh
+    // Get objects by name (supports both meshes and groups)
+    console.log('[DoorController] Searching for objects in scene...')
+    const leftFrontDoor = scene.getObjectByName('car_door_left') as THREE.Object3D
+    const rightFrontDoor = scene.getObjectByName('car_door_right') as THREE.Object3D
+    const leftBackDoor = scene.getObjectByName('car_door_back_left') as THREE.Object3D
+    const rightBackDoor = scene.getObjectByName('car_door_back_right') as THREE.Object3D
+    const hood = scene.getObjectByName('car_caput') as THREE.Object3D
+    const trunk = scene.getObjectByName('car_trunk') as THREE.Object3D
 
-    console.log('[DoorController] Mesh lookup results:', {
+    console.log('[DoorController] Object lookup results:', {
       car_door_left: leftFrontDoor ? '✓ FOUND' : '✗ NOT FOUND',
       car_door_right: rightFrontDoor ? '✓ FOUND' : '✗ NOT FOUND',
       car_door_back_left: leftBackDoor ? '✓ FOUND' : '✗ NOT FOUND',
@@ -55,11 +55,9 @@ export class DoorController {
 
     if (!leftFrontDoor || !rightFrontDoor || !hood || !trunk) {
       console.warn('[DoorController] ⚠️ One or more critical parts not found!')
-      console.log('[DoorController] Listing ALL mesh names in scene:')
+      console.log('[DoorController] Listing ALL object names in scene:')
       scene.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          console.log('  - Mesh name:', child.name || '(unnamed)')
-        }
+        console.log('  - Object name:', child.name || '(unnamed)', 'type:', child.type)
       })
     }
 
@@ -146,17 +144,17 @@ export class DoorController {
 
   private createHingePivot(
     carModel: any,
-    mesh: THREE.Mesh,
+    node: THREE.Object3D,
     part: 'left' | 'right' | 'hood' | 'trunk',
     windowName: string | null = null,
     handleNames: string | string[] = []
   ): THREE.Object3D {
-    if (!mesh) {
-      console.warn(`[DoorController] ⚠️ Mesh for "${part}" not found, skipping pivot creation`)
+    if (!node) {
+      console.warn(`[DoorController] ⚠️ Object for "${part}" not found, skipping pivot creation`)
       return new THREE.Object3D()
     }
 
-    console.log(`[DoorController] Creating hinge pivot for "${part}"...`)
+    console.log(`[DoorController] Creating hinge pivot for "${part}" (type: ${node.type})...`)
 
     const handles = Array.isArray(handleNames)
       ? handleNames
@@ -164,15 +162,10 @@ export class DoorController {
       ? [handleNames]
       : []
 
-    if (!mesh.geometry) {
-      console.error(`[DoorController] Mesh for "${part}" has no geometry!`)
-      return new THREE.Object3D()
-    }
+    // Compute bounding box (works for both Mesh and Group)
+    const bbox = new THREE.Box3().setFromObject(node)
 
-    mesh.geometry.computeBoundingBox()
-    const bbox = mesh.geometry.boundingBox
-
-    if (!bbox) {
+    if (bbox.isEmpty()) {
       console.error(`[DoorController] Could not compute bounding box for "${part}"!`)
       return new THREE.Object3D()
     }
@@ -205,11 +198,11 @@ export class DoorController {
     }
 
     // World ↔ parent local conversion
-    const hingeWorld = mesh.localToWorld(hingeLocal.clone())
-    const parent = mesh.parent
+    const hingeWorld = node.localToWorld(hingeLocal.clone())
+    const parent = node.parent
 
     if (!parent) {
-      console.error(`[DoorController] Mesh for "${part}" has no parent!`)
+      console.error(`[DoorController] Object for "${part}" has no parent!`)
       return new THREE.Object3D()
     }
 
@@ -220,28 +213,28 @@ export class DoorController {
     parent.add(pivot)
     pivot.position.copy(hingeParent)
 
-    // Attach the door
-    pivot.attach(mesh)
+    // Attach the door/hood/trunk
+    pivot.attach(node)
 
     // Optional: attach the window
     if (windowName) {
-      const winMesh = carModel.getObjectByName(windowName) as THREE.Mesh
-      if (winMesh) {
-        winMesh.updateMatrixWorld(true)
-        pivot.attach(winMesh)
+      const winObj = carModel.getObjectByName(windowName) as THREE.Object3D
+      if (winObj) {
+        winObj.updateMatrixWorld(true)
+        pivot.attach(winObj)
       } else {
-        console.warn(`Window mesh "${windowName}" not found.`)
+        console.warn(`Window object "${windowName}" not found.`)
       }
     }
 
     // Optional: attach handle(s)
     handles.forEach((hName) => {
-      const handleMesh = carModel.getObjectByName(hName) as THREE.Mesh
-      if (handleMesh) {
-        handleMesh.updateMatrixWorld(true)
-        pivot.attach(handleMesh)
+      const handleObj = carModel.getObjectByName(hName) as THREE.Object3D
+      if (handleObj) {
+        handleObj.updateMatrixWorld(true)
+        pivot.attach(handleObj)
       } else {
-        console.warn(`[DoorController] Handle mesh "${hName}" not found.`)
+        console.warn(`[DoorController] Handle object "${hName}" not found.`)
       }
     })
 
