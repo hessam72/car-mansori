@@ -2,7 +2,7 @@
   {
     "id": "sample-car",
     "name": "BMW M5 Competition",
-    "model_path": "/models/car/vintage-car.glb",
+    "model_path": "/models/car/scene (50).glb",
     "usdz_path": "/models/car/car.usdz",
     "specs": {
       "engine": "V6 Turbo",

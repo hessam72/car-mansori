@@ -311,6 +311,28 @@ export default function ConfigurableCar({
     suspensionControllerRef.current.updateExcludedNodes(wheelRefs)
   }, [wheelRefs])
 
+  // Reset to base wheels when "none" or hideNodes-only wheel selected
+  useEffect(() => {
+    const wheelPartId = selectedParts.wheels
+    if (!carModel || !wheelPartId) return
+
+    // If wheel part uses hideNodes only (like "wheel-none"), reset to base wheels
+    if (wheelPartId.includes('none') || wheelPartId === '') {
+      const baseWheelNames = ['Wheel_FL', 'Wheel_FR', 'Wheel_RL', 'Wheel_RR']
+      const foundWheels: THREE.Object3D[] = []
+
+      baseWheelNames.forEach((wheelName) => {
+        const wheel = findNodeByName(carModel, wheelName)
+        if (wheel) foundWheels.push(wheel)
+      })
+
+      if (foundWheels.length > 0) {
+        console.log('[ConfigurableCar] Reset to base wheels:', foundWheels.length)
+        setWheelRefs(foundWheels)
+      }
+    }
+  }, [selectedParts.wheels, carModel])
+
   // Callback for when wheel parts are mounted
   const handleWheelMounted = (clones: THREE.Object3D[]) => {
     console.log('[ConfigurableCar] Wheel mounted callback received', clones.length, 'wheel clones')
