@@ -19,6 +19,7 @@ export interface PalettePreset {
 }
 
 export interface CarConfigState {
+  currentCarId: string | null
   selectedParts: Record<string, string>
   paintConfig: MultiZonePaintConfig
   activeZone: PaintZone
@@ -27,6 +28,7 @@ export interface CarConfigState {
   partLoadErrors: Record<string, string>
   openParts: Record<string, boolean>
   suspensionHeight: number
+  setCurrentCarId: (carId: string) => void
   selectPart: (category: string, partId: string) => void
   setPaintConfig: (config: Partial<PaintConfig>, zone?: PaintZone) => void
   setActiveZone: (zone: PaintZone) => void
@@ -58,7 +60,7 @@ export const DEFAULT_PARTS: Record<string, string> = {
   headlights: 'headlight-stock',
 }
 
-const defaultPaintConfig: MultiZonePaintConfig = {
+export const defaultPaintConfig: MultiZonePaintConfig = {
   body: {
     color: '#ff0000',
     metalness: 0.9,
@@ -157,6 +159,7 @@ export const FACTORY_PALETTES: PalettePreset[] = [
 export const useCarConfig = create<CarConfigState>()(
   devtools(
     (set, get) => ({
+      currentCarId: null,
       selectedParts: {},
       paintConfig: defaultPaintConfig,
       activeZone: 'body',
@@ -172,6 +175,8 @@ export const useCarConfig = create<CarConfigState>()(
         car_trunk: false,
       },
       suspensionHeight: 0,
+
+      setCurrentCarId: (carId) => set({ currentCarId: carId }),
 
       selectPart: (category, partId) =>
         set((state) => ({

@@ -78,11 +78,7 @@ export default function CustomizationPanel({ open, onOpenChange }: Customization
   const enableCompareMode = useComparisonStore((s) => s.enableCompareMode)
 
   const handleCompare = () => {
-    enableCompareMode({
-      selectedParts,
-      paintConfig,
-      suspensionHeight,
-    })
+    enableCompareMode()
   }
 
   // Calculate total price

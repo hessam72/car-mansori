@@ -9,6 +9,7 @@ import CarStudioEnvironment from './CarStudioEnvironment'
 import CarLighting from './CarLighting'
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei'
 import { IoClose } from 'react-icons/io5'
+import carsData from '@/public/config/cars.json'
 
 export default function ComparisonSlider() {
   const [sliderPosition, setSliderPosition] = useState(50)
@@ -22,8 +23,13 @@ export default function ComparisonSlider() {
   const currentPaintConfig = useCarConfig((s) => s.paintConfig)
   const currentSelectedParts = useCarConfig((s) => s.selectedParts)
   const currentSuspensionHeight = useCarConfig((s) => s.suspensionHeight)
+  const currentCarId = useCarConfig((s) => s.currentCarId)
 
   if (!compareMode || !beforeSnapshot) return null
+
+  // Get current car model path from cars.json
+  const currentCar = carsData.find((car: any) => car.id === currentCarId)
+  const modelPath = currentCar?.model_path || '/models/car/supercars/purche-with-parts.glb'
 
   const handleMouseDown = () => setIsDragging(true)
 
@@ -81,7 +87,7 @@ export default function ComparisonSlider() {
           />
 
           <ConfigurableCar
-            modelPath="/models/car/supercars/purche-with-parts.glb"
+            modelPath={modelPath}
             overrideSelectedParts={beforeSnapshot.selectedParts}
             overridePaintConfig={beforeSnapshot.paintConfig}
             overrideSuspensionHeight={beforeSnapshot.suspensionHeight}
@@ -94,7 +100,7 @@ export default function ComparisonSlider() {
         {/* Before Label */}
         <div className="pointer-events-none absolute left-6 top-6 rounded-lg bg-black/60 px-4 py-2 backdrop-blur-md">
           <p className="text-[10px] uppercase tracking-[0.35em] text-white/50">Before</p>
-          <p className="text-sm font-medium text-white">Saved Config</p>
+          <p className="text-sm font-medium text-white">Factory Default</p>
         </div>
       </div>
 
@@ -127,7 +133,7 @@ export default function ComparisonSlider() {
           />
 
           <ConfigurableCar
-            modelPath="/models/car/supercars/purche-with-parts.glb"
+            modelPath={modelPath}
             overrideSelectedParts={currentSelectedParts}
             overridePaintConfig={currentPaintConfig}
             overrideSuspensionHeight={currentSuspensionHeight}

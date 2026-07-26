@@ -50,6 +50,7 @@ export default function CarPageClient({ car }: { car: Car }) {
   const [sceneKey, setSceneKey] = useState(0)
   const [baseCarError, setBaseCarError] = useState<string | null>(null)
   const resetConfig = useCarConfig((s) => s.resetConfig)
+  const setCurrentCarId = useCarConfig((s) => s.setCurrentCarId)
   const compareMode = useComparisonStore((s) => s.compareMode)
 
   useEffect(() => {
@@ -59,6 +60,7 @@ export default function CarPageClient({ car }: { car: Car }) {
   }, [])
 
   useEffect(() => {
+    setCurrentCarId(car.id)
     resetConfig(DEFAULT_PARTS)
 
     // Warm the drei cache: base car + the stock parts the scene renders first,
@@ -70,7 +72,7 @@ export default function CarPageClient({ car }: { car: Car }) {
       if (part?.model_path) useGLTF.preload(part.model_path)
     })
     useEnvironment.preload({ files: STUDIO_HDR })
-  }, [car, resetConfig])
+  }, [car, resetConfig, setCurrentCarId])
 
   const handleBaseCarError = useCallback((_category: string, error: Error) => {
     setBaseCarError(error.message || 'Failed to load the 3D model')
