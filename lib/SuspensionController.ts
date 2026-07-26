@@ -43,9 +43,10 @@ export class SuspensionController {
       ease: 'power2.out',
       onUpdate: () => {
         // Apply inverse transform to excluded nodes (wheels stay grounded)
+        // When body moves UP (+offset), wheels must move UP too to maintain ground contact
         this.excludedNodes.forEach(node => {
           const baseY = this.excludedNodesBaseY.get(node) ?? 0
-          node.position.y = baseY - offset
+          node.position.z = baseY - offset
         })
         this.invalidate()
       },

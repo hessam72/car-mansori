@@ -16,6 +16,18 @@ import * as THREE from 'three'
 // Use the local DRACO decoder instead of drei's default CDN
 useGLTF.setDecoderPath('/draco/')
 
+// Helper: Find node by name (case-insensitive, recursive)
+function findNodeByName(parent: THREE.Object3D, name: string): THREE.Object3D | null {
+  if (parent.name.toLowerCase() === name.toLowerCase()) {
+    return parent
+  }
+  for (const child of parent.children) {
+    const found = findNodeByName(child, name)
+    if (found) return found
+  }
+  return null
+}
+
 interface ConfigurableCarProps {
   modelPath: string
   overrideSelectedParts?: Record<string, string>
@@ -98,6 +110,29 @@ export default function ConfigurableCar({
 
     return { carModel: clone, paintTargets: targets }
   }, [gltf.scene])
+
+  // Discover base wheels from the car model on initial load
+  useEffect(() => {
+    if (!carModel) return
+
+    const baseWheelNames = ['Wheel_FL', 'Wheel_FR', 'Wheel_RL', 'Wheel_RR']
+    const foundWheels: THREE.Object3D[] = []
+
+    baseWheelNames.forEach((wheelName) => {
+      const wheel = findNodeByName(carModel, wheelName)
+      if (wheel) {
+        console.log('[ConfigurableCar] Found base wheel:', wheelName)
+        foundWheels.push(wheel)
+      } else {
+        console.warn('[ConfigurableCar] Base wheel not found:', wheelName)
+      }
+    })
+
+    if (foundWheels.length > 0) {
+      console.log('[ConfigurableCar] Initializing wheelRefs with', foundWheels.length, 'base wheels')
+      setWheelRefs(foundWheels)
+    }
+  }, [carModel])
 
   // Paint transitions: first application is instant, later changes blend
   // smoothly (~400ms) in useFrame instead of snapping
