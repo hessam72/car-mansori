@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { useComparisonStore } from '@/stores/comparisonStore'
 import { useCarConfig } from '@/stores/carConfigStore'
@@ -10,11 +10,15 @@ import CarLighting from './CarLighting'
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei'
 import { IoClose } from 'react-icons/io5'
 import carsData from '@/public/config/cars.json'
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 
 export default function ComparisonSlider() {
   const [sliderPosition, setSliderPosition] = useState(50)
   const [isDragging, setIsDragging] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [leftControls, setLeftControls] = useState<OrbitControlsImpl | null>(null)
+  const [rightControls, setRightControls] = useState<OrbitControlsImpl | null>(null)
+  const isSyncing = useRef(false)
 
   const compareMode = useComparisonStore((s) => s.compareMode)
   const beforeSnapshot = useComparisonStore((s) => s.beforeSnapshot)
@@ -29,7 +33,52 @@ export default function ComparisonSlider() {
 
   // Get current car model path from cars.json
   const currentCar = carsData.find((car: any) => car.id === currentCarId)
-  const modelPath = currentCar?.model_path || '/models/car/supercars/purche-with-parts.glb'
+  const modelPath = currentCar?.model_path || ''
+
+  // Synchronize camera rotation between both canvases
+  useEffect(() => {
+    if (!leftControls || !rightControls) {
+      console.log('[ComparisonSlider] Controls not ready yet', { leftControls: !!leftControls, rightControls: !!rightControls })
+      return
+    }
+
+    console.log('[ComparisonSlider] Setting up camera sync')
+
+    const syncLeftToRight = () => {
+      if (isSyncing.current) return
+      isSyncing.current = true
+
+      console.log('[ComparisonSlider] Syncing left → right')
+      const leftCamera = leftControls.object
+      rightControls.object.position.copy(leftCamera.position)
+      rightControls.target.copy(leftControls.target)
+      rightControls.update()
+
+      isSyncing.current = false
+    }
+
+    const syncRightToLeft = () => {
+      if (isSyncing.current) return
+      isSyncing.current = true
+
+      console.log('[ComparisonSlider] Syncing right → left')
+      const rightCamera = rightControls.object
+      leftControls.object.position.copy(rightCamera.position)
+      leftControls.target.copy(rightControls.target)
+      leftControls.update()
+
+      isSyncing.current = false
+    }
+
+    leftControls.addEventListener('change', syncLeftToRight)
+    rightControls.addEventListener('change', syncRightToLeft)
+
+    return () => {
+      console.log('[ComparisonSlider] Cleaning up camera sync')
+      leftControls.removeEventListener('change', syncLeftToRight)
+      rightControls.removeEventListener('change', syncRightToLeft)
+    }
+  }, [leftControls, rightControls])
 
   const handleMouseDown = () => setIsDragging(true)
 
@@ -77,6 +126,7 @@ export default function ComparisonSlider() {
         >
           <PerspectiveCamera makeDefault position={[5, 2, 5]} fov={50} />
           <OrbitControls
+            ref={setLeftControls}
             enablePan={false}
             enableZoom={true}
             minDistance={3}
@@ -123,6 +173,7 @@ export default function ComparisonSlider() {
         >
           <PerspectiveCamera makeDefault position={[5, 2, 5]} fov={50} />
           <OrbitControls
+            ref={setRightControls}
             enablePan={false}
             enableZoom={true}
             minDistance={3}
