@@ -365,6 +365,12 @@ canvas {
   cursor: none !important;
 }
 
+/* Restore cursor for car configurator page */
+.car-page,
+.car-page * {
+  cursor: auto !important;
+}
+
 @media (pointer: coarse) {
   * { cursor: auto !important; }
 }

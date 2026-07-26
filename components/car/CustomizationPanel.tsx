@@ -17,7 +17,7 @@ import {
   GiSmokingPipe,
   GiSteeringWheel,
   GiCarSeat,
-  GiCarSpring
+  GiSpring
 } from 'react-icons/gi'
 import { TbCarSuv } from 'react-icons/tb'
 import { MdLightbulb, MdLightbulbOutline } from 'react-icons/md'
@@ -39,7 +39,7 @@ function preloadCategory(categoryId: string) {
 
 const CATEGORIES = [
   { id: 'paint', name: 'Paint', icon: IoColorPalette },
-  { id: 'suspension', name: 'Suspension', icon: GiCarSpring },
+  { id: 'suspension', name: 'Suspension', icon: GiSpring },
   { id: 'lighting', name: 'Lighting', icon: MdLightbulbOutline },
   { id: 'wheels', name: 'Wheels', icon: GiCarWheel },
   { id: 'spoilers', name: 'Spoilers', icon: GiWingCloak },
