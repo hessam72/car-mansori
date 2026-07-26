@@ -13,6 +13,7 @@ export class SuspensionController {
   private baseY: number
   private excludedNodes: THREE.Object3D[]
   private excludedNodesBaseY: Map<THREE.Object3D, number>
+  private currentOffset: number = 0
 
   constructor(carGroup: THREE.Group, invalidate: () => void, excludedNodes: THREE.Object3D[] = []) {
     this.carGroup = carGroup
@@ -21,9 +22,9 @@ export class SuspensionController {
     this.excludedNodes = excludedNodes
     this.excludedNodesBaseY = new Map()
 
-    // Store initial Y positions of excluded nodes
+    // Store initial Z positions of excluded nodes (baseline without offset)
     excludedNodes.forEach(node => {
-      this.excludedNodesBaseY.set(node, node.position.y)
+      this.excludedNodesBaseY.set(node, node.position.z)
     })
   }
 
@@ -34,6 +35,7 @@ export class SuspensionController {
   setHeight(cm: number) {
     const targetY = this.baseY + cm / 100
     const offset = cm / 100
+    this.currentOffset = offset
 
     console.log('[SuspensionController] Setting height to', cm, 'cm, offset =', offset, ', excluded nodes:', this.excludedNodes.length)
 
@@ -45,8 +47,8 @@ export class SuspensionController {
         // Apply inverse transform to excluded nodes (wheels stay grounded)
         // When body moves UP (+offset), wheels must move UP too to maintain ground contact
         this.excludedNodes.forEach(node => {
-          const baseY = this.excludedNodesBaseY.get(node) ?? 0
-          node.position.z = baseY - offset
+          const baseZ = this.excludedNodesBaseY.get(node) ?? 0
+          node.position.z = baseZ - offset
         })
         this.invalidate()
       },
@@ -72,13 +74,16 @@ export class SuspensionController {
    * @param nodes New array of nodes to exclude from suspension transform
    */
   updateExcludedNodes(nodes: THREE.Object3D[]) {
-    console.log('[SuspensionController] Updating excluded nodes:', nodes.length, 'nodes')
+    console.log('[SuspensionController] Updating excluded nodes:', nodes.length, 'nodes, current offset:', this.currentOffset)
     this.excludedNodes = nodes
     this.excludedNodesBaseY.clear()
 
     nodes.forEach(node => {
-      console.log('[SuspensionController] Storing base Y for node:', node.name, 'Y =', node.position.y)
-      this.excludedNodesBaseY.set(node, node.position.y)
+      // Account for current suspension offset when storing baseline
+      // If suspension is active, current Z already has offset applied, so add it back to get true baseline
+      const baselineZ = node.position.z + this.currentOffset
+      console.log('[SuspensionController] Storing baseline Z for node:', node.name, 'current Z =', node.position.z, 'baseline =', baselineZ)
+      this.excludedNodesBaseY.set(node, baselineZ)
     })
   }
 
