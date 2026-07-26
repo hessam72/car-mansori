@@ -12,6 +12,7 @@ import partsConfig from '@/public/config/car-parts.json'
 interface DynamicPartProps {
   category: string
   baseCarScene: THREE.Group
+  onMounted?: (clones: THREE.Object3D[]) => void
 }
 
 // Transition-frame scratch — never allocate inside useFrame
@@ -132,7 +133,7 @@ function LoadingFlag({ category }: { category: string }) {
   return null
 }
 
-export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
+export function DynamicPart({ category, baseCarScene, onMounted }: DynamicPartProps) {
   const selectedPartId = useCarConfig((s) => s.selectedParts[category])
   const invalidate = useThree((s) => s.invalidate)
 
@@ -156,7 +157,7 @@ export function DynamicPart({ category, baseCarScene }: DynamicPartProps) {
 
   return (
     <Suspense fallback={<LoadingFlag category={category} />}>
-      <ModeledPart category={category} partConfig={partConfig} baseCarScene={baseCarScene} />
+      <ModeledPart category={category} partConfig={partConfig} baseCarScene={baseCarScene} onMounted={onMounted} />
     </Suspense>
   )
 }
@@ -165,9 +166,10 @@ interface ModeledPartProps {
   category: string
   partConfig: any
   baseCarScene: THREE.Group
+  onMounted?: (clones: THREE.Object3D[]) => void
 }
 
-function ModeledPart({ category, partConfig, baseCarScene }: ModeledPartProps) {
+function ModeledPart({ category, partConfig, baseCarScene, onMounted }: ModeledPartProps) {
   const setPartLoading = useCarConfig((s) => s.setPartLoading)
   const setPartError = useCarConfig((s) => s.setPartError)
   const invalidate = useThree((s) => s.invalidate)
@@ -320,6 +322,13 @@ function ModeledPart({ category, partConfig, baseCarScene }: ModeledPartProps) {
     transition.newParts = addedClones
     transition.progress = -0.1 // Start negative for 2-frame delay
     transition.isTransitioning = addedClones.length > 0
+
+    // Notify parent of mounted clones (e.g., for suspension controller)
+    if (onMounted && addedClones.length > 0) {
+      console.log('[DynamicPart] Calling onMounted callback for category:', category, 'with', addedClones.length, 'clones')
+      onMounted(addedClones)
+    }
+
     invalidate()
 
     // Cleanup - called when component unmounts or dependencies change

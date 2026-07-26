@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useMemo, useEffect, Suspense } from 'react'
+import { useRef, useMemo, useEffect, useState, Suspense } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { useThree, useFrame } from '@react-three/fiber'
 import { useCarConfig, PaintZone, type MultiZonePaintConfig } from '@/stores/carConfigStore'
@@ -38,6 +38,7 @@ export default function ConfigurableCar({
   const invalidate = useThree((s) => s.invalidate)
   const doorControllerRef = useRef<DoorController | null>(null)
   const suspensionControllerRef = useRef<SuspensionController | null>(null)
+  const [wheelRefs, setWheelRefs] = useState<THREE.Object3D[]>([])
 
   const storePaintConfig = useCarConfig((s) => s.paintConfig)
   const paintInitialized = useCarConfig((s) => s.paintInitialized)
@@ -239,7 +240,7 @@ export default function ConfigurableCar({
     if (!groupRef.current) return
 
     try {
-      const controller = new SuspensionController(groupRef.current, invalidate)
+      const controller = new SuspensionController(groupRef.current, invalidate, wheelRefs)
       suspensionControllerRef.current = controller
     } catch (error) {
       console.error('[ConfigurableCar] SuspensionController initialization failed:', error)
@@ -268,6 +269,19 @@ export default function ConfigurableCar({
     suspensionControllerRef.current.setHeight(suspensionHeight)
   }, [suspensionHeight])
 
+  // Update excluded nodes when wheel refs change
+  useEffect(() => {
+    if (!suspensionControllerRef.current) return
+    console.log('[ConfigurableCar] Updating suspension excluded nodes with', wheelRefs.length, 'wheels')
+    suspensionControllerRef.current.updateExcludedNodes(wheelRefs)
+  }, [wheelRefs])
+
+  // Callback for when wheel parts are mounted
+  const handleWheelMounted = (clones: THREE.Object3D[]) => {
+    console.log('[ConfigurableCar] Wheel mounted callback received', clones.length, 'wheel clones')
+    setWheelRefs(clones)
+  }
+
   // Part categories to render
   const partCategories = [
     'wheels',
@@ -294,6 +308,7 @@ export default function ConfigurableCar({
             <DynamicPart
               category={category}
               baseCarScene={carModel}
+              onMounted={category === 'wheels' ? handleWheelMounted : undefined}
             />
           </PartErrorBoundary>
         </Suspense>
