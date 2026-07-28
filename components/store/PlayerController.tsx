@@ -21,7 +21,7 @@ export function usePlayerPhysics(physics: ReturnType<typeof usePhysics>) {
       if (!isInitialized.current) {
         rigidBodyRef.current.setTranslation({ x: 21, y: 1.5, z: 5 }, true)
         rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
-        state.camera.position.set(21, 2.5, 5)
+        state.camera.position.set(21, 2.8, 5)
       }
       return
     }
@@ -33,13 +33,13 @@ export function usePlayerPhysics(physics: ReturnType<typeof usePhysics>) {
 
     // Update camera to follow rigid body with offset
     const pos = rigidBodyRef.current.translation()
-    state.camera.position.set(pos.x, pos.y + 1.0, pos.z)
+    state.camera.position.set(pos.x, pos.y + 1.3, pos.z)
 
     // Safety: teleport if fallen
     if (pos.y < -5) {
       rigidBodyRef.current.setTranslation({ x: 21, y: 1.5, z: 5 }, true)
       rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
-      state.camera.position.set(21, 2.5, 5)
+      state.camera.position.set(21, 2.8, 5)
     }
   })
 }
