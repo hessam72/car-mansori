@@ -70,7 +70,7 @@ function PhysicsManager({
     <RigidBody
       ref={physics.rigidBodyRef}
       type="dynamic"
-      position={[0, 1.6, 5]}
+      position={[0, 2, 5]}
       enabledRotations={[false, true, false]}
       lockRotations
       linearDamping={2.5}
@@ -179,7 +179,7 @@ export default function Scene() {
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 0.3,
         }}
-        camera={{ position: [0, 1.6, 5], fov: 60, near: 0.1, far: 200 }}
+        camera={{ position: [0, 2, 5], fov: 60, near: 0.1, far: 200 }}
         onCreated={(state) => {
           r3fRef.current = state
         }}
@@ -248,7 +248,7 @@ export default function Scene() {
           />
           <CameraTransition
             isTransitioning={loadingPhase === 'transitioning'}
-            targetPosition={[0, 2.5, 5]}
+            targetPosition={[21, 2.5, 5]}
           />
           <ParticleReveal isTransitioning={loadingPhase === 'transitioning'} />
 

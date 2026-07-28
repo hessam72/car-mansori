@@ -48,12 +48,12 @@
           {
             "priority": 0,
             "quality": "low",
-            "url": "/store-models/mansori-wireframe.glb"
+            "url": "/store-models/Exhitbition GLB Wireframe-optimized.glb"
           },
           {
             "priority": 1,
             "quality": "high",
-            "url": "/store-models/new-showroom.glb"
+            "url": "/store-models/Exhitbition GLB Final-optimized.glb"
           }
         ]
       },
