@@ -248,7 +248,7 @@ export default function Scene() {
           />
           <CameraTransition
             isTransitioning={loadingPhase === 'transitioning'}
-            targetPosition={[21, 2.8, 5]}
+            targetPosition={[24, 2.8, 12]}
           />
           <ParticleReveal isTransitioning={loadingPhase === 'transitioning'} />
 

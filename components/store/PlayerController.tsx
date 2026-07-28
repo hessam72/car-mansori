@@ -19,9 +19,9 @@ export function usePlayerPhysics(physics: ReturnType<typeof usePhysics>) {
     const elapsed = Date.now() - initTime.current
     if (elapsed < 800) {
       if (!isInitialized.current) {
-        rigidBodyRef.current.setTranslation({ x: 21, y: 1.5, z: 5 }, true)
+        rigidBodyRef.current.setTranslation({ x: 24, y: 1.5, z: 12 }, true)
         rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
-        state.camera.position.set(21, 2.8, 5)
+        state.camera.position.set(24, 2.8, 12)
       }
       return
     }
@@ -37,9 +37,9 @@ export function usePlayerPhysics(physics: ReturnType<typeof usePhysics>) {
 
     // Safety: teleport if fallen
     if (pos.y < -5) {
-      rigidBodyRef.current.setTranslation({ x: 21, y: 1.5, z: 5 }, true)
+      rigidBodyRef.current.setTranslation({ x: 24, y: 1.5, z: 12 }, true)
       rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
-      state.camera.position.set(21, 2.8, 5)
+      state.camera.position.set(24, 2.8, 12)
     }
   })
 }

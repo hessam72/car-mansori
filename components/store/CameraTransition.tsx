@@ -36,7 +36,7 @@ export function CameraTransition({
       )
       camera.position.copy(startPos.current)
       // Look at target from above
-      camera.lookAt(targetPosition[0], targetPosition[1], targetPosition[2])
+      camera.lookAt(20, 3, -2)
       return
     }
 
@@ -55,7 +55,7 @@ export function CameraTransition({
     camera.position.z = THREE.MathUtils.lerp(startPos.current.z, targetPos.z, eased)
 
     // Animate rotation: start looking down at target, end looking forward
-    const startLookAt = new THREE.Vector3(...targetPosition)
+    const startLookAt = new THREE.Vector3(20, 3, -2)
     const endLookAt = new THREE.Vector3(targetPosition[0], targetPosition[1], targetPosition[2] - 5)
     const currentLookAt = new THREE.Vector3().lerpVectors(startLookAt, endLookAt, eased)
     camera.lookAt(currentLookAt)
