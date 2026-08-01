@@ -55,7 +55,7 @@ export default function ARProductViewer({
       {onClose && (
         <button
           onClick={onClose}
-          className="fixed top-6 right-6 z-40 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-[family-name:var(--font-vazir)] transition-colors"
+          className="fixed top-18 right-6 z-[999999999] px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-[family-name:var(--font-vazir)] transition-colors"
           dir="rtl"
         >
           بستن
@@ -137,7 +137,7 @@ export default function ARProductViewer({
         {arSupported && (
           <button
             slot="ar-button"
-            className="absolute top-6 left-6 px-6 py-3 bg-white hover:bg-gray-100 active:bg-gray-200 text-black font-semibold rounded-xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 z-30 font-[family-name:var(--font-vazir)]"
+            className="absolute top-18 left-6 px-6 py-3 bg-white hover:bg-gray-100 active:bg-gray-200 text-black font-semibold rounded-xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 z-30 font-[family-name:var(--font-vazir)]"
             dir="rtl"
           >
             <svg
