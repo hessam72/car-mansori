@@ -12,11 +12,13 @@ export default function ScrollProgress() {
 
   return (
     <motion.div
-      className="fixed top-0 left-0 right-0 h-[2px] z-[100] origin-left"
+      // origin-left is deliberate even under dir="rtl": the bar tracks scroll
+      // depth, which is a vertical quantity, not reading direction.
+      className="fixed left-0 right-0 top-0 z-[100] h-[2px] origin-left"
       style={{
         scaleX,
-        background:
-          "linear-gradient(90deg, #b8860b, #ffd700, #daa520)",
+        background: "linear-gradient(90deg, #8a6a40, #f7ebd6, #c29d68)",
+        boxShadow: "0 0 12px rgb(194 157 104 / 55%)",
       }}
     />
   );
