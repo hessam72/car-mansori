@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import ARProductViewer from './ARProductViewer'
 
 interface FurnitureColor {
   name: string
@@ -31,13 +30,13 @@ interface ProductData {
 interface ProductBillboard3DProps {
   product: ProductData | null
   onClose: () => void
+  onViewAR?: () => void
 }
 
-export default function ProductBillboard3D({ product, onClose }: ProductBillboard3DProps) {
+export default function ProductBillboard3D({ product, onClose, onViewAR }: ProductBillboard3DProps) {
   const router = useRouter()
   const groupRef = useRef<THREE.Group>(null)
   const arButtonRef = useRef<THREE.Group>(null)
-  const [showAR, setShowAR] = useState(false)
   const [hovered, setHovered] = useState(false)
 
   // Animate AR button glow
@@ -53,7 +52,7 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
   if (!product) return null
 
   const handleViewInAR = () => {
-    setShowAR(true)
+    onViewAR?.()
   }
 
   return (
@@ -281,17 +280,6 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
           </Text>
         </group>
       </group>
-
-      {/* AR Product Viewer */}
-      {showAR && product.glbPath && (
-        <ARProductViewer
-          glbPath={product.glbPath}
-          // @ts-expect-error ffdfdflkdhfddfd
-          usdzPath={product.usdzPath}
-          productName={product.name}
-          onClose={() => setShowAR(false)}
-        />
-      )}
     </Billboard>
   )
 }

@@ -8,13 +8,15 @@ interface ARProductViewerProps {
   usdzPath: string
   productName: string
   poster?: string
+  onClose?: () => void
 }
 
 export default function ARProductViewer({
   glbPath,
   usdzPath,
   productName,
-  poster
+  poster,
+  onClose
 }: ARProductViewerProps) {
   const modelViewerRef = useRef<HTMLElement & ModelViewerElement>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -48,7 +50,18 @@ export default function ARProductViewer({
   }, [productName])
 
   return (
-    <div className="relative w-full h-full min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-900">
+    <div className="fixed inset-0 z-50 w-full h-full min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-900">
+      {/* Close button */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="fixed top-6 right-6 z-40 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-[family-name:var(--font-vazir)] transition-colors"
+          dir="rtl"
+        >
+          بستن
+        </button>
+      )}
+
       {/* Loading indicator */}
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/50">

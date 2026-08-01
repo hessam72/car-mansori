@@ -21,6 +21,7 @@ import { LampLights } from './LampLights'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import ProductInteraction, { type ProductData } from './ProductInteraction'
 import ProductBillboard3D from './ProductBillboard3D'
+import ARProductViewer from './ARProductViewer'
 import { FurnitureColorPicker } from './FurnitureColorPicker'
 import { FurnitureColorApplier } from './FurnitureColorApplier'
 import { useFurnitureConfig } from '@/stores/furnitureConfigStore'
@@ -98,6 +99,7 @@ export default function Scene() {
   const [totalCount, setTotalCount] = useState(0)
   const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(null)
   const [selectedObjectPosition, setSelectedObjectPosition] = useState<[number, number, number] | null>(null)
+  const [showAR, setShowAR] = useState(false)
   const [gyroEnabled, setGyroEnabled] = useState(false)
   const [galleryError, setGalleryError] = useState<string | null>(null)
   const [modelsKey, setModelsKey] = useState(0)
@@ -302,6 +304,7 @@ export default function Scene() {
                 setSelectedProduct(null)
                 setSelectedObjectPosition(null)
               }}
+              onViewAR={() => setShowAR(true)}
             />
           )}
 
@@ -356,6 +359,16 @@ export default function Scene() {
         </Physics>
       </Canvas>
       </div>
+
+      {/* AR Product Viewer - outside Canvas */}
+      {showAR && selectedProduct?.glbPath && (
+        <ARProductViewer
+          glbPath={selectedProduct.glbPath}
+          usdzPath={selectedProduct.usdzPath || ''}
+          productName={selectedProduct.name}
+          onClose={() => setShowAR(false)}
+        />
+      )}
 
       {/* Loading indicator while models load */}
       {loadingPhase !== 'ready' && !galleryError && (
