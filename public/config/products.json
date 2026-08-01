@@ -19,7 +19,7 @@
   },
 
   "dining-chair": {
-    "id": "dining-chair-01",
+    "id": "modern-sofa-02",
     "category": "seating",
     "type": "chair",
     "name": "Nordic Dining Chair",
@@ -38,7 +38,7 @@
   },
 
   "coffee-table": {
-    "id": "coffee-table-01",
+    "id": "modern-sofa-03",
     "category": "tables",
     "type": "coffee-table",
     "name": "Minimalist Coffee Table",
@@ -56,7 +56,7 @@
   },
 
   "bookshelf": {
-    "id": "bookshelf-01",
+    "id": "modern-sofa-04",
     "category": "storage",
     "type": "bookshelf",
     "name": "Industrial Bookshelf",
@@ -75,7 +75,7 @@
   },
 
   "armchair": {
-    "id": "armchair-01",
+    "id": "modern-sofa-05",
     "category": "seating",
     "type": "armchair",
     "name": "Velvet Accent Armchair",
