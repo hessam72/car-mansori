@@ -19,6 +19,7 @@ export default function SmartImage({
   label,
   sizes,
   priority = false,
+  blend = false,
   className,
 }: {
   src: string;
@@ -27,6 +28,8 @@ export default function SmartImage({
   label: string;
   sizes: string;
   priority?: boolean;
+  /** Fade the image out on every edge so it melts into the page. */
+  blend?: boolean;
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
@@ -34,8 +37,14 @@ export default function SmartImage({
   if (failed) {
     return (
       <div
+        // In blend mode the placeholder gets a soft radial wash instead of a
+        // flat fill, so the hero still melts into the page while no
+        // photography exists rather than reading as a framed rectangle.
         className={cn(
-          "absolute inset-0 flex flex-col items-center justify-center gap-3 bg-ink-800/60",
+          "absolute inset-0 flex flex-col items-center justify-center gap-3",
+          blend
+            ? "bg-[radial-gradient(70%_60%_at_50%_45%,rgb(31_45_69/55%),transparent_75%)]"
+            : "bg-ink-800/60",
           className,
         )}
       >
@@ -53,7 +62,9 @@ export default function SmartImage({
       sizes={sizes}
       priority={priority}
       onError={() => setFailed(true)}
-      className={cn("object-cover", className)}
+      // The mask goes on the image, never the wrapper, so the placeholder
+      // above stays unmasked and legible while no photography exists.
+      className={cn("object-cover", blend && "image-blend", className)}
     />
   );
 }

@@ -9,11 +9,15 @@ export default function SiteFooter() {
   return (
     <footer className="px-5 pb-12 pt-6 sm:px-6">
       <div className="mx-auto flex max-w-3xl flex-col items-center gap-4">
-        <div aria-hidden="true" className="gold-divider">
+        {/* Not the legacy .gold-divider — that one is hardcoded to the old
+            #b8860b and is still used by /store and /car. */}
+        <div aria-hidden="true" className="flex w-full items-center gap-4">
+          <span className="h-px flex-1 bg-[linear-gradient(90deg,transparent,var(--color-gold-line-hi))]" />
           <span className="h-1.5 w-1.5 rotate-45 bg-gold/70" />
+          <span className="h-px flex-1 bg-[linear-gradient(90deg,var(--color-gold-line-hi),transparent)]" />
         </div>
 
-        <span className="font-persian text-sm font-extrabold tracking-[0.18em] text-gold-bright">
+        <span className="font-persian text-gold-key text-sm font-extrabold tracking-[0.18em]">
           {BRAND.name}
         </span>
 
@@ -23,7 +27,7 @@ export default function SiteFooter() {
 
         <a
           href={CONTACT_PHONE_HREF}
-          className="font-persian text-sm font-bold text-white transition-colors hover:text-gold-bright"
+          className="font-persian text-sm font-bold text-white transition-colors hover:text-gold-soft"
         >
           <bdi dir="ltr" className="persian-number tracking-wide">
             {CONTACT_PHONE_DISPLAY}

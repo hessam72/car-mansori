@@ -114,11 +114,11 @@ export default function MobileMenu({
             type="button"
             onClick={onClose}
             aria-label="بستن منو"
-            className="absolute right-0 grid h-11 w-11 place-items-center rounded-full border border-gold-line text-gold transition-colors hover:border-gold-line-hi hover:text-gold-bright"
+            className="absolute right-0 grid h-11 w-11 place-items-center rounded-full border border-gold-line bg-ink-900/40 text-gold shadow-[inset_0_1px_0_rgb(247_235_214/18%)] transition-colors hover:border-gold-line-hi hover:text-gold-edge"
           >
             <CloseIcon className="h-5 w-5" />
           </button>
-          <span className="font-persian absolute left-0 text-sm font-bold text-white/80">
+          <span className="font-persian text-gold-key absolute left-0 text-sm font-extrabold tracking-[0.18em]">
             {BRAND.name}
           </span>
         </div>
@@ -130,7 +130,7 @@ export default function MobileMenu({
                 <Link
                   href={link.href}
                   onClick={handleClick(link.href)}
-                  className="font-persian flex items-center justify-between border-b border-white/8 py-4 text-lg font-bold text-white transition-colors hover:text-gold-bright"
+                  className="font-persian flex items-center justify-between border-b border-white/8 py-4 text-lg font-bold text-white transition-colors hover:text-gold-soft"
                 >
                   {link.label}
                   <span

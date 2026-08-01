@@ -8,6 +8,7 @@ import KeyFeatures from "@/components/landing/KeyFeatures";
 import CallToAction from "@/components/landing/CallToAction";
 import WhyUs from "@/components/landing/WhyUs";
 import SiteFooter from "@/components/landing/SiteFooter";
+import ScrollProgress from "@/components/ui/ScrollProgress";
 
 export const metadata: Metadata = {
   title: "شهر امید | شوروم مجازی مبلمان",
@@ -25,6 +26,7 @@ export default function Home() {
         رفتن به محتوای اصلی
       </a>
 
+      <ScrollProgress />
       <LandingHeader />
 
       <main id="main">

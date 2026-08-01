@@ -27,12 +27,12 @@ export default function ArPage() {
     <div className="landing-root ink-gradient min-h-screen px-5 pb-16 pt-8 sm:px-6">
       <div className="mx-auto flex max-w-3xl flex-col gap-6">
         <div className="flex items-center justify-between">
-          <span className="font-persian text-sm font-extrabold tracking-[0.18em] text-gold-bright">
+          <span className="font-persian text-gold-key text-sm font-extrabold tracking-[0.18em]">
             {BRAND.name}
           </span>
           <Link
             href="/"
-            className="font-persian inline-flex items-center gap-2 text-xs text-white/60 transition-colors hover:text-gold-bright"
+            className="font-persian inline-flex items-center gap-2 text-xs text-white/60 transition-colors hover:text-gold-soft"
           >
             {AR_PAGE.back}
             <ArrowIcon className="h-4 w-4 rotate-180" />

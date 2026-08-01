@@ -13,7 +13,7 @@ function BrandMark() {
 
   if (failed) {
     return (
-      <span className="font-persian text-base font-extrabold tracking-[0.18em] text-gold-bright sm:text-lg">
+      <span className="font-persian text-gold-key text-base font-extrabold tracking-[0.18em] sm:text-lg">
         {BRAND.name}
       </span>
     );
@@ -51,14 +51,19 @@ export default function LandingHeader() {
         aria-hidden={open}
         className={cn(
           "fixed inset-x-0 top-0 z-[150] transition-all duration-500 ease-lux",
-          scrolled && "glass border-x-0 border-t-0",
+          scrolled && "glass border-x-0 border-t-0 border-b-gold-line",
           open && "pointer-events-none opacity-0",
         )}
       >
         {/* Physical left/right positioning, not flex order: it is immune to
             the document's dir="rtl" and puts the logo on the left and the
             menu button on the right exactly as specified. */}
-        <div className="relative mx-auto flex h-16 max-w-6xl items-center px-4 sm:h-20 sm:px-6">
+        <div
+          className={cn(
+            "relative mx-auto flex max-w-6xl items-center px-4 transition-[height] duration-500 ease-lux sm:px-6",
+            scrolled ? "h-14 sm:h-16" : "h-16 sm:h-20",
+          )}
+        >
           <Link
             href="/"
             className="absolute left-4 flex items-center sm:left-6"
@@ -74,7 +79,7 @@ export default function LandingHeader() {
             aria-label="باز کردن منو"
             aria-expanded={open}
             aria-controls="site-menu"
-            className="absolute right-4 grid h-11 w-11 place-items-center rounded-full border border-gold-line text-gold transition-colors hover:border-gold-line-hi hover:text-gold-bright sm:right-6"
+            className="absolute right-4 grid h-11 w-11 place-items-center rounded-full border border-gold-line bg-ink-900/40 text-gold shadow-[inset_0_1px_0_rgb(247_235_214/18%)] transition-colors hover:border-gold-line-hi hover:text-gold-edge sm:right-6"
           >
             <MenuIcon className="h-5 w-5" />
           </button>

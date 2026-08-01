@@ -41,7 +41,7 @@ export default function ArDemoClient({ products }: { products: ArProduct[] }) {
               className={cn(
                 "font-persian rounded-full border px-4 py-2 text-xs font-bold transition-colors",
                 i === active
-                  ? "border-gold-line-hi bg-gold/15 text-gold-bright"
+                  ? "border-gold-line-hi bg-gold/15 text-gold-edge"
                   : "border-hairline text-white/60 hover:text-white",
               )}
             >

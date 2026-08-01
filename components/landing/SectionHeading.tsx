@@ -39,9 +39,16 @@ export function Heading({
 
 export function Eyebrow({ children }: { children: string }) {
   return (
-    <span className="font-persian inline-flex items-center gap-2 text-[0.7rem] tracking-[0.3em] text-gold-soft/90 sm:text-xs">
-      <span aria-hidden="true" className="h-px w-6 bg-gold-line-hi" />
+    <span className="font-persian inline-flex items-center gap-3 text-[0.7rem] tracking-[0.3em] text-gold-soft/90 sm:text-xs">
+      <span
+        aria-hidden="true"
+        className="h-px w-6 bg-[linear-gradient(90deg,transparent,var(--color-gold-line-hi))]"
+      />
       {children}
+      <span
+        aria-hidden="true"
+        className="h-px w-6 bg-[linear-gradient(90deg,var(--color-gold-line-hi),transparent)]"
+      />
     </span>
   );
 }

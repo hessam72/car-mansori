@@ -122,7 +122,7 @@ export default function HomeARViewer({
         {arSupported && (
           <button
             slot="ar-button"
-            className="font-persian absolute bottom-4 left-1/2 inline-flex -translate-x-1/2 items-center gap-2 rounded-full bg-gradient-to-l from-gold-deep via-gold to-gold-soft px-6 py-3 text-sm font-bold text-ink-950 shadow-[0_10px_30px_-12px_rgb(212_175_55/80%)]"
+            className="font-persian cta-glow absolute bottom-4 left-1/2 inline-flex -translate-x-1/2 items-center gap-2 rounded-full px-6 py-3 text-sm font-bold text-gold-bright"
           >
             {AR_PAGE.arButton}
             <ArrowIcon className="h-4 w-4" />

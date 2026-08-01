@@ -3,13 +3,11 @@ import SectionHeading from "./SectionHeading";
 import SmartImage from "./SmartImage";
 import GoldButton from "./GoldButton";
 import Reveal from "./Reveal";
+import Section from "./Section";
 
 export default function ArFeature() {
   return (
-    <section
-      className="flex flex-col items-center gap-8 px-5 py-20 sm:px-6 sm:py-24"
-      aria-labelledby="ar-heading"
-    >
+    <Section tone="c" labelledBy="ar-heading">
       <Reveal className="flex w-full flex-col items-center gap-8">
         <SectionHeading
           eyebrow={AR_FEATURE.eyebrow}
@@ -18,7 +16,7 @@ export default function ArFeature() {
           id="ar-heading"
         />
 
-        <div className="relative aspect-[4/3] w-full max-w-xl overflow-hidden rounded-glass glass-flat glass-gold specular">
+        <div className="relative aspect-[4/3] w-full max-w-xl overflow-hidden rounded-glass glass-flat specular">
           <SmartImage
             src={AR_FEATURE.image.src}
             alt={AR_FEATURE.image.alt}
@@ -31,6 +29,6 @@ export default function ArFeature() {
           {AR_FEATURE.cta.label}
         </GoldButton>
       </Reveal>
-    </section>
+    </Section>
   );
 }

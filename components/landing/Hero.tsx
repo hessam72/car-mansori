@@ -15,18 +15,16 @@ export default function Hero() {
       <Reveal className="flex flex-col items-center gap-5 text-center">
         <Eyebrow>{HERO.eyebrow}</Eyebrow>
 
-        <div className="relative aspect-[4/5] w-full max-w-[19rem] overflow-hidden rounded-glass glass-flat glass-gold specular sm:max-w-md md:aspect-[16/11] md:max-w-3xl">
+        {/* No frame: the image is masked to fade out on every edge and melt
+            into the page gradient. */}
+        <div className="relative aspect-[4/5] w-full max-w-[19rem] sm:max-w-md md:aspect-[16/11] md:max-w-3xl">
           <SmartImage
             src={HERO.image.src}
             alt={HERO.image.alt}
             label={HERO.image.label}
             priority
+            blend
             sizes="(max-width: 640px) 92vw, (max-width: 1024px) 70vw, 768px"
-          />
-          {/* Melts the image bottom into the page gradient */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink-900 to-transparent"
           />
         </div>
 

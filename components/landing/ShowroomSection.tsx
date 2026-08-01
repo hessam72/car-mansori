@@ -3,14 +3,11 @@ import SectionHeading from "./SectionHeading";
 import SmartImage from "./SmartImage";
 import GoldButton from "./GoldButton";
 import Reveal from "./Reveal";
+import Section from "./Section";
 
 export default function ShowroomSection() {
   return (
-    <section
-      id={SHOWROOM.id}
-      className="flex flex-col items-center gap-8 px-5 py-20 sm:px-6 sm:py-28"
-      aria-labelledby="showroom-heading"
-    >
+    <Section tone="a" id={SHOWROOM.id} labelledBy="showroom-heading">
       <Reveal className="flex w-full flex-col items-center gap-8">
         <SectionHeading
           eyebrow={SHOWROOM.eyebrow}
@@ -19,7 +16,9 @@ export default function ShowroomSection() {
           id="showroom-heading"
         />
 
-        <div className="relative aspect-[4/3] w-full max-w-3xl overflow-hidden rounded-glass glass-flat glass-gold specular sm:aspect-[16/10]">
+        {/* Hairline, not gold: the panel already carries the gold border and
+            two competing gold frames read as clutter. */}
+        <div className="relative aspect-[4/3] w-full max-w-3xl overflow-hidden rounded-glass glass-flat specular sm:aspect-[16/10]">
           <SmartImage
             src={SHOWROOM.image.src}
             alt={SHOWROOM.image.alt}
@@ -30,6 +29,6 @@ export default function ShowroomSection() {
 
         <GoldButton href={SHOWROOM.cta.href}>{SHOWROOM.cta.label}</GoldButton>
       </Reveal>
-    </section>
+    </Section>
   );
 }

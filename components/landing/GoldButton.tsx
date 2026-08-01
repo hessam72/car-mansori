@@ -4,14 +4,18 @@ import { ArrowIcon } from "./icons";
 import { cn } from "@/lib/utils";
 
 /**
- * Primary gold CTA. Renders a next/link for internal routes and a plain
- * anchor for `tel:` / external hrefs.
+ * Dark, gold-bordered, glowing CTA. Renders a next/link for internal routes
+ * and a plain anchor for `tel:` / external hrefs.
+ *
+ * `solid` glows and carries the brighter border; `outline` is the quieter
+ * sibling for secondary actions.
  */
 export default function GoldButton({
   href,
   children,
   icon,
   variant = "solid",
+  breathe = false,
   className,
 }: {
   href: string;
@@ -19,20 +23,30 @@ export default function GoldButton({
   /** Replaces the default arrow. */
   icon?: ReactNode;
   variant?: "solid" | "outline";
+  /** Slow breathing glow — reserve for the single primary action. */
+  breathe?: boolean;
   className?: string;
 }) {
   const classes = cn(
-    "font-persian inline-flex items-center justify-center gap-2.5 rounded-full px-7 py-3.5 text-sm font-bold transition-all duration-300 ease-lux active:scale-[0.98] sm:text-base",
+    "font-persian group relative inline-flex items-center justify-center gap-2.5 overflow-hidden rounded-full px-7 py-3.5 text-sm font-bold text-gold-bright transition-all duration-300 ease-lux active:scale-[0.98] sm:text-base",
     variant === "solid"
-      ? "bg-gradient-to-l from-gold-deep via-gold to-gold-soft text-ink-950 shadow-[0_10px_30px_-12px_rgb(212_175_55/70%)] hover:shadow-[0_14px_38px_-12px_rgb(212_175_55/90%)]"
-      : "glass glass-gold text-gold-bright hover:border-gold-line-hi",
+      ? "cta-glow hover:-translate-y-0.5"
+      : "border border-gold-line bg-ink-900/50 hover:border-gold-line-hi hover:text-gold-edge",
+    breathe && "cta-breathe",
     className,
   );
 
   const content = (
     <>
-      {children}
-      {icon ?? <ArrowIcon className="h-4 w-4" />}
+      {/* Sheen sweep on hover — same technique as .btn-primary in globals.css */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -translate-x-full bg-[linear-gradient(90deg,transparent,rgb(247_235_214/22%),transparent)] transition-transform duration-700 ease-lux group-hover:translate-x-full"
+      />
+      <span className="relative flex items-center gap-2.5">
+        {children}
+        {icon ?? <ArrowIcon className="h-4 w-4" />}
+      </span>
     </>
   );
 

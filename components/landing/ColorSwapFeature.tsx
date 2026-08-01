@@ -2,14 +2,11 @@ import { COLOR_SWAP } from "@/lib/content/home";
 import SectionHeading from "./SectionHeading";
 import BeforeAfterSlider from "./BeforeAfterSlider";
 import Reveal from "./Reveal";
+import Section from "./Section";
 
 export default function ColorSwapFeature() {
   return (
-    <section
-      id={COLOR_SWAP.id}
-      className="flex flex-col items-center gap-8 px-5 py-20 sm:px-6 sm:py-24"
-      aria-labelledby="colorswap-heading"
-    >
+    <Section tone="b" id={COLOR_SWAP.id} labelledBy="colorswap-heading">
       <Reveal className="flex w-full flex-col items-center gap-8">
         <SectionHeading
           eyebrow={COLOR_SWAP.eyebrow}
@@ -32,7 +29,7 @@ export default function ColorSwapFeature() {
                 className={
                   "h-8 w-8 rounded-full ring-1 ring-inset ring-white/20 sm:h-9 sm:w-9 " +
                   (i === 0
-                    ? "outline outline-2 outline-offset-[3px] outline-gold-bright"
+                    ? "outline outline-2 outline-offset-[3px] outline-gold"
                     : "")
                 }
               />
@@ -43,6 +40,6 @@ export default function ColorSwapFeature() {
           </p>
         </div>
       </Reveal>
-    </section>
+    </Section>
   );
 }

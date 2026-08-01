@@ -124,7 +124,7 @@ export default function BeforeAfterSlider({
       {/* Divider line */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 w-px bg-gold-bright/80 shadow-[0_0_18px_rgb(255_215_0/60%)]"
+        className="pointer-events-none absolute inset-y-0 w-px bg-gold-edge/70 shadow-[0_0_16px_rgb(194_157_104/55%)]"
         style={{ left: "var(--pos)" }}
       />
 
@@ -147,7 +147,7 @@ export default function BeforeAfterSlider({
         onPointerCancel={onPointerUp}
         onKeyDown={onKeyDown}
         style={{ left: "var(--pos)", touchAction: "none" }}
-        className="absolute top-1/2 grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full glass glass-gold text-gold-bright transition-transform duration-200 ease-lux hover:scale-110 active:scale-105"
+        className="absolute top-1/2 grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full glass glass-gold text-gold-bright shadow-[0_0_22px_-4px_rgb(194_157_104/60%)] transition-transform duration-200 ease-lux hover:scale-110 active:scale-105"
       >
         <DragIcon className="h-5 w-5" />
       </button>
