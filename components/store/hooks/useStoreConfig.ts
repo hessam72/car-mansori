@@ -65,6 +65,15 @@ export type LampConfig = {
   normalBias: number
 }
 
+/** Camera positioning and transition config */
+export type CameraConfig = {
+  playerStart: [number, number, number]
+  transitionTarget: [number, number, number]
+  transitionStart: [number, number, number]
+  lookAtStart: [number, number, number]
+  lookAtEnd: [number, number, number]
+}
+
 export type StoreConfig = {
   id: string
   files: ModelFile[]
@@ -72,6 +81,8 @@ export type StoreConfig = {
   sun?: DeepPartial<SunConfig>
   /** Optional lamp config; missing → feature off. Merged over DEFAULT_LAMP. */
   lamps?: DeepPartial<LampConfig>
+  /** Optional camera config; missing → defaults. */
+  camera?: CameraConfig
 }
 
 export type StoresData = {

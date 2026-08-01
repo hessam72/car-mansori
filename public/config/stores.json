@@ -2,6 +2,13 @@
   "stores": [
     {
       "id": "mall",
+      "camera": {
+        "playerStart": [0, 1, 1],
+        "transitionTarget": [0, 1, 1],
+        "transitionStart": [24, 9.8, 52],
+        "lookAtStart": [20, 3, -2],
+        "lookAtEnd": [0, 1, -5]
+      },
      "sun": {
     "enabled": true,
     "position": [
@@ -48,24 +55,15 @@
         {
           "priority": 0,
           "quality": "low",
-          "url": "/store-models/Exhitbition GLB Wireframe-optimized.glb"
+          "url": "/store-models/wireframe.glb"
         },
         {
           "priority": 1,
           "quality": "high",
-          "url": "/store-models/Exhitbition GLB Final-optimized.glb"
-        }
-      ]
-    },
-    {
-      "id": "test",
-      "files": [
-        {
-          "priority": 0,
-          "quality": "low",
-          "url": "/store-models/test/no-light.glb"
+          "url": "/store-models/mobl-showroom.glb"
         }
       ]
     }
+   
   ]
 }

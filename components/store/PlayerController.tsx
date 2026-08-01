@@ -6,7 +6,10 @@ import { useJoystickControls } from './Joystick'
 import { markStoreActivity } from './activityGovernor'
 import { useRef } from 'react'
 
-export function usePlayerPhysics(physics: ReturnType<typeof usePhysics>) {
+export function usePlayerPhysics(
+  physics: ReturnType<typeof usePhysics>,
+  startPosition: [number, number, number] = [24, 1.5, 12]
+) {
   const initTime = useRef(Date.now())
   const isInitialized = useRef(false)
 
@@ -15,17 +18,15 @@ export function usePlayerPhysics(physics: ReturnType<typeof usePhysics>) {
 
     if (!rigidBodyRef.current) return
 
-    // Grace period: keep camera locked for first 200ms to prevent fall-through
+    // Grace period: lock position briefly on spawn to prevent fall-through
     const elapsed = Date.now() - initTime.current
-    if (elapsed < 800) {
-      if (!isInitialized.current) {
-        rigidBodyRef.current.setTranslation({ x: 24, y: 1.5, z: 12 }, true)
-        rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
-        state.camera.position.set(24, 2.8, 12)
-      }
+    if (elapsed < 200 && !isInitialized.current) {
+      rigidBodyRef.current.setTranslation({ x: startPosition[0], y: startPosition[1], z: startPosition[2] }, true)
+      rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
+      state.camera.position.set(startPosition[0], startPosition[1] + 1.3, startPosition[2])
+      isInitialized.current = true
       return
     }
-    isInitialized.current = true
 
     // Get current velocity from Rapier
     const currentVel = rigidBodyRef.current.linvel()
@@ -37,17 +38,20 @@ export function usePlayerPhysics(physics: ReturnType<typeof usePhysics>) {
 
     // Safety: teleport if fallen
     if (pos.y < -5) {
-      rigidBodyRef.current.setTranslation({ x: 24, y: 1.5, z: 12 }, true)
+      rigidBodyRef.current.setTranslation({ x: startPosition[0], y: startPosition[1], z: startPosition[2] }, true)
       rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
-      state.camera.position.set(24, 2.8, 12)
+      state.camera.position.set(startPosition[0], startPosition[1] + 1.3, startPosition[2])
     }
   })
 }
 
-export function usePlayerController(physics: ReturnType<typeof usePhysics>) {
+export function usePlayerController(
+  physics: ReturnType<typeof usePhysics>,
+  startPosition?: [number, number, number]
+) {
   const { updateMovement, setJoystickInput } = useJoystickControls(physics.playerVelocity)
 
-  usePlayerPhysics(physics)
+  usePlayerPhysics(physics, startPosition)
 
   useFrame((state, delta) => {
     const { rigidBodyRef, playerVelocity } = physics

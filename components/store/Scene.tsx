@@ -56,13 +56,15 @@ function ErrorScreen({ message }: { message: string }) {
 
 function PhysicsManager({
   onSetJoystickInput,
-  gyroEnabled
+  gyroEnabled,
+  playerStart
 }: {
   onSetJoystickInput: (callback: (x: number, y: number) => void) => void
   gyroEnabled: boolean
+  playerStart: [number, number, number]
 }) {
   const physics = usePhysics()
-  const { setJoystickInput } = usePlayerController(physics)
+  const { setJoystickInput } = usePlayerController(physics, playerStart)
   usePOVCamera({ gyroEnabled })
 
   useEffect(() => {
@@ -73,7 +75,7 @@ function PhysicsManager({
     <RigidBody
       ref={physics.rigidBodyRef}
       type="dynamic"
-      position={[0, 2, 5]}
+      position={playerStart}
       enabledRotations={[false, true, false]}
       lockRotations
       linearDamping={2.5}
@@ -185,7 +187,7 @@ export default function Scene() {
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 0.3,
         }}
-        camera={{ position: [0, 2, 5], fov: 60, near: 0.1, far: 200 }}
+        camera={{ position: config.camera?.playerStart ?? [0, 2, 5], fov: 60, near: 0.1, far: 200 }}
         onCreated={(state) => {
           r3fRef.current = state
         }}
@@ -254,12 +256,21 @@ export default function Scene() {
           />
           <CameraTransition
             isTransitioning={loadingPhase === 'transitioning'}
-            targetPosition={[24, 2.8, 12]}
+            targetPosition={config.camera?.transitionTarget ?? [24, 2.8, 12]}
+            startPosition={config.camera?.transitionStart}
+            lookAtStart={config.camera?.lookAtStart}
+            lookAtEnd={config.camera?.lookAtEnd}
           />
           <ParticleReveal isTransitioning={loadingPhase === 'transitioning'} />
 
           {/* Physics system - only after transition ready */}
-          {loadingPhase === 'ready' && <PhysicsManager onSetJoystickInput={setJoystickCallback} gyroEnabled={gyroEnabled} />}
+          {loadingPhase === 'ready' && (
+            <PhysicsManager
+              onSetJoystickInput={setJoystickCallback}
+              gyroEnabled={gyroEnabled}
+              playerStart={config.camera?.playerStart ?? [0, 2, 5]}
+            />
+          )}
 
           {/* Product click interaction */}
           {loadingPhase === 'ready' && (
