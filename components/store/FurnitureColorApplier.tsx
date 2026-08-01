@@ -31,11 +31,19 @@ export function FurnitureColorApplier() {
       return
     }
 
-    // Find the object by name in the scene
+    // Find the object by name in the scene - search for exact match OR parent containing the name
     let furnitureObject: THREE.Object3D | undefined
+    const searchName = selectedFurnitureId.toLowerCase()
+
+    console.log(`[FurnitureColorApplier] Searching for object with name: "${selectedFurnitureId}"`)
+
     scene.traverse((child) => {
-      if (child.name.toLowerCase() === selectedFurnitureId.toLowerCase()) {
-        furnitureObject = child
+      const childName = child.name.toLowerCase()
+      if (childName === searchName || childName.includes(searchName)) {
+        if (!furnitureObject) {
+          furnitureObject = child
+          console.log(`[FurnitureColorApplier] Found object: "${child.name}" (type: ${child.type})`)
+        }
       }
     })
 
@@ -48,11 +56,23 @@ export function FurnitureColorApplier() {
     const targets: PaintTarget[] = []
     let meshCount = 0
     let colorableCount = 0
+    let totalChildren = 0
 
-    console.log('[FurnitureColorApplier] Processing furniture:', selectedFurnitureId, 'Object:', furnitureObject.name)
+    console.log('[FurnitureColorApplier] Processing furniture:', selectedFurnitureId, 'Found object:', furnitureObject.name)
+    console.log('[FurnitureColorApplier] Object hierarchy:')
+
+    // Log hierarchy first to understand structure
+    const logHierarchy = (obj: THREE.Object3D, depth = 0) => {
+      const indent = '  '.repeat(depth)
+      const isMesh = obj instanceof THREE.Mesh
+      console.log(`${indent}- ${obj.name} (${obj.type})${isMesh ? ' [MESH]' : ''}`)
+      obj.children.forEach(child => logHierarchy(child, depth + 1))
+    }
+    logHierarchy(furnitureObject)
 
     // Traverse ONLY this furniture object and find colorable meshes
     furnitureObject.traverse((child: THREE.Object3D) => {
+      totalChildren++
       if (child instanceof THREE.Mesh) {
         meshCount++
         const childName = child.name.toLowerCase()
@@ -64,7 +84,15 @@ export function FurnitureColorApplier() {
           childName.includes('upholstery') ||
           childName.includes('seat')
 
-        console.log(`  Mesh: ${child.name}, colorable: ${isColorable}`)
+        // Find parent chain for debugging
+        let parentChain = child.name
+        let parent = child.parent
+        while (parent && parent !== furnitureObject) {
+          parentChain = `${parent.name} > ${parentChain}`
+          parent = parent.parent
+        }
+
+        console.log(`  Mesh: ${child.name}, Path: ${parentChain}, colorable: ${isColorable}`)
 
         if (isColorable) {
           colorableCount++
@@ -80,7 +108,7 @@ export function FurnitureColorApplier() {
             initialColor: material.color.clone(),
             meshName: child.name,
           })
-          console.log(`    -> Added to color targets`)
+          console.log(`    -> Added to color targets (depth: ${parentChain.split('>').length})`)
         }
       }
     })
