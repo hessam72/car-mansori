@@ -2,25 +2,31 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useThree } from '@react-three/fiber'
-import { Raycaster, Vector2, Object3D } from 'three'
+import { Raycaster, Vector2, Object3D, Vector3 } from 'three'
+
+interface FurnitureColor {
+  name: string
+  hex: string
+}
 
 export interface ProductData {
   id: string
-  category: string
-  variant: string
   name: string
-  glbPath: string
-  engine: string
-  horsepower: string
-  torque: string
-  acceleration: string
-  topSpeed: string
-  transmission: string
+  category?: string
+  type?: string
+  dimensions?: string
+  material?: string
+  weight?: string
+  seatingCapacity?: string
+  shelves?: string
+  colors?: FurnitureColor[]
+  glbPath?: string
+  usdzPath?: string
   billboardPosition: [number, number, number]
 }
 
 interface ProductInteractionProps {
-  onProductClick: (product: ProductData | null) => void
+  onProductClick: (product: ProductData | null, position?: [number, number, number]) => void
 }
 
 export default function ProductInteraction({ onProductClick }: ProductInteractionProps) {
@@ -71,7 +77,15 @@ export default function ProductInteraction({ onProductClick }: ProductInteractio
         }
 
         if (foundProduct) {
-          onProductClick(foundProduct)
+          // Get world position of the clicked object
+          const worldPosition = new Vector3()
+          intersects[0].object.getWorldPosition(worldPosition)
+          const position: [number, number, number] = [
+            worldPosition.x,
+            worldPosition.y,
+            worldPosition.z
+          ]
+          onProductClick(foundProduct, position)
         }
       }
     }

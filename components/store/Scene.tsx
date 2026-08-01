@@ -21,6 +21,9 @@ import { LampLights } from './LampLights'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import ProductInteraction, { type ProductData } from './ProductInteraction'
 import ProductBillboard3D from './ProductBillboard3D'
+import { FurnitureColorPicker } from './FurnitureColorPicker'
+import { FurnitureColorApplier } from './FurnitureColorApplier'
+import { useFurnitureConfig } from '@/stores/furnitureConfigStore'
 import { LoadingScreen } from './LoadingScreen'
 import { ModelsLoadingIndicator } from './ModelsLoadingIndicator'
 import { AudioPlayer } from './AudioPlayer'
@@ -92,9 +95,12 @@ export default function Scene() {
   const [loadedCount, setLoadedCount] = useState(0)
   const [totalCount, setTotalCount] = useState(0)
   const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(null)
+  const [selectedObjectPosition, setSelectedObjectPosition] = useState<[number, number, number] | null>(null)
   const [gyroEnabled, setGyroEnabled] = useState(false)
   const [galleryError, setGalleryError] = useState<string | null>(null)
   const [modelsKey, setModelsKey] = useState(0)
+
+  const { selectFurniture, initializeColor, currentColor } = useFurnitureConfig()
 
   // Sustained-FPS ladder scale (same mechanism as /car)
   const [perfScale, setPerfScale] = useState(1)
@@ -256,12 +262,49 @@ export default function Scene() {
           {loadingPhase === 'ready' && <PhysicsManager onSetJoystickInput={setJoystickCallback} gyroEnabled={gyroEnabled} />}
 
           {/* Product click interaction */}
-          {loadingPhase === 'ready' && <ProductInteraction onProductClick={setSelectedProduct} />}
+          {loadingPhase === 'ready' && (
+            <ProductInteraction
+              onProductClick={(product, position) => {
+                setSelectedProduct(product)
+                setSelectedObjectPosition(position || null)
+                if (product && product.colors && product.colors.length > 0) {
+                  selectFurniture(product.id, product.colors[0].hex)
+                  initializeColor()
+                }
+              }}
+            />
+          )}
 
           {/* Product billboard - 3D popup */}
           {loadingPhase === 'ready' && (
-            <ProductBillboard3D product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+            <ProductBillboard3D
+              product={selectedProduct}
+              onClose={() => {
+                setSelectedProduct(null)
+                setSelectedObjectPosition(null)
+              }}
+            />
           )}
+
+          {/* Furniture color picker - 3D floating circles */}
+          {loadingPhase === 'ready' &&
+            selectedProduct &&
+            selectedProduct.colors &&
+            selectedProduct.colors.length > 0 &&
+            selectedObjectPosition && (
+              <FurnitureColorPicker
+                position={[
+                  selectedObjectPosition[0],
+                  selectedObjectPosition[1] + 2, // Float 2 units above object
+                  selectedObjectPosition[2],
+                ]}
+                colors={selectedProduct.colors}
+                currentColor={currentColor || selectedProduct.colors[0].hex}
+              />
+            )}
+
+          {/* Furniture color applier - applies colors to scene furniture */}
+          {loadingPhase === 'ready' && <FurnitureColorApplier />}
 
           {/* Reflective Floor — resolution/off-switch follow the quality tier
               (the reflection pass re-renders the scene every drawn frame) */}

@@ -1,63 +1,113 @@
 {
-  "earring-gold": {
-    "id": "porsche-911",
-    "category": "sports-car",
-    "variant": "turbo-s",
-    "name": "Porsche 911 Turbo S",
-    "glbPath": "/models/earrings/default.glb",
-    "engine": "3.8L Twin-Turbo Flat-6",
-    "horsepower": "640 hp",
-    "torque": "590 lb-ft",
-    "acceleration": "2.6s (0-100 km/h)",
-    "topSpeed": "330 km/h",
-    "transmission": "8-Speed PDK",
+  "modern-sofa": {
+    "id": "modern-sofa-01",
+    "category": "seating",
+    "type": "sofa",
+    "name": "Modern Sectional Sofa",
+    "glbPath": "/models/furniture/sofa-modern.glb",
+    "usdzPath": "/models/furniture/sofa-modern.usdz",
+    "dimensions": "240cm × 95cm × 80cm",
+    "material": "Fabric & Solid Wood",
+    "seatingCapacity": "4-5 persons",
+    "weight": "85 kg",
+    "colors": [
+      { "name": "Charcoal Gray", "hex": "#36454F" },
+      { "name": "Beige", "hex": "#D4C5B9" },
+      { "name": "Navy Blue", "hex": "#1B2F5C" }
+    ],
     "billboardPosition": [2, 2.5, 0]
   },
 
- "ferari": {
-    "id": "ferrari-sf90",
-    "category": "supercar",
-    "variant": "stradale",
-    "name": "Ferrari SF90 Stradale",
-    "glbPath": "/models/necklace/native-american.glb",
-    "engine": "4.0L V8 + Electric",
-    "horsepower": "986 hp",
-    "torque": "800 Nm",
-    "acceleration": "2.5s (0-100 km/h)",
-    "topSpeed": "340 km/h",
-    "transmission": "8-Speed F1 DCT",
+  "dining-chair": {
+    "id": "dining-chair-01",
+    "category": "seating",
+    "type": "chair",
+    "name": "Nordic Dining Chair",
+    "glbPath": "/models/furniture/chair-nordic.glb",
+    "usdzPath": "/models/furniture/chair-nordic.usdz",
+    "dimensions": "52cm × 58cm × 82cm",
+    "material": "Oak Wood & Leather",
+    "seatingCapacity": "1 person",
+    "weight": "6.5 kg",
+    "colors": [
+      { "name": "Natural Oak", "hex": "#C19A6B" },
+      { "name": "Walnut", "hex": "#5C4033" },
+      { "name": "White Oak", "hex": "#F5E6D3" }
+    ],
     "billboardPosition": [-2, 2.5, 0]
   },
- "watch-sport": {
-    "id": "lamborghini-aventador",
-    "category": "supercar",
-    "variant": "svj",
-    "name": "Lamborghini Aventador SVJ",
-    "glbPath": "/models/watch/default.glb",
-    "engine": "6.5L V12",
-    "horsepower": "770 hp",
-    "torque": "720 Nm",
-    "acceleration": "2.8s (0-100 km/h)",
-    "topSpeed": "350 km/h",
-    "transmission": "7-Speed ISR",
+
+  "coffee-table": {
+    "id": "coffee-table-01",
+    "category": "tables",
+    "type": "coffee-table",
+    "name": "Minimalist Coffee Table",
+    "glbPath": "/models/furniture/table-coffee.glb",
+    "usdzPath": "/models/furniture/table-coffee.usdz",
+    "dimensions": "120cm × 60cm × 45cm",
+    "material": "Tempered Glass & Metal",
+    "weight": "22 kg",
+    "colors": [
+      { "name": "Black Metal", "hex": "#1C1C1C" },
+      { "name": "Gold Metal", "hex": "#D4AF37" },
+      { "name": "Silver Chrome", "hex": "#C0C0C0" }
+    ],
     "billboardPosition": [-5, 2.5, -2]
   },
 
- "benz": {
-    "id": "benz",
-    "category": "supercar",
-    "variant": "svj",
-    "name": "Mercedes-AMG GT Black Series",
-    "glbPath": "/models/watch/default.glb",
-    "engine": "6.5L V12",
-    "horsepower": "770 hp",
-    "torque": "720 Nm",
-    "acceleration": "2.8s (0-100 km/h)",
-    "topSpeed": "350 km/h",
-    "transmission": "7-Speed ISR",
+  "bookshelf": {
+    "id": "bookshelf-01",
+    "category": "storage",
+    "type": "bookshelf",
+    "name": "Industrial Bookshelf",
+    "glbPath": "/models/furniture/bookshelf-industrial.glb",
+    "usdzPath": "/models/furniture/bookshelf-industrial.usdz",
+    "dimensions": "180cm × 40cm × 200cm",
+    "material": "Metal Frame & Wood Shelves",
+    "shelves": "5 adjustable shelves",
+    "weight": "45 kg",
+    "colors": [
+      { "name": "Rustic Wood", "hex": "#8B4513" },
+      { "name": "Espresso", "hex": "#3E2723" },
+      { "name": "Light Ash", "hex": "#B8A896" }
+    ],
     "billboardPosition": [5.1, 2.5, 4.7]
+  },
+
+  "armchair": {
+    "id": "armchair-01",
+    "category": "seating",
+    "type": "armchair",
+    "name": "Velvet Accent Armchair",
+    "glbPath": "/models/furniture/armchair-velvet.glb",
+    "usdzPath": "/models/furniture/armchair-velvet.usdz",
+    "dimensions": "80cm × 85cm × 90cm",
+    "material": "Velvet Upholstery & Beech Wood",
+    "seatingCapacity": "1 person",
+    "weight": "18 kg",
+    "colors": [
+      { "name": "Emerald Green", "hex": "#50C878" },
+      { "name": "Burgundy", "hex": "#800020" },
+      { "name": "Mustard Yellow", "hex": "#E1AD01" }
+    ],
+    "billboardPosition": [0, 2.5, -5]
+  },
+
+  "side-table": {
+    "id": "side-table-01",
+    "category": "tables",
+    "type": "side-table",
+    "name": "Marble Side Table",
+    "glbPath": "/models/furniture/table-side.glb",
+    "usdzPath": "/models/furniture/table-side.usdz",
+    "dimensions": "45cm × 45cm × 55cm",
+    "material": "Marble Top & Brass Legs",
+    "weight": "12 kg",
+    "colors": [
+      { "name": "White Marble", "hex": "#F8F8F8" },
+      { "name": "Black Marble", "hex": "#2C2C2C" },
+      { "name": "Green Marble", "hex": "#4A7C59" }
+    ],
+    "billboardPosition": [3, 2.5, 3]
   }
-
-
-
 }

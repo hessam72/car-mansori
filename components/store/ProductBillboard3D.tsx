@@ -2,18 +2,28 @@
 
 import { Billboard, Text, RoundedBox } from '@react-three/drei'
 import { useRouter } from 'next/navigation'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import * as THREE from 'three'
+import ARProductViewer from './ARProductViewer'
+
+interface FurnitureColor {
+  name: string
+  hex: string
+}
 
 interface ProductData {
   id: string
   name: string
-  engine: string
-  horsepower: string
-  torque: string
-  acceleration: string
-  topSpeed: string
-  transmission: string
+  category?: string
+  type?: string
+  dimensions?: string
+  material?: string
+  weight?: string
+  seatingCapacity?: string
+  shelves?: string
+  colors?: FurnitureColor[]
+  glbPath?: string
+  usdzPath?: string
   billboardPosition: [number, number, number]
 }
 
@@ -25,11 +35,12 @@ interface ProductBillboard3DProps {
 export default function ProductBillboard3D({ product, onClose }: ProductBillboard3DProps) {
   const router = useRouter()
   const groupRef = useRef<THREE.Group>(null)
+  const [showAR, setShowAR] = useState(false)
 
   if (!product) return null
 
-  const handleCustomize = () => {
-    router.push('/car/sample-car')
+  const handleViewInAR = () => {
+    setShowAR(true)
   }
 
   return (
@@ -118,7 +129,7 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
           maxWidth={1.5}
           lineHeight={1.6}
         >
-          {'ENGINE\nPOWER\nTORQUE'}
+          {'DIMENSIONS\nMATERIAL\nWEIGHT'}
         </Text>
 
         <Text
@@ -130,7 +141,7 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
           maxWidth={1.8}
           lineHeight={1.6}
         >
-          {`${product.engine}\n${product.horsepower}\n${product.torque}`}
+          {`${product.dimensions || 'N/A'}\n${product.material || 'N/A'}\n${product.weight || 'N/A'}`}
         </Text>
 
         {/* Specs - right section */}
@@ -143,7 +154,7 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
           maxWidth={1.5}
           lineHeight={1.6}
         >
-          {'0-100 KM/H\nTOP SPEED\nTRANSMISSION'}
+          {product.seatingCapacity ? 'SEATING\nCATEGORY\nTYPE' : product.shelves ? 'SHELVES\nCATEGORY\nTYPE' : 'CATEGORY\nTYPE\nCOLORS'}
         </Text>
 
         <Text
@@ -155,11 +166,15 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
           maxWidth={1.8}
           lineHeight={1.6}
         >
-          {`${product.acceleration}\n${product.topSpeed}\n${product.transmission}`}
+          {product.seatingCapacity
+            ? `${product.seatingCapacity}\n${product.category || 'N/A'}\n${product.type || 'N/A'}`
+            : product.shelves
+            ? `${product.shelves}\n${product.category || 'N/A'}\n${product.type || 'N/A'}`
+            : `${product.category || 'N/A'}\n${product.type || 'N/A'}\n${product.colors?.length || 0} options`}
         </Text>
 
-        {/* Customize button */}
-        <group position={[0, -1.6, 0.1]} onClick={handleCustomize}>
+        {/* View in AR button */}
+        <group position={[0, -1.6, 0.1]} onClick={handleViewInAR}>
           <RoundedBox args={[3, 0.55, 0.1]} radius={0.12}>
             <meshPhysicalMaterial
               color="#d4af37"
@@ -179,10 +194,20 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
             letterSpacing={0.1}
             fontWeight={700}
           >
-            CUSTOMIZE
+            VIEW IN AR
           </Text>
         </group>
       </group>
+
+      {/* AR Product Viewer */}
+      {showAR && product.glbPath && (
+        <ARProductViewer
+          glbPath={product.glbPath}
+          usdzPath={product.usdzPath}
+          productName={product.name}
+          onClose={() => setShowAR(false)}
+        />
+      )}
     </Billboard>
   )
 }
