@@ -2,13 +2,13 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'لومینا - پاساژ دیجیتال شهر امید',
-    short_name: 'لومینا',
-    description: 'نمایشگاه سه‌بعدی و امتحان مجازی جواهرات',
+    name: 'شهر امید - شوروم مجازی مبلمان',
+    short_name: 'شهر امید',
+    description: 'نمایشگاه سه‌بعدی مبلمان با واقعیت افزوده',
     start_url: '/',
     display: 'standalone',
-    background_color: '#060608',
-    theme_color: '#060608',
+    background_color: '#0a1120',
+    theme_color: '#172236',
     icons: [
       {
         src: '/images/pwa-logo.jpeg',

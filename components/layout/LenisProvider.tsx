@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, createContext, useContext, ReactNode } from "react";
+import { useEffect, useState, createContext, useContext, ReactNode } from "react";
 import Lenis from "lenis";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -14,7 +14,10 @@ export function useLenis() {
 }
 
 export function LenisProvider({ children }: { children: ReactNode }) {
-  const lenisRef = useRef<Lenis | null>(null);
+  // State, not a ref: a ref assigned inside the effect never re-renders, so
+  // the context value stayed null forever and every useLenis() consumer got
+  // null. Storing it in state publishes the real instance.
+  const [lenis, setLenis] = useState<Lenis | null>(null);
 
   useEffect(() => {
     const lenis = new Lenis({
@@ -27,25 +30,25 @@ export function LenisProvider({ children }: { children: ReactNode }) {
       infinite: false,
     });
 
-    lenisRef.current = lenis;
+    setLenis(lenis);
 
     // Sync Lenis scroll with GSAP ScrollTrigger
     lenis.on("scroll", ScrollTrigger.update);
 
-    gsap.ticker.add((time) => {
-      lenis.raf(time * 1000);
-    });
+    // Keep a stable reference so the same callback can be removed on cleanup —
+    // the previous inline arrow was a fresh function and never unregistered.
+    const tick = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(tick);
     gsap.ticker.lagSmoothing(0);
 
     return () => {
+      gsap.ticker.remove(tick);
       lenis.destroy();
-      gsap.ticker.remove((time) => lenis.raf(time * 1000));
+      setLenis(null);
     };
   }, []);
 
   return (
-    <LenisContext.Provider value={lenisRef.current}>
-      {children}
-    </LenisContext.Provider>
+    <LenisContext.Provider value={lenis}>{children}</LenisContext.Provider>
   );
 }

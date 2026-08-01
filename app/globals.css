@@ -5,32 +5,40 @@
    variables on <html>. No render-blocking Google Fonts imports. */
 
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
   /* Alias used by font-[family-name:var(--font-vazir)] across components —
      was previously a circular self-reference that resolved to nothing */
   --font-vazir: var(--font-vazirmatn);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ─────────────────────────────────────────────
+   Landing theme — navy (#172236) → black, gold, liquid glass.
+   Literal values, so a plain @theme block: these become real Tailwind
+   utilities (bg-ink-700, text-gold, border-gold-line, rounded-glass…).
+   The legacy gold and surface vars below are kept untouched because
+   /store and /car/[id] read them directly.
+───────────────────────────────────────────── */
+@theme {
+  --color-ink-950: #05080e;
+  --color-ink-900: #0a1120;
+  --color-ink-800: #101a2c;
+  --color-ink-700: #172236;
+  --color-ink-600: #1f2d45;
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  --color-gold:        #d4af37;
+  --color-gold-bright: #ffd700;
+  --color-gold-soft:   #e8c866;
+  --color-gold-deep:   #b8860b;
+
+  --color-glass:        rgb(255 255 255 / 6%);
+  --color-hairline:     rgb(255 255 255 / 12%);
+  --color-gold-line:    rgb(212 175 55 / 28%);
+  --color-gold-line-hi: rgb(212 175 55 / 55%);
+
+  --radius-glass: 1.25rem;
+  --shadow-glass: inset 0 1px 0 0 rgb(255 255 255 / 10%),
+                  0 20px 45px -22px rgb(0 0 0 / 75%);
+  --ease-lux: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ─────────────────────────────────────────────
@@ -494,4 +502,89 @@ canvas {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* ─────────────────────────────────────────────
+   Landing page — liquid glass surfaces
+   `glass` is blurred and expensive; keep it for the header, the menu
+   overlay and a couple of hero-adjacent frames. `glass-flat` drops the
+   backdrop-filter (near-identical over a dark gradient) and is what the
+   repeated card grids use, so mid-range phones don't jank while scrolling.
+───────────────────────────────────────────── */
+@utility glass {
+  background: linear-gradient(158deg, rgb(255 255 255 / 8%), rgb(255 255 255 / 2.5%));
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid var(--color-hairline);
+  box-shadow: var(--shadow-glass);
+}
+
+@utility glass-flat {
+  background: linear-gradient(158deg, rgb(255 255 255 / 7%), rgb(255 255 255 / 2%));
+  border: 1px solid var(--color-hairline);
+  box-shadow: var(--shadow-glass);
+}
+
+@utility glass-gold {
+  border-color: var(--color-gold-line);
+}
+
+/* Thin specular highlight along the top edge — the detail that sells the
+   iOS glass look. Applied to an element that already has a border-radius. */
+@utility specular {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgb(255 255 255 / 14%), transparent 38%);
+  }
+}
+
+/* Page backdrop: navy at the top melting into near-black. */
+@utility ink-gradient {
+  background:
+    radial-gradient(120% 70% at 50% -10%, rgb(31 45 69 / 85%), transparent 60%),
+    linear-gradient(180deg, #172236 0%, #0f1a2c 38%, #0a1120 68%, #05080e 100%);
+}
+
+/* Key words inside an otherwise white bold heading. Solid gold, not the
+   gradient clip — a single clipped word inside a sentence renders unevenly
+   on mobile Safari. */
+@utility text-gold-key {
+  color: var(--color-gold-bright);
+  text-shadow: 0 0 22px rgb(255 215 0 / 22%);
+}
+
+/* ─────────────────────────────────────────────
+   Landing page — behavioural escape hatches
+───────────────────────────────────────────── */
+
+/* The global `cursor: none !important` above would erase the only affordance
+   telling desktop users the comparison divider is draggable. */
+[data-drag-handle] {
+  cursor: ew-resize !important;
+}
+
+/* [data-reveal] starts at opacity 0 and is revealed by IntersectionObserver.
+   With reduced motion we must never leave content stranded invisible. */
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal],
+  [data-reveal="revealed"] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .text-shimmer {
+    animation: none;
+  }
+}
+
+/* iOS rubber-band overscroll would otherwise expose --surface-0 (#060608)
+   above the navy hero. */
+.landing-root {
+  overscroll-behavior-y: none;
 }
