@@ -275,11 +275,11 @@ export default function Scene() {
           {/* Product click interaction */}
           {loadingPhase === 'ready' && (
             <ProductInteraction
-              onProductClick={(product, position) => {
+              onProductClick={(product, position, clickedObject) => {
                 setSelectedProduct(product)
                 setSelectedObjectPosition(position || null)
                 if (product && product.colors && product.colors.length > 0) {
-                  selectFurniture(product.id, product.colors[0].hex)
+                  selectFurniture(product.id, clickedObject || null, product.colors[0].hex)
                   initializeColor()
                 }
               }}

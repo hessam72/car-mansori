@@ -26,7 +26,11 @@ export interface ProductData {
 }
 
 interface ProductInteractionProps {
-  onProductClick: (product: ProductData | null, position?: [number, number, number]) => void
+  onProductClick: (
+    product: ProductData | null,
+    position?: [number, number, number],
+    clickedObject?: Object3D
+  ) => void
 }
 
 export default function ProductInteraction({ onProductClick }: ProductInteractionProps) {
@@ -85,7 +89,14 @@ export default function ProductInteraction({ onProductClick }: ProductInteractio
             worldPosition.y,
             worldPosition.z
           ]
-          onProductClick(foundProduct, position)
+
+          // Find the root object of the furniture (top-level parent before scene)
+          let rootObject = intersects[0].object
+          while (rootObject.parent && rootObject.parent.type !== 'Scene') {
+            rootObject = rootObject.parent
+          }
+
+          onProductClick(foundProduct, position, rootObject)
         }
       }
     }

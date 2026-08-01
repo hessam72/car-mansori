@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import * as THREE from 'three'
 
 export interface FurnitureColor {
   name: string
@@ -16,11 +17,12 @@ export interface FurnitureItem {
 
 export interface FurnitureConfigState {
   selectedFurnitureId: string | null
+  selectedObject: THREE.Object3D | null
   currentColor: string | null
   colorTransitioning: boolean
   colorInitialized: boolean
 
-  selectFurniture: (furnitureId: string, defaultColor?: string) => void
+  selectFurniture: (furnitureId: string, object: THREE.Object3D | null, defaultColor?: string) => void
   setColor: (colorHex: string) => void
   initializeColor: () => void
   setColorTransitioning: (transitioning: boolean) => void
@@ -31,13 +33,15 @@ export const useFurnitureConfig = create<FurnitureConfigState>()(
   devtools(
     (set) => ({
       selectedFurnitureId: null,
+      selectedObject: null,
       currentColor: null,
       colorTransitioning: false,
       colorInitialized: false,
 
-      selectFurniture: (furnitureId, defaultColor) =>
+      selectFurniture: (furnitureId, object, defaultColor) =>
         set({
           selectedFurnitureId: furnitureId,
+          selectedObject: object,
           currentColor: defaultColor || null,
           colorInitialized: false,
         }),
@@ -57,6 +61,7 @@ export const useFurnitureConfig = create<FurnitureConfigState>()(
       resetConfig: () =>
         set({
           selectedFurnitureId: null,
+          selectedObject: null,
           currentColor: null,
           colorTransitioning: false,
           colorInitialized: false,
