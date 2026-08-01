@@ -10,12 +10,14 @@ interface FurnitureColorPickerProps {
   position: [number, number, number]
   colors: FurnitureColor[]
   currentColor: string
+  originalColor?: string
 }
 
 export function FurnitureColorPicker({
   position,
   colors,
   currentColor,
+  originalColor,
 }: FurnitureColorPickerProps) {
   const { setColor } = useFurnitureConfig()
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
@@ -23,6 +25,11 @@ export function FurnitureColorPicker({
   const handleColorClick = (colorHex: string) => {
     setColor(colorHex)
   }
+
+  // Add original color as first option if available
+  const allColors: FurnitureColor[] = originalColor
+    ? [{ name: 'Original', hex: originalColor }, ...colors]
+    : colors
 
   return (
     <Billboard position={position} follow={true} lockX={false} lockY={false} lockZ={false}>
@@ -35,7 +42,7 @@ export function FurnitureColorPicker({
         }}
       >
         <div className="flex gap-3 p-3 bg-black/70 backdrop-blur-sm rounded-full border border-white/20">
-          {colors.map((color, index) => {
+          {allColors.map((color, index) => {
             const isActive = color.hex === currentColor
             const isHovered = hoveredIndex === index
 

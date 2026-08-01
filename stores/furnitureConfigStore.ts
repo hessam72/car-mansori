@@ -19,11 +19,13 @@ export interface FurnitureConfigState {
   selectedFurnitureId: string | null
   selectedObject: THREE.Object3D | null
   currentColor: string | null
+  originalColor: string | null
   colorTransitioning: boolean
   colorInitialized: boolean
 
   selectFurniture: (furnitureId: string, object: THREE.Object3D | null, defaultColor?: string) => void
   setColor: (colorHex: string) => void
+  setOriginalColor: (colorHex: string) => void
   initializeColor: () => void
   setColorTransitioning: (transitioning: boolean) => void
   resetConfig: () => void
@@ -35,6 +37,7 @@ export const useFurnitureConfig = create<FurnitureConfigState>()(
       selectedFurnitureId: null,
       selectedObject: null,
       currentColor: null,
+      originalColor: null,
       colorTransitioning: false,
       colorInitialized: false,
 
@@ -48,6 +51,7 @@ export const useFurnitureConfig = create<FurnitureConfigState>()(
           selectedFurnitureId: furnitureId,
           selectedObject: object,
           currentColor: defaultColor || null,
+          originalColor: null, // Will be set by FurnitureColorApplier
           colorInitialized: false,
         })
       },
@@ -58,6 +62,11 @@ export const useFurnitureConfig = create<FurnitureConfigState>()(
           currentColor: colorHex,
           colorTransitioning: true,
         })
+      },
+
+      setOriginalColor: (colorHex) => {
+        console.log('[FurnitureConfigStore] setOriginalColor called:', colorHex)
+        set({ originalColor: colorHex })
       },
 
       initializeColor: () => {
@@ -73,6 +82,7 @@ export const useFurnitureConfig = create<FurnitureConfigState>()(
           selectedFurnitureId: null,
           selectedObject: null,
           currentColor: null,
+          originalColor: null,
           colorTransitioning: false,
           colorInitialized: false,
         }),

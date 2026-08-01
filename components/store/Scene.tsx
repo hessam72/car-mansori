@@ -102,7 +102,7 @@ export default function Scene() {
   const [galleryError, setGalleryError] = useState<string | null>(null)
   const [modelsKey, setModelsKey] = useState(0)
 
-  const { selectFurniture, initializeColor, currentColor } = useFurnitureConfig()
+  const { selectFurniture, initializeColor, currentColor, originalColor } = useFurnitureConfig()
 
   // Sustained-FPS ladder scale (same mechanism as /car)
   const [perfScale, setPerfScale] = useState(1)
@@ -318,6 +318,7 @@ export default function Scene() {
                 ]}
                 colors={selectedProduct.colors}
                 currentColor={currentColor || selectedProduct.colors[0].hex}
+                originalColor={originalColor || undefined}
               />
             )}
 

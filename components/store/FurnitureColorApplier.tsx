@@ -17,6 +17,7 @@ export function FurnitureColorApplier() {
   const currentColor = useFurnitureConfig((s) => s.currentColor)
   const colorInitialized = useFurnitureConfig((s) => s.colorInitialized)
   const setColorTransitioning = useFurnitureConfig((s) => s.setColorTransitioning)
+  const setOriginalColor = useFurnitureConfig((s) => s.setOriginalColor)
 
   const paintTargetsRef = useRef<PaintTarget[]>([])
   const firstPaintRef = useRef(true)
@@ -117,9 +118,16 @@ export function FurnitureColorApplier() {
       `[FurnitureColorApplier] Found ${meshCount} meshes, ${colorableCount} colorable, ${targets.length} targets`
     )
 
+    // Store original color from first target
+    if (targets.length > 0) {
+      const originalColorHex = `#${targets[0].initialColor.getHexString()}`
+      console.log('[FurnitureColorApplier] Original color:', originalColorHex)
+      setOriginalColor(originalColorHex)
+    }
+
     paintTargetsRef.current = targets
     firstPaintRef.current = true
-  }, [selectedFurnitureId, scene])
+  }, [selectedFurnitureId, scene, setOriginalColor])
 
   // Apply color change
   useEffect(() => {
