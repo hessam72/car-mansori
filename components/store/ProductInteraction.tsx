@@ -29,7 +29,8 @@ interface ProductInteractionProps {
   onProductClick: (
     product: ProductData | null,
     position?: [number, number, number],
-    clickedObject?: Object3D
+    clickedObject?: Object3D,
+    productKey?: string
   ) => void
 }
 
@@ -65,14 +66,18 @@ export default function ProductInteraction({ onProductClick }: ProductInteractio
 
         // Search up the hierarchy for a product name
         let foundProduct: ProductData | null = null
+        let matchedKey = ''
         while (targetObject && !foundProduct) {
           const objectName = targetObject.name.toLowerCase()
+          console.log('[ProductInteraction] Checking object:', objectName)
 
           // Check if this object matches any product
           for (const [productKey, productData] of Object.entries(products)) {
             if (objectName.includes(productKey.toLowerCase()) ||
                 objectName.includes(productData.category)) {
               foundProduct = productData
+              matchedKey = productKey
+              console.log('[ProductInteraction] Matched product key:', productKey, 'Product ID:', productData.id)
               break
             }
           }
@@ -96,7 +101,8 @@ export default function ProductInteraction({ onProductClick }: ProductInteractio
             rootObject = rootObject.parent
           }
 
-          onProductClick(foundProduct, position, rootObject)
+          console.log('[ProductInteraction] Calling onProductClick with key:', matchedKey)
+          onProductClick(foundProduct, position, rootObject, matchedKey)
         }
       }
     }

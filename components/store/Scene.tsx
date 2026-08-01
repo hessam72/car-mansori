@@ -275,11 +275,18 @@ export default function Scene() {
           {/* Product click interaction */}
           {loadingPhase === 'ready' && (
             <ProductInteraction
-              onProductClick={(product, position, clickedObject) => {
+              onProductClick={(product, position, clickedObject, productKey) => {
+                console.log('[Scene] Product clicked:', product)
+                console.log('[Scene] Product key (scene object name):', productKey)
+                console.log('[Scene] Clicked object:', clickedObject?.name)
                 setSelectedProduct(product)
                 setSelectedObjectPosition(position || null)
                 if (product && product.colors && product.colors.length > 0) {
-                  selectFurniture(product.id, clickedObject || null, product.colors[0].hex)
+                  // Use productKey (e.g., "modern-sofa") instead of product.id (e.g., "modern-sofa-01")
+                  const furnitureId = productKey || product.id
+                  console.log('[Scene] Selecting furniture - Key/ID:', furnitureId, 'Default color:', product.colors[0].hex)
+                  selectFurniture(furnitureId, clickedObject || null, product.colors[0].hex)
+                  console.log('[Scene] Initializing color')
                   initializeColor()
                 }
               }}

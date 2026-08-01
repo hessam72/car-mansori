@@ -38,22 +38,32 @@ export const useFurnitureConfig = create<FurnitureConfigState>()(
       colorTransitioning: false,
       colorInitialized: false,
 
-      selectFurniture: (furnitureId, object, defaultColor) =>
+      selectFurniture: (furnitureId, object, defaultColor) => {
+        console.log('[FurnitureConfigStore] selectFurniture called:', {
+          furnitureId,
+          objectName: object?.name,
+          defaultColor,
+        })
         set({
           selectedFurnitureId: furnitureId,
           selectedObject: object,
           currentColor: defaultColor || null,
           colorInitialized: false,
-        }),
+        })
+      },
 
-      setColor: (colorHex) =>
+      setColor: (colorHex) => {
+        console.log('[FurnitureConfigStore] setColor called:', colorHex)
         set({
           currentColor: colorHex,
           colorTransitioning: true,
-        }),
+        })
+      },
 
-      initializeColor: () =>
-        set({ colorInitialized: true }),
+      initializeColor: () => {
+        console.log('[FurnitureConfigStore] initializeColor called')
+        set({ colorInitialized: true })
+      },
 
       setColorTransitioning: (transitioning) =>
         set({ colorTransitioning: transitioning }),

@@ -12,8 +12,8 @@ interface PaintTarget {
 }
 
 export function FurnitureColorApplier() {
-  const { invalidate } = useThree()
-  const selectedObject = useFurnitureConfig((s) => s.selectedObject)
+  const { scene, invalidate } = useThree()
+  const selectedFurnitureId = useFurnitureConfig((s) => s.selectedFurnitureId)
   const currentColor = useFurnitureConfig((s) => s.currentColor)
   const colorInitialized = useFurnitureConfig((s) => s.colorInitialized)
   const setColorTransitioning = useFurnitureConfig((s) => s.setColorTransitioning)
@@ -25,43 +25,49 @@ export function FurnitureColorApplier() {
 
   // Collect paintable materials when furniture is selected
   useEffect(() => {
-    if (!selectedObject) {
+    if (!selectedFurnitureId) {
       paintTargetsRef.current = []
-      console.log('[FurnitureColorApplier] No object selected')
+      console.log('[FurnitureColorApplier] No furniture ID selected')
+      return
+    }
+
+    // Find the object by name in the scene
+    let furnitureObject: THREE.Object3D | undefined
+    scene.traverse((child) => {
+      if (child.name.toLowerCase() === selectedFurnitureId.toLowerCase()) {
+        furnitureObject = child
+      }
+    })
+
+    if (!furnitureObject) {
+      console.log(`[FurnitureColorApplier] Furniture object "${selectedFurnitureId}" not found in scene`)
+      paintTargetsRef.current = []
       return
     }
 
     const targets: PaintTarget[] = []
     let meshCount = 0
-    let paintableCount = 0
+    let colorableCount = 0
 
-    console.log('[FurnitureColorApplier] Processing object:', selectedObject.name)
+    console.log('[FurnitureColorApplier] Processing furniture:', selectedFurnitureId, 'Object:', furnitureObject.name)
 
-    const getUserData = (mesh: any, key: string) => {
-      return mesh.userData?.userdata?.[key] ?? mesh.userData?.[key]
-    }
-
-    // Traverse the selected object and find all meshes
-    selectedObject.traverse((child) => {
+    // Traverse ONLY this furniture object and find colorable meshes
+    furnitureObject.traverse((child: THREE.Object3D) => {
       if (child instanceof THREE.Mesh) {
         meshCount++
-        const paintableValue = getUserData(child, 'paintable')
-        const isPaintable = paintableValue === true || paintableValue === 1
+        const childName = child.name.toLowerCase()
 
-        // Check if material/mesh name suggests it's colorable
-        const nameMatch =
-          child.material?.name?.toLowerCase().includes('fabric') ||
-          child.material?.name?.toLowerCase().includes('cushion') ||
-          child.material?.name?.toLowerCase().includes('upholstery') ||
-          child.material?.name?.toLowerCase().includes('paint') ||
-          child.name?.toLowerCase().includes('cushion') ||
-          child.name?.toLowerCase().includes('seat') ||
-          child.name?.toLowerCase().includes('fabric')
+        // ONLY check mesh name for colorable keywords
+        const isColorable =
+          childName.includes('fabric') ||
+          childName.includes('cushion') ||
+          childName.includes('upholstery') ||
+          childName.includes('seat')
 
-        console.log(`  Mesh: ${child.name}, paintable: ${isPaintable}, nameMatch: ${nameMatch}`)
+        console.log(`  Mesh: ${child.name}, colorable: ${isColorable}`)
 
-        if (isPaintable || nameMatch) {
-          paintableCount++
+        if (isColorable) {
+          colorableCount++
           // Clone material to avoid affecting other instances
           if (!child.userData.originalMaterial) {
             child.userData.originalMaterial = child.material
@@ -74,43 +80,18 @@ export function FurnitureColorApplier() {
             initialColor: material.color.clone(),
             meshName: child.name,
           })
-          console.log(`    -> Added to paint targets`)
+          console.log(`    -> Added to color targets`)
         }
       }
     })
 
-    // Fallback: if no paintable meshes found, apply to ALL meshes with standard/physical materials
-    if (targets.length === 0 && meshCount > 0) {
-      console.log('[FurnitureColorApplier] No paintable meshes found, applying to ALL meshes')
-      selectedObject.traverse((child) => {
-        if (
-          child instanceof THREE.Mesh &&
-          (child.material instanceof THREE.MeshStandardMaterial ||
-            child.material instanceof THREE.MeshPhysicalMaterial)
-        ) {
-          if (!child.userData.originalMaterial) {
-            child.userData.originalMaterial = child.material
-            child.material = (child.material as THREE.Material).clone()
-          }
-
-          const material = child.material as THREE.MeshPhysicalMaterial | THREE.MeshStandardMaterial
-          targets.push({
-            material,
-            initialColor: material.color.clone(),
-            meshName: child.name,
-          })
-          console.log(`  -> Added mesh: ${child.name}`)
-        }
-      })
-    }
-
     console.log(
-      `[FurnitureColorApplier] Found ${meshCount} meshes, ${paintableCount} paintable, ${targets.length} targets`
+      `[FurnitureColorApplier] Found ${meshCount} meshes, ${colorableCount} colorable, ${targets.length} targets`
     )
 
     paintTargetsRef.current = targets
     firstPaintRef.current = true
-  }, [selectedObject])
+  }, [selectedFurnitureId, scene])
 
   // Apply color change
   useEffect(() => {
