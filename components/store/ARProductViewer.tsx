@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { isARCapable, getARModeName } from '@/lib/device-utils'
+import "@google/model-viewer/dist/model-viewer.min.js"
 
 interface ARProductViewerProps {
   glbPath: string
