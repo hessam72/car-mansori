@@ -398,7 +398,7 @@ export default function Scene() {
 
       {/* Virtual joystick for mobile - only after ready */}
       {loadingPhase === 'ready' && joystickCallback && (
-        <VirtualJoystick onMove={handleJoystickMove} />
+        <VirtualJoystick onMove={handleJoystickMove} hidden={showAR} />
       )}
 
       {/* Background audio */}

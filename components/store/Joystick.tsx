@@ -76,7 +76,7 @@ export function useJoystickControls(playerVelocity: React.RefObject<THREE.Vector
 }
 
 // Virtual joystick component for mobile
-export function VirtualJoystick({ onMove }: { onMove: (x: number, y: number) => void }) {
+export function VirtualJoystick({ onMove, hidden }: { onMove: (x: number, y: number) => void; hidden?: boolean }) {
   const zoneRef = useRef<HTMLDivElement>(null)
   const onMoveRef = useRef(onMove)
   const isTouchActiveRef = useRef(false)
@@ -129,7 +129,7 @@ export function VirtualJoystick({ onMove }: { onMove: (x: number, y: number) => 
     <div
       ref={zoneRef}
       className="fixed bottom-0 right-0 w-40 h-40 pointer-events-auto z-50"
-      style={{ touchAction: 'none' }}
+      style={{ touchAction: 'none', display: hidden ? 'none' : 'block' }}
     >
       <style jsx>{`
         div :global(.back) {
