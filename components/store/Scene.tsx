@@ -284,8 +284,9 @@ export default function Scene() {
                 if (product && product.colors && product.colors.length > 0) {
                   // Use productKey (e.g., "modern-sofa") instead of product.id (e.g., "modern-sofa-01")
                   const furnitureId = productKey || product.id
-                  console.log('[Scene] Selecting furniture - Key/ID:', furnitureId, 'Default color:', product.colors[0].hex)
-                  selectFurniture(furnitureId, clickedObject || null, product.colors[0].hex)
+                  console.log('[Scene] Selecting furniture - Key/ID:', furnitureId, 'Will use original color')
+                  // Don't pass default color - FurnitureColorApplier will set original color as default
+                  selectFurniture(furnitureId, clickedObject || null)
                   console.log('[Scene] Initializing color')
                   initializeColor()
                 }
