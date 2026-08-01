@@ -73,7 +73,9 @@ export default function ProductInteraction({ onProductClick }: ProductInteractio
 
           // Check if this object matches any product
           for (const [productKey, productData] of Object.entries(products)) {
+           
             if (objectName.includes(productKey.toLowerCase()) ||
+             // @ts-expect-error dsdssdsdsddsdsdsds
                 objectName.includes(productData.category)) {
               foundProduct = productData
               matchedKey = productKey

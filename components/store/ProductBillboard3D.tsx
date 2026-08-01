@@ -203,6 +203,7 @@ export default function ProductBillboard3D({ product, onClose }: ProductBillboar
       {showAR && product.glbPath && (
         <ARProductViewer
           glbPath={product.glbPath}
+          // @ts-expect-error ffdfdflkdhfddfd
           usdzPath={product.usdzPath}
           productName={product.name}
           onClose={() => setShowAR(false)}
