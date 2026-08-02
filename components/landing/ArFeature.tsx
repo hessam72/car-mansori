@@ -7,7 +7,7 @@ import Section from "./Section";
 
 export default function ArFeature() {
   return (
-    <Section tone="c" id={AR_FEATURE.id} labelledBy="ar-heading">
+    <Section tone="c" id={AR_FEATURE?.id} labelledBy="ar-heading">
       <Reveal className="flex w-full flex-col items-center gap-8">
         <SectionHeading
           eyebrow={AR_FEATURE.eyebrow}

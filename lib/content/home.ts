@@ -96,6 +96,7 @@ export const COLOR_SWAP = {
 } as const;
 
 export const AR_FEATURE = {
+  id: "ar-feature",
   eyebrow: "واقعیت افزوده",
   heading: [
     { text: "انتخابتان را در " },
@@ -121,6 +122,7 @@ export type FeatureIcon =
   | "install";
 
 export const KEY_FEATURES: { label: string; icon: FeatureIcon }[] = [
+
   { label: "تغییر رنگ متریال در لحظه", icon: "palette" },
   { label: "نمایشگاه سه‌بعدی اختصاصی", icon: "cube" },
   { label: "بیش از ۶۰ مدل محصول", icon: "catalog" },
@@ -130,6 +132,7 @@ export const KEY_FEATURES: { label: string; icon: FeatureIcon }[] = [
 ];
 
 export const KEY_FEATURES_SECTION = {
+  id: "features",
   eyebrow: "قابلیت‌ها",
   heading: [
     { text: "هر چیزی که یک نمایشگاه " },
@@ -139,6 +142,7 @@ export const KEY_FEATURES_SECTION = {
 } as const;
 
 export const CALL_TO_ACTION = {
+  id: "call-to-action",
   heading: [
     { text: "آماده‌ی ساخت " },
     { text: "نمایشگاه اختصاصی", gold: true },
