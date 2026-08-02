@@ -59,6 +59,7 @@ export default function SmartImage({
       src={src}
       alt={alt}
       fill
+      unoptimized
       sizes={sizes}
       priority={priority}
       onError={() => setFailed(true)}

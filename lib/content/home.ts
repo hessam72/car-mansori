@@ -36,7 +36,7 @@ export const HERO = {
   description:
     "مشتری بدون نصب هیچ برنامه‌ای وارد شوروم اختصاصی شما می‌شود، رنگ مبلمان را در لحظه تغییر می‌دهد و آن را در خانه‌ی خودش می‌بیند.",
   image: {
-    src: "/images/home/hero.webp",
+    src: "/images/homepage/hero-image.webp",
     alt: "نمای داخلی نمایشگاه مبلمان",
     label: "تصویر اصلی صفحه",
   },
@@ -53,7 +53,7 @@ export const SHOWROOM = {
   description:
     "فضای نمایشگاه‌تان را دقیقاً همان‌طور که هست بازسازی می‌کنیم. بازدیدکننده در آن قدم می‌زند، محصولات را از هر زاویه می‌بیند و بدون هیچ فشاری تصمیم می‌گیرد.",
   image: {
-    src: "/images/home/showroom.webp",
+    src: "/images/homepage/show-room-2.webp",
     alt: "نمای شوروم سه‌بعدی",
     label: "تصویر شوروم",
   },
@@ -70,12 +70,12 @@ export const COLOR_SWAP = {
   description:
     "پارچه و رنگ را با یک لمس عوض کنید. مشتری همان مبل را در ده‌ها رنگ می‌بیند، بدون اینکه انبار شما ده‌ها مدل داشته باشد.",
   before: {
-    src: "/images/home/sofa-before.webp",
+    src: "/images/homepage/before-img.webp",
     alt: "مبل با رنگ اولیه",
     label: "تصویر قبل",
   },
   after: {
-    src: "/images/home/sofa-after.webp",
+    src: "/images/homepage/after-img.webp",
     alt: "همان مبل با رنگ جدید",
     label: "تصویر بعد",
   },
@@ -104,7 +104,7 @@ export const AR_FEATURE = {
   description:
     "با واقعیت افزوده، محصول در اندازه‌ی واقعی روی زمین خانه‌ی مشتری قرار می‌گیرد؛ تردید برای خرید از بین می‌رود.",
   image: {
-    src: "/images/home/ar-preview.webp",
+    src: "/images/homepage/view-in-ar.webp",
     alt: "نمایش مبل در فضای خانه با واقعیت افزوده",
     label: "تصویر واقعیت افزوده",
   },
