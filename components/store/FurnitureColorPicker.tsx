@@ -1,7 +1,7 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import { Billboard, Html } from '@react-three/drei'
+import { useState } from 'react'
+import { Billboard } from '@react-three/drei'
 import { useFurnitureConfig } from '@/stores/furnitureConfigStore'
 import type { FurnitureColor } from '@/stores/furnitureConfigStore'
 import * as THREE from 'three'
@@ -26,74 +26,48 @@ export function FurnitureColorPicker({
     setColor(colorHex)
   }
 
-  // Add original color as first option if available
   const allColors: FurnitureColor[] = originalColor
     ? [{ name: 'Original', hex: originalColor }, ...colors]
     : colors
 
   return (
     <Billboard position={position} follow={true} lockX={false} lockY={false} lockZ={false}>
-      <Html
-        center
-        distanceFactor={3}
-        style={{
-          pointerEvents: 'auto',
-          userSelect: 'none',
-        }}
-      >
-        <div className="flex gap-3 p-3 bg-black/70 backdrop-blur-sm rounded-full border border-white/20">
-          {allColors.map((color, index) => {
-            const isActive = color.hex === currentColor
-            const isHovered = hoveredIndex === index
+      <group position={[0, 0, 0]}>
+        {allColors.map((color, index) => {
+          const isActive = color.hex === currentColor
+          const isHovered = hoveredIndex === index
+          const scale = isActive ? 0.35 : isHovered ? 0.3 : 0.25
+          const x = index * 0.7 - ((allColors.length - 1) * 0.7) / 2
 
-            return (
-              <button
-                key={color.hex}
-                onClick={() => handleColorClick(color.hex)}
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
-                className="relative group"
-                style={{
-                  width: isActive ? '48px' : '40px',
-                  height: isActive ? '48px' : '40px',
-                  transition: 'all 0.3s ease',
-                }}
-                title={color.name}
-              >
-                {/* Color circle */}
-                <div
-                  className="w-full h-full rounded-full border-2 transition-all duration-300"
-                  style={{
-                    backgroundColor: color.hex,
-                    borderColor: isActive ? '#fff' : isHovered ? '#fff' : 'rgba(255,255,255,0.3)',
-                    boxShadow: isActive
-                      ? '0 0 20px rgba(255,255,255,0.5)'
-                      : isHovered
-                      ? '0 0 12px rgba(255,255,255,0.3)'
-                      : 'none',
-                    transform: isHovered && !isActive ? 'scale(1.1)' : 'scale(1)',
-                  }}
-                />
-
-                {/* Active indicator */}
-                {isActive && (
-                  <div
-                    className="absolute inset-0 rounded-full border-2 border-white animate-ping"
-                    style={{ animationDuration: '2s' }}
-                  />
-                )}
-
-                {/* Tooltip */}
-                {isHovered && (
-                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/90 text-white text-xs px-2 py-1 rounded whitespace-nowrap pointer-events-none">
-                    {color.name}
-                  </div>
-                )}
-              </button>
-            )
-          })}
-        </div>
-      </Html>
+          return (
+            <mesh
+              key={color.hex}
+              position={[x, 0, 0]}
+              scale={[scale, scale, scale]}
+              onClick={() => handleColorClick(color.hex)}
+              onPointerOver={() => setHoveredIndex(index)}
+              onPointerOut={() => setHoveredIndex(null)}
+              castShadow={false}
+              receiveShadow={false}
+            >
+              <sphereGeometry args={[0.5, 32, 32]} />
+              <meshStandardMaterial
+                color={color.hex}
+                metalness={0.25}
+                roughness={0.35}
+                emissive={isActive ? color.hex : '#000000'}
+                emissiveIntensity={isActive ? 0.2 : 0}
+              />
+              {isActive && (
+                <lineSegments>
+                  <edgesGeometry attach="geometry" args={[new THREE.SphereGeometry(0.55, 16, 16)]} />
+                  <lineBasicMaterial attach="material" color="#ffffff" transparent opacity={0.65} />
+                </lineSegments>
+              )}
+            </mesh>
+          )
+        })}
+      </group>
     </Billboard>
   )
 }
