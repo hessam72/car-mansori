@@ -24,7 +24,7 @@ export default function Hero() {
       </div>
 
       {/* Dark gradient overlay for text legibility */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-b from-transparent via-ink-950/60 to-ink-950" />
+      <div className="absolute inset-0 z-10 bg-gradient-to-b from-transparent from-40% via-ink-950/40 via-70% to-ink-950" />
 
       {/* Content positioned at bottom */}
       <div className="relative z-20 w-full px-5 pb-24 pt-32">

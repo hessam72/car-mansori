@@ -7,19 +7,19 @@
 
 export type HeadingSegment = { text: string; gold?: boolean };
 
-export const CONTACT_PHONE_DISPLAY = "۰۹۱۲۳۴۵۶۷۸۹";
+export const CONTACT_PHONE_DISPLAY = "۰۹۱۲۹۲۱۴۷۴۲";
 /** E.164 for the tel: href — must stay ASCII. */
 export const CONTACT_PHONE_HREF = "tel:+989123456789";
 
 export const BRAND = {
   name: "شهر امید",
-  tagline: "شوروم مجازی مبلمان",
+  tagline: "نمایشگاه مجازی مبلمان",
   logoSrc: "/images/shahr-omid-logo.png",
 } as const;
 
 export const NAV_LINKS = [
   { label: "خانه", href: "#top" },
-  { label: "شوروم سه‌بعدی", href: "/store" },
+  { label: "نمایشگاه سه‌بعدی", href: "/store" },
   { label: "امکانات", href: "#features" },
   { label: "واقعیت افزوده", href: "/ar" },
   { label: "چرا ما؟", href: "#why" },
@@ -27,25 +27,25 @@ export const NAV_LINKS = [
 ] as const;
 
 export const HERO = {
-  eyebrow: "شوروم مجازی مبلمان",
+  eyebrow: "نمایشگاه مجازی مبلمان",
   heading: [
     { text: "نمایشگاه مبلمان شما، " },
     { text: "سه‌بعدی", gold: true },
     { text: " و همیشه باز" },
   ] as HeadingSegment[],
   description:
-    "مشتری بدون نصب هیچ برنامه‌ای وارد شوروم اختصاصی شما می‌شود، رنگ مبلمان را در لحظه تغییر می‌دهد و آن را در خانه‌ی خودش می‌بیند.",
+    "مشتری بدون نصب هیچ برنامه‌ای وارد نمایشگاه اختصاصی شما می‌شود، رنگ مبلمان را در لحظه تغییر می‌دهد و آن را در خانه‌ی خودش می‌بیند.",
   image: {
     src: "/images/homepage/hero-image.webp",
     alt: "نمای داخلی نمایشگاه مبلمان",
     label: "تصویر اصلی صفحه",
   },
-  scrollCue: "برای ادامه اسکرول کنید",
+  scrollCue: "",
 } as const;
 
 export const SHOWROOM = {
   id: "showroom",
-  eyebrow: "شوروم سه‌بعدی",
+  eyebrow: "نمایشگاه سه‌بعدی",
   heading: [
     { text: "نمایشگاه شما، " },
     { text: "بدون مرز", gold: true },
@@ -54,10 +54,10 @@ export const SHOWROOM = {
     "فضای نمایشگاه‌تان را دقیقاً همان‌طور که هست بازسازی می‌کنیم. بازدیدکننده در آن قدم می‌زند، محصولات را از هر زاویه می‌بیند و بدون هیچ فشاری تصمیم می‌گیرد.",
   image: {
     src: "/images/homepage/show-room-2.webp",
-    alt: "نمای شوروم سه‌بعدی",
-    label: "تصویر شوروم",
+    alt: "نمای نمایشگاه سه‌بعدی",
+    label: "تصویر نمایشگاه",
   },
-  cta: { label: "ورود به شوروم سه‌بعدی", href: "/store" },
+  cta: { label: "ورود به نمایشگاه سه‌بعدی", href: "/store" },
 } as const;
 
 export const COLOR_SWAP = {
@@ -91,7 +91,7 @@ export const COLOR_SWAP = {
     { name: "گردویی", hex: "#5C4033" },
     { name: "بلوط روشن", hex: "#C19A6B" },
   ],
-  swatchesNote: "نمونه رنگ‌های نمایشی — انتخاب رنگ در شوروم سه‌بعدی انجام می‌شود.",
+  swatchesNote: "نمونه رنگ‌های نمایشی — انتخاب رنگ در نمایشگاه سه‌بعدی انجام می‌شود.",
 } as const;
 
 export const AR_FEATURE = {
@@ -121,7 +121,7 @@ export type FeatureIcon =
 
 export const KEY_FEATURES: { label: string; icon: FeatureIcon }[] = [
   { label: "تغییر رنگ متریال در لحظه", icon: "palette" },
-  { label: "شوروم سه‌بعدی اختصاصی", icon: "cube" },
+  { label: "نمایشگاه سه‌بعدی اختصاصی", icon: "cube" },
   { label: "بیش از ۶۰ مدل محصول", icon: "catalog" },
   { label: "نمایش در واقعیت افزوده", icon: "ar" },
   { label: "سازگار با موبایل", icon: "mobile" },
@@ -140,7 +140,7 @@ export const KEY_FEATURES_SECTION = {
 export const CALL_TO_ACTION = {
   heading: [
     { text: "آماده‌ی ساخت " },
-    { text: "شوروم اختصاصی", gold: true },
+    { text: "نمایشگاه اختصاصی", gold: true },
     { text: " خود هستید؟" },
   ] as HeadingSegment[],
   description:
@@ -167,7 +167,7 @@ export const WHY_US_SECTION = {
 } as const;
 
 export const FOOTER = {
-  description: "شوروم مجازی مبلمان — نمایشگاه سه‌بعدی و واقعیت افزوده",
+  description: "نمایشگاه مجازی مبلمان — نمایشگاه سه‌بعدی و واقعیت افزوده",
   rights: "تمامی حقوق محفوظ است.",
 } as const;
 
@@ -176,7 +176,7 @@ export const AR_PAGE = {
   description:
     "محصول را انتخاب کنید و آن را در فضای واقعی خود ببینید. روی گوشی موبایل، دکمه‌ی واقعیت افزوده را بزنید.",
   back: "بازگشت به خانه",
-  toStore: "ورود به شوروم سه‌بعدی",
+  toStore: "ورود به نمایشگاه سه‌بعدی",
   loading: "در حال بارگذاری مدل سه‌بعدی…",
   missingTitle: "مدل سه‌بعدی این محصول هنوز آپلود نشده است",
   missingBody:
