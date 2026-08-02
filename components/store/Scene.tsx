@@ -265,6 +265,26 @@ export default function Scene() {
           />
           <ParticleReveal isTransitioning={loadingPhase === 'transitioning'} />
 
+          {/* Shader warmup - pre-compile billboard materials off-screen during transition */}
+          {loadingPhase === 'transitioning' && (
+            <group position={[1000, 1000, 1000]}>
+              <ProductBillboard3D
+                product={{
+                  id: 'warmup',
+                  name: 'Shader Warmup',
+                  dimensions: 'warmup',
+                  material: 'warmup',
+                  weight: 'warmup',
+                  category: 'warmup',
+                  type: 'warmup',
+                  billboardPosition: [0, 0, 0]
+                }}
+                onClose={() => {}}
+                onViewAR={() => {}}
+              />
+            </group>
+          )}
+
           {/* Physics system - only after transition ready */}
           {loadingPhase === 'ready' && (
             <PhysicsManager
