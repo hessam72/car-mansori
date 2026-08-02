@@ -16,7 +16,7 @@ export default function ScrollCue() {
         aria-hidden="true"
         className="grid h-10 w-6 place-items-start rounded-full border border-gold-line pt-1.5"
       >
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gold" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gold m-auto" />
       </span>
       <ChevronDownIcon
         aria-hidden="true"
