@@ -98,7 +98,7 @@ export const COLOR_SWAP = {
 export const AR_FEATURE = {
   eyebrow: "واقعیت افزوده",
   heading: [
-    { text: "انتخابتان  را در " },
+    { text: "انتخابتان را در " },
     { text: "خانه‌ی خود", gold: true },
     { text: " ببینید" },
   ] as HeadingSegment[],

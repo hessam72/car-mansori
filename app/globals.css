@@ -623,16 +623,16 @@ canvas {
 }
 
 .section-panel[data-tone="a"] {
-  background: linear-gradient(168deg, #1a2740 0%, #111b2c 55%, #080d16 100%);
+  background: linear-gradient(168deg, #0a1a37 0%, #111b2c 55%, #080d16 100%);
 }
 .section-panel[data-tone="b"] {
-  background: linear-gradient(168deg, #141f33 0%, #0c1421 60%, #05080e 100%);
+  background: linear-gradient(168deg, #121c2e 0%, #111b2c 55%, #080d16 100%);
 }
 .section-panel[data-tone="c"] {
-  background: linear-gradient(168deg, #0e1728 0%, #0a1120 50%, #04070c 100%);
+  background: linear-gradient(168deg, #0a1a37 0%, #111b2c 55%, #080d16 100%);
 }
 .section-panel[data-tone="d"] {
-  background: linear-gradient(168deg, #1f2d45 0%, #131e31 55%, #090e18 100%);
+  background: linear-gradient(168deg, #121c2e 0%, #111b2c 55%, #080d16 100%);
 }
 
 /* Melts an image into the page on every edge instead of framing it.
