@@ -144,9 +144,10 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
           <Text
             position={[0, 0, 0.03]}
             fontSize={0.22}
-            color="#1f2d45"
+          color="#ffffff"
             anchorX="center"
             anchorY="middle"
+            font="/fonts/baloo/BalooBhaijaan2-VariableFont_wght.ttf"
           >
             ×
           </Text>
@@ -161,7 +162,9 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
           anchorY="middle"
           maxWidth={3.5}
           textAlign="center"
-          letterSpacing={0.08}
+          // letterSpacing={0.08}
+          font="/fonts/shabnam/Shabnam-Bold-FD.ttf"
+          // font="/fonts/baloo/BalooBhaijaan2-VariableFont_wght.ttf"
         >
           {product.name}
         </Text>
@@ -175,8 +178,9 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
           anchorY="middle"
           maxWidth={3.5}
           textAlign="center"
-          letterSpacing={0.08}
+          // letterSpacing={0.08}
           fillOpacity={0.1}
+          font="/fonts/shabnam/Shabnam-Bold-FD.ttf"
         >
           {product.name}
         </Text>
@@ -196,8 +200,9 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
           anchorY="top"
           maxWidth={1.5}
           lineHeight={1.8}
-          letterSpacing={0.08}
+          // letterSpacing={0.08}
           fillOpacity={0.7}
+          font="/fonts/shabnam/Shabnam-Bold-FD.ttf"
         >
           {'ابعاد\nجنس\nوزن'}
         </Text>
@@ -210,7 +215,8 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
           anchorY="top"
           maxWidth={1.8}
           lineHeight={1.8}
-          letterSpacing={0.08}
+          // letterSpacing={0.08}
+          font="/fonts/baloo/BalooBhaijaan2-VariableFont_wght.ttf"
         >
           {`${product.dimensions || 'موجود نیست'}\n${product.material || 'موجود نیست'}\n${product.weight || 'موجود نیست'}`}
         </Text>
@@ -224,8 +230,9 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
           anchorY="top"
           maxWidth={1.5}
           lineHeight={1.8}
-          letterSpacing={0.08}
+          // letterSpacing={0.08}
           fillOpacity={0.7}
+          font="/fonts/shabnam/Shabnam-Bold-FD.ttf"
         >
           {product.seatingCapacity ? 'ظرفیت نشستن\nدسته‌بندی\nنوع' : product.shelves ? 'تعداد قفسه\nدسته‌بندی\nنوع' : 'دسته‌بندی\nنوع\nرنگ‌ها'}
         </Text>
@@ -238,7 +245,8 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
           anchorY="top"
           maxWidth={1.8}
           lineHeight={1.8}
-          letterSpacing={0.08}
+          // letterSpacing={0.08}
+          font="/fonts/baloo/BalooBhaijaan2-VariableFont_wght.ttf"
         >
           {product.seatingCapacity
             ? `${product.seatingCapacity}\n${product.category || 'موجود نیست'}\n${product.type || 'موجود نیست'}`
@@ -273,8 +281,9 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
             color="#ffffff"
             anchorX="center"
             anchorY="middle"
-            letterSpacing={0.1}
+            // letterSpacing={0.1}
             fontWeight={700}
+          font="/fonts/shabnam/Shabnam-Bold-FD.ttf"
           >
             مشاهده در واقعیت افزوده
           </Text>

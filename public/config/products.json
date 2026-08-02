@@ -1,113 +1,95 @@
 {
   "modern-sofa": {
     "id": "modern-sofa-01",
-    "category": "seating",
-    "type": "sofa",
-    "name": "Modern Sectional Sofa",
+    "category": "مبل",
+    "type": "راحتی",
+    "name": "مبل مدرن سگمنتال",
     "glbPath": "/models/Furniture/arm_chair__furniture.glb",
     "usdzPath": "/models/furniture/sofa-modern.usdz",
     "dimensions": "240cm × 95cm × 80cm",
-    "material": "Fabric & Solid Wood",
-    "seatingCapacity": "4-5 persons",
+    "material": "پارچه و چوب جامد",
+    "مبلCapacity": "۴-۵ نفر",
     "weight": "85 kg",
     "colors": [
-      { "name": "Charcoal Gray", "hex": "#36454F" },
-      { "name": "Beige", "hex": "#D4C5B9" },
-      { "name": "Navy Blue", "hex": "#1B2F5C" }
+      { "name": "خاکستری ذغالی", "hex": "#36454F" },
+      { "name": "بژ", "hex": "#D4C5B9" },
+      { "name": "آبی نفتی", "hex": "#1B2F5C" }
     ],
     "billboardPosition": [2, 2.5, 0]
   },
 
   "dining-chair": {
     "id": "modern-sofa-02",
-    "category": "seating",
-    "type": "chair",
-    "name": "Nordic Dining Chair",
+    "category": "مبل",
+    "type": "راحتی",
+    "name": "صندلی غذاخوری نوردیک",
     "glbPath": "/models/Furniture/living_room_sofa__furniture.glb",
     "usdzPath": "/models/furniture/chair-nordic.usdz",
     "dimensions": "52cm × 58cm × 82cm",
-    "material": "Oak Wood & Leather",
-    "seatingCapacity": "1 person",
+    "material": "چوب بلوط و چرم",
+    "مبلCapacity": "۱ نفر",
     "weight": "6.5 kg",
     "colors": [
-      { "name": "Natural Oak", "hex": "#C19A6B" },
-      { "name": "Walnut", "hex": "#5C4033" },
-      { "name": "White Oak", "hex": "#F5E6D3" }
+      { "name": "بلوط طبیعی", "hex": "#C19A6B" },
+      { "name": "گردوی تیره", "hex": "#5C4033" },
+      { "name": "بلوط سفید", "hex": "#F5E6D3" }
     ],
     "billboardPosition": [-2, 2.5, 0]
   },
 
   "coffee-table": {
     "id": "modern-sofa-03",
-    "category": "tables",
-    "type": "coffee-table",
-    "name": "Minimalist Coffee Table",
+    "category": "مبل",
+    "type": "راحتی",
+    "name": "میز قهوه‌خوری مینیمال",
     "glbPath": "/models/furniture/table-coffee.glb",
     "usdzPath": "/models/furniture/table-coffee.usdz",
     "dimensions": "120cm × 60cm × 45cm",
-    "material": "Tempered Glass & Metal",
+    "material": "شیشه نشکن و فلز",
     "weight": "22 kg",
     "colors": [
-      { "name": "Black Metal", "hex": "#1C1C1C" },
-      { "name": "Gold Metal", "hex": "#D4AF37" },
-      { "name": "Silver Chrome", "hex": "#C0C0C0" }
+      { "name": "فلز مشکی", "hex": "#1C1C1C" },
+      { "name": "فلز طلایی", "hex": "#D4AF37" },
+      { "name": "کروم نقره‌ای", "hex": "#C0C0C0" }
     ],
     "billboardPosition": [-5, 2.5, -2]
   },
 
   "bookshelf": {
     "id": "modern-sofa-04",
-    "category": "storage",
-    "type": "bookshelf",
-    "name": "Industrial Bookshelf",
+    "category": "مبل",
+    "type": "راحتی",
+    "name": "قفسه کتاب صنعتی",
     "glbPath": "/models/furniture/bookshelf-industrial.glb",
     "usdzPath": "/models/furniture/bookshelf-industrial.usdz",
     "dimensions": "180cm × 40cm × 200cm",
-    "material": "Metal Frame & Wood Shelves",
-    "shelves": "5 adjustable shelves",
+    "material": "قاب فلزی و طبقات چوبی",
+    "shelves": "۵ طبقه قابل تنظیم",
     "weight": "45 kg",
     "colors": [
-      { "name": "Rustic Wood", "hex": "#8B4513" },
-      { "name": "Espresso", "hex": "#3E2723" },
-      { "name": "Light Ash", "hex": "#B8A896" }
+      { "name": "چوب روستیک", "hex": "#8B4513" },
+      { "name": "اسپرسو", "hex": "#3E2723" },
+      { "name": "راش روشن", "hex": "#B8A896" }
     ],
     "billboardPosition": [5.1, 2.5, 4.7]
   },
 
   "armchair": {
     "id": "modern-sofa-05",
-    "category": "seating",
-    "type": "armchair",
-    "name": "صندلی زیبای من",
+    "category": "مبل",
+    "type": "راحتی",
+    "name": "صندلی دسته‌دار مخملی",
     "glbPath": "/models/Furniture/arm_chair__furniture.glb",
     "usdzPath": "/models/furniture/armchair-velvet.usdz",
     "dimensions": "80cm × 85cm × 90cm",
-    "material": "Velvet Upholstery & Beech Wood",
-    "seatingCapacity": "1 person",
+    "material": "روکش مخمل و چوب راش",
+    "مبلCapacity": "۱ نفر",
     "weight": "18 kg",
     "colors": [
-      { "name": "Emerald Green", "hex": "#50C878" },
-      { "name": "Burgundy", "hex": "#800020" },
-      { "name": "Mustard Yellow", "hex": "#E1AD01" }
+      { "name": "سبز زمردی", "hex": "#50C878" },
+      { "name": "سرخابی", "hex": "#800020" },
+      { "name": "زرد خردلی", "hex": "#E1AD01" }
     ],
     "billboardPosition": [0, 2.5, -5]
-  },
-
-  "side-table": {
-    "id": "side-table-01",
-    "category": "tables",
-    "type": "side-table",
-    "name": "Marble Side Table",
-    "glbPath": "/models/furniture/table-side.glb",
-    "usdzPath": "/models/furniture/table-side.usdz",
-    "dimensions": "45cm × 45cm × 55cm",
-    "material": "Marble Top & Brass Legs",
-    "weight": "12 kg",
-    "colors": [
-      { "name": "White Marble", "hex": "#F8F8F8" },
-      { "name": "Black Marble", "hex": "#2C2C2C" },
-      { "name": "Green Marble", "hex": "#4A7C59" }
-    ],
-    "billboardPosition": [3, 2.5, 3]
   }
 }
