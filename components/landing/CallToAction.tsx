@@ -21,7 +21,7 @@ function Corner({ className }: { className: string }) {
 
 export default function CallToAction() {
   return (
-    <Section tone="d" labelledBy="cta-heading" className="relative">
+    <Section tone="d" id={CALL_TO_ACTION.id} labelledBy="cta-heading" className="relative">
       <Corner className="left-4 top-4 border-l border-t" />
       <Corner className="right-4 top-4 border-r border-t" />
       <Corner className="bottom-4 left-4 border-b border-l" />

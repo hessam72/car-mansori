@@ -21,17 +21,17 @@ export const NAV_LINKS = [
   { label: "خانه", href: "#top" },
   { label: "نمایشگاه سه‌بعدی", href: "/store" },
   { label: "امکانات", href: "#features" },
-  { label: "واقعیت افزوده", href: "/ar" },
+  { label: "واقعیت افزوده", href: "#ar" },
   { label: "چرا ما؟", href: "#why" },
-  { label: "تماس با ما", href: CONTACT_PHONE_HREF },
+  { label: "تماس با ما", href: "#contact" },
 ] as const;
 
 export const HERO = {
   eyebrow: "نمایشگاه مجازی مبلمان",
   heading: [
-    { text: "نمایشگاه مبلمان شما، " },
-    { text: "سه‌بعدی", gold: true },
-    { text: " و همیشه باز" },
+    { text: "هر مبلمان\n" },
+    { text: "یک تجربه ", gold: false },
+    { text: "دیجیتال", gold: true },
   ] as HeadingSegment[],
   description:
     "مشتری بدون نصب هیچ برنامه‌ای وارد نمایشگاه اختصاصی شما می‌شود، رنگ مبلمان را در لحظه تغییر می‌دهد و آن را در خانه‌ی خودش می‌بیند.",
@@ -64,8 +64,9 @@ export const COLOR_SWAP = {
   id: "features",
   eyebrow: "امکانات ما",
   heading: [
-    { text: "تغییر رنگ مبلمان " },
-    { text: "در لحظه", gold: true },
+    { text: " شخصی سازی  " },
+    { text: " در لحظه ", gold: true },
+    { text: "مبلمان" },
   ] as HeadingSegment[],
   description:
     "پارچه و رنگ را با یک لمس عوض کنید. مشتری همان مبل را در ده‌ها رنگ می‌بیند، بدون اینکه انبار شما ده‌ها مدل داشته باشد.",
@@ -97,7 +98,7 @@ export const COLOR_SWAP = {
 export const AR_FEATURE = {
   eyebrow: "واقعیت افزوده",
   heading: [
-    { text: "مبل را در " },
+    { text: "انتخابتان  را در " },
     { text: "خانه‌ی خود", gold: true },
     { text: " ببینید" },
   ] as HeadingSegment[],

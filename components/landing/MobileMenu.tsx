@@ -86,8 +86,11 @@ export default function MobileMenu({
       const target = document.querySelector(href);
       onClose();
       if (!target) return;
-      if (lenis) lenis.scrollTo(target as HTMLElement, { offset: -72 });
-      else target.scrollIntoView({ behavior: "smooth" });
+      // Delay scroll until after menu close animation & lenis restart
+      setTimeout(() => {
+        if (lenis) lenis.scrollTo(target as HTMLElement, { offset: -72 });
+        else target.scrollIntoView({ behavior: "smooth" });
+      }, 100);
     },
     [lenis, onClose],
   );
@@ -133,12 +136,12 @@ export default function MobileMenu({
                   className="font-persian flex items-center justify-between border-b border-white/8 py-4 text-lg font-bold text-white transition-colors hover:text-gold-soft"
                 >
                   {link.label}
-                  <span
+                  {/* <span
                     aria-hidden="true"
                     className="persian-number text-xs text-gold/50"
                   >
                     {["۰۱", "۰۲", "۰۳", "۰۴", "۰۵", "۰۶"][i]}
-                  </span>
+                  </span> */}
                 </Link>
               </li>
             ))}

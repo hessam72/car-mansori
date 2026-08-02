@@ -7,7 +7,7 @@ import Section from "./Section";
 
 export default function KeyFeatures() {
   return (
-    <Section tone="b" labelledBy="keyfeatures-heading">
+    <Section tone="b" id={KEY_FEATURES_SECTION.id} labelledBy="keyfeatures-heading">
       <Reveal className="flex w-full flex-col items-center gap-10">
         <SectionHeading
           eyebrow={KEY_FEATURES_SECTION.eyebrow}
