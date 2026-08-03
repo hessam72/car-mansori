@@ -1,8 +1,8 @@
 'use client'
 
-import { Billboard, Text, RoundedBox } from '@react-three/drei'
+import { Text, RoundedBox, useGLTF } from '@react-three/drei'
 import { useRouter } from 'next/navigation'
-import { useRef, useState } from 'react'
+import { useRef, useState, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
@@ -39,6 +39,58 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
   const arButtonRef = useRef<THREE.Group>(null)
   const [hovered, setHovered] = useState(false)
 
+  // Load billboard GLB model
+  const gltf = useGLTF('/models/billboard/billboard.glb')
+
+  // Find surface mesh and calculate dimensions
+  const { surfacePosition, surfaceRotation, billboardScale } = useMemo(() => {
+    const clone = gltf.scene.clone(true)
+    let surface = clone.getObjectByName('surface') as THREE.Mesh
+
+    if (!surface) {
+      // Fallback: find first mesh if 'surface' name not found
+      clone.traverse((child) => {
+        if (!surface && child instanceof THREE.Mesh) {
+          surface = child
+        }
+      })
+    }
+
+    // Target content dimensions
+    const targetWidth = 4
+    const targetHeight = 4.5
+
+    if (surface) {
+      // Calculate scale based on surface vs content dimensions
+      surface.geometry.computeBoundingBox()
+      const bbox = surface.geometry.boundingBox!
+      const width = bbox.max.x - bbox.min.x
+      const height = bbox.max.y - bbox.min.y
+
+      const scaleX = width > 0 ? targetWidth / width : 1
+      const scaleY = height > 0 ? targetHeight / height : 1
+      const uniformScale = Math.min(scaleX, scaleY)
+
+      // Get world position and rotation of surface mesh
+      const worldPos = new THREE.Vector3()
+      const worldRot = new THREE.Euler()
+      surface.getWorldPosition(worldPos)
+      surface.getWorldQuaternion(new THREE.Quaternion().setFromEuler(worldRot))
+
+      return {
+        surfacePosition: [worldPos.x, worldPos.y, worldPos.z] as [number, number, number],
+        surfaceRotation: [worldRot.x, worldRot.y, worldRot.z] as [number, number, number],
+        billboardScale: uniformScale
+      }
+    }
+
+    return {
+      surfacePosition: [0, 0, 0] as [number, number, number],
+      surfaceRotation: [0, 0, 0] as [number, number, number],
+      billboardScale: 1
+    }
+  }, [gltf])
+
   // Animate AR button glow
   useFrame((state) => {
     if (arButtonRef.current) {
@@ -56,81 +108,16 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
   }
 
   return (
-    <Billboard
-      position={product.billboardPosition}
-      follow={true}
-      lockX={false}
-      lockY={false}
-      lockZ={false}
-    >
-      <group ref={groupRef}>
-        {/* Shadow layer */}
-        <RoundedBox args={[4.1, 4.6, 0.02]} radius={0.17} position={[0.05, -0.05, -0.12]}>
-          <meshBasicMaterial color="#05080e" opacity={0.1} transparent />
-        </RoundedBox>
+    <group position={product.billboardPosition}>
+      {/* Billboard GLB model */}
+      <primitive object={gltf.scene.clone(true)} scale={billboardScale} />
 
-        {/* Outer border glow */}
-        <RoundedBox args={[4.08, 4.58, 0.06]} radius={0.16} position={[0, 0, -0.07]}>
-          <meshStandardMaterial
-            color="#1f2d45"
-            metalness={0.5}
-            roughness={0.6}
-            opacity={0.4}
-            transparent
-            emissive="#1f2d45"
-            emissiveIntensity={0.2}
-          />
-        </RoundedBox>
-
-        {/* Inner border */}
-        <RoundedBox args={[4.04, 4.54, 0.06]} radius={0.15} position={[0, 0, -0.06]}>
-          <meshStandardMaterial
-            color="#172236"
-            metalness={0.6}
-            roughness={0.5}
-            opacity={0.5}
-            transparent
-          />
-        </RoundedBox>
-
-        {/* Glass background panel with gradient effect */}
-        <RoundedBox args={[4, 4.5, 0.08]} radius={0.15} position={[0, 0, -0.05]}>
-          <meshPhysicalMaterial
-            color="#0a1120"
-            metalness={0.8}
-            roughness={0.7}
-            opacity={0.95}
-            transparent
-            clearcoat={0.4}
-            clearcoatRoughness={0.3}
-            transmission={0.05}
-            thickness={0.5}
-          />
-        </RoundedBox>
-
-        {/* Corner accents */}
-        {[
-          [-1.85, 2.1],
-          [1.85, 2.1],
-          [-1.85, -2.1],
-          [1.85, -2.1],
-        ].map(([x, y], i) => (
-          <mesh key={i} position={[x, y, 0.01]}>
-            <boxGeometry args={[0.15, 0.15, 0.02]} />
-            <meshStandardMaterial color="#05080e" metalness={0.9} roughness={0.4} />
-          </mesh>
-        ))}
-
-        {/* Depth lines (sides) */}
-        <mesh position={[-1.95, 0, 0]}>
-          <planeGeometry args={[0.02, 4.3]} />
-          <meshBasicMaterial color="#101a2c" opacity={0.6} transparent />
-        </mesh>
-        <mesh position={[1.95, 0, 0]}>
-          <planeGeometry args={[0.02, 4.3]} />
-          <meshBasicMaterial color="#101a2c" opacity={0.6} transparent />
-        </mesh>
-
+      {/* Content group positioned on surface - offset forward on Z axis */}
+      <group
+        ref={groupRef}
+        position={[surfacePosition[0] * billboardScale, surfacePosition[1] * billboardScale, (surfacePosition[2] * billboardScale) + 0.01]}
+        rotation={surfaceRotation}
+      >
         {/* Close button */}
         <group position={[1.7, 2.15, 0.1]} onClick={onClose}>
           <RoundedBox args={[0.35, 0.35, 0.05]} radius={0.08}>
@@ -144,7 +131,7 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
           <Text
             position={[0, 0, 0.03]}
             fontSize={0.22}
-          color="#ffffff"
+            color="#ffffff"
             anchorX="center"
             anchorY="middle"
             font="/fonts/baloo/BalooBhaijaan2-VariableFont_wght.ttf"
@@ -162,9 +149,7 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
           anchorY="middle"
           maxWidth={3.5}
           textAlign="center"
-          // letterSpacing={0.08}
           font="/fonts/shabnam/Shabnam-Bold-FD.ttf"
-          // font="/fonts/baloo/BalooBhaijaan2-VariableFont_wght.ttf"
         >
           {product.name}
         </Text>
@@ -178,7 +163,6 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
           anchorY="middle"
           maxWidth={3.5}
           textAlign="center"
-          // letterSpacing={0.08}
           fillOpacity={0.1}
           font="/fonts/shabnam/Shabnam-Bold-FD.ttf"
         >
@@ -200,7 +184,6 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
           anchorY="top"
           maxWidth={1.5}
           lineHeight={1.8}
-          // letterSpacing={0.08}
           fillOpacity={0.7}
           font="/fonts/shabnam/Shabnam-Bold-FD.ttf"
         >
@@ -215,7 +198,6 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
           anchorY="top"
           maxWidth={1.8}
           lineHeight={1.8}
-          // letterSpacing={0.08}
           font="/fonts/baloo/BalooBhaijaan2-VariableFont_wght.ttf"
         >
           {`${product.dimensions || 'موجود نیست'}\n${product.material || 'موجود نیست'}\n${product.weight || 'موجود نیست'}`}
@@ -230,7 +212,6 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
           anchorY="top"
           maxWidth={1.5}
           lineHeight={1.8}
-          // letterSpacing={0.08}
           fillOpacity={0.7}
           font="/fonts/shabnam/Shabnam-Bold-FD.ttf"
         >
@@ -245,7 +226,6 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
           anchorY="top"
           maxWidth={1.8}
           lineHeight={1.8}
-          // letterSpacing={0.08}
           font="/fonts/baloo/BalooBhaijaan2-VariableFont_wght.ttf"
         >
           {product.seatingCapacity
@@ -281,14 +261,13 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
             color="#ffffff"
             anchorX="center"
             anchorY="middle"
-            // letterSpacing={0.1}
             fontWeight={700}
-          font="/fonts/shabnam/Shabnam-Bold-FD.ttf"
+            font="/fonts/shabnam/Shabnam-Bold-FD.ttf"
           >
             مشاهده در واقعیت افزوده
           </Text>
         </group>
       </group>
-    </Billboard>
+    </group>
   )
 }
