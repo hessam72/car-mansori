@@ -215,13 +215,13 @@ export default function Scene() {
             <Environment
               files="/hdr/main_hdr.exr"
               background={false}
-              environmentIntensity={1}
+              environmentIntensity={0.1}
               resolution={settings.envResolution}
             />
           </Suspense>
 
           {/* Vitrine spotlight — kept shadowless on purpose (PCSS is global) */}
-          <pointLight position={[0, 7, -1.5]} intensity={18} distance={12} decay={.7} color="#ffffff" />
+          <pointLight position={[0, 10, -1.5]} intensity={5} distance={20} decay={.7} color="#ffffff" />
 
           {/* Sun through the window + PCSS soft shadows — per-store on/off in
               stores.json. SoftShadows patches the global shadow shader chunk;
@@ -363,17 +363,7 @@ export default function Scene() {
             enabled={settings.floorReflectionsEnabled}
             receiveShadow={config.sun?.enabled ?? false}
           />  
-           {/* <ReflectiveFloor
-            opacity={1}
-            size={20}
-            mixStrength={.9}
-            blur={0}
-            roughness={1}
-            resolution={settings.floorReflectionResolution}
-            enabled={settings.floorReflectionsEnabled}
-            receiveShadow={config.sun?.enabled ?? false}
-          /> */}
-
+         
           {/* Post-Processing (tier-driven; SSGI lazy on ultra opt-in) */}
           <PostProcessing />
         </Physics>

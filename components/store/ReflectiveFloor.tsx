@@ -62,8 +62,8 @@ export function ReflectiveFloor({
     <mesh
       name="reflective-floor"
       rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, 0.1, 0]}
-      receiveShadow={receiveShadow}
+      position={[0, 0.7, 0]}
+      receiveShadow={true}
     >
       <planeGeometry args={[size, size]} />
       {enabled ? (
