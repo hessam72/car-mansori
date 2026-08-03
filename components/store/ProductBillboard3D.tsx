@@ -2,8 +2,8 @@
 
 import { Text, RoundedBox, useGLTF } from '@react-three/drei'
 import { useRouter } from 'next/navigation'
-import { useRef, useState, useMemo } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useRef, useState, useMemo, useEffect } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 
 interface FurnitureColor {
@@ -38,6 +38,8 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
   const groupRef = useRef<THREE.Group>(null)
   const arButtonRef = useRef<THREE.Group>(null)
   const [hovered, setHovered] = useState(false)
+  const [billboardRotation, setBillboardRotation] = useState(0)
+  const { camera } = useThree()
 
   // Global scale multiplier - MODIFY THIS to resize entire billboard
   const GLOBAL_SCALE = .35
@@ -45,19 +47,38 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
   // Load billboard GLB model
   const gltf = useGLTF('/models/billboard/billboard.glb')
 
+  // Calculate rotation to face camera when product changes
+  useEffect(() => {
+    if (product) {
+      const billboardPos = new THREE.Vector3(...product.billboardPosition)
+      const cameraPos = camera.position.clone()
+
+      // Calculate angle on Y axis
+      const direction = new THREE.Vector3()
+      direction.subVectors(cameraPos, billboardPos)
+      direction.y = 0 // Only rotate on Y axis
+      direction.normalize()
+
+      const angle = Math.atan2(direction.x, direction.z)
+      setBillboardRotation(angle)
+    }
+  }, [product, camera])
+
   // Find surface mesh and calculate dimensions
-  const { surfacePosition, surfaceRotation, billboardScale } = useMemo(() => {
+  const { surfacePosition, surfaceRotation, billboardScale, billboardScene } = useMemo(() => {
     const clone = gltf.scene.clone(true)
     let surface = clone.getObjectByName('surface') as THREE.Mesh
 
-    if (!surface) {
-      // Fallback: find first mesh if 'surface' name not found
-      clone.traverse((child) => {
-        if (!surface && child instanceof THREE.Mesh) {
+    // Enable shadows on all meshes
+    clone.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true
+        child.receiveShadow = true
+        if (!surface) {
           surface = child
         }
-      })
-    }
+      }
+    })
 
     // Target content dimensions
     const targetWidth = 4
@@ -83,14 +104,16 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
       return {
         surfacePosition: [worldPos.x, worldPos.y, worldPos.z] as [number, number, number],
         surfaceRotation: [worldRot.x, worldRot.y, worldRot.z] as [number, number, number],
-        billboardScale: uniformScale
+        billboardScale: uniformScale,
+        billboardScene: clone
       }
     }
 
     return {
       surfacePosition: [0, 0, 0] as [number, number, number],
       surfaceRotation: [0, 0, 0] as [number, number, number],
-      billboardScale: 1
+      billboardScale: 1,
+      billboardScene: clone
     }
   }, [gltf])
 
@@ -111,9 +134,9 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
   }
 
   return (
-    <group position={product.billboardPosition} scale={GLOBAL_SCALE}>
+    <group position={product.billboardPosition} scale={GLOBAL_SCALE} rotation={[0, billboardRotation, 0]}>
       {/* Billboard GLB model */}
-      <primitive object={gltf.scene.clone(true)} scale={billboardScale} />
+      <primitive object={billboardScene} scale={billboardScale} />
 
       {/* Content group positioned on surface - offset forward on Z axis */}
       <group
