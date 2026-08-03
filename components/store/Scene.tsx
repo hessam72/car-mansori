@@ -351,7 +351,7 @@ export default function Scene() {
 
           {/* Reflective Floor — resolution/off-switch follow the quality tier
               (the reflection pass re-renders the scene every drawn frame) */}
-          <ReflectiveFloor
+          {/* <ReflectiveFloor
             opacity={.1}
             size={30}
             mixStrength={.4}
@@ -363,7 +363,7 @@ export default function Scene() {
             enabled={settings.floorReflectionsEnabled}
             receiveShadow={config.sun?.enabled ?? false}
           />  
-         
+          */}
           {/* Post-Processing (tier-driven; SSGI lazy on ultra opt-in) */}
           <PostProcessing />
         </Physics>

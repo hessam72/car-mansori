@@ -39,6 +39,9 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
   const arButtonRef = useRef<THREE.Group>(null)
   const [hovered, setHovered] = useState(false)
 
+  // Global scale multiplier - MODIFY THIS to resize entire billboard
+  const GLOBAL_SCALE = .35
+
   // Load billboard GLB model
   const gltf = useGLTF('/models/billboard/billboard.glb')
 
@@ -108,7 +111,7 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
   }
 
   return (
-    <group position={product.billboardPosition}>
+    <group position={product.billboardPosition} scale={GLOBAL_SCALE}>
       {/* Billboard GLB model */}
       <primitive object={gltf.scene.clone(true)} scale={billboardScale} />
 
@@ -119,7 +122,7 @@ export default function ProductBillboard3D({ product, onClose, onViewAR }: Produ
         rotation={surfaceRotation}
       >
         {/* Close button */}
-        <group position={[1.7, 2.15, 0.1]} onClick={onClose}>
+        <group position={[1.6, 2.15, 0.1]} onClick={onClose}>
           <RoundedBox args={[0.35, 0.35, 0.05]} radius={0.08}>
             <meshPhysicalMaterial
               color="#101a2c"

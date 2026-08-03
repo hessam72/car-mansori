@@ -15,7 +15,7 @@
       { "name": "بژ", "hex": "#D4C5B9" },
       { "name": "آبی نفتی", "hex": "#1B2F5C" }
     ],
-    "billboardPosition": [2, 2.5, 0]
+    "billboardPosition": [2, 1.5, 0]
   },
 
   "dining-chair": {
