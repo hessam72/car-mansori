@@ -71,12 +71,9 @@ export default function ProductInteraction({ onProductClick }: ProductInteractio
           const objectName = targetObject.name.toLowerCase()
           console.log('[ProductInteraction] Checking object:', objectName)
 
-          // Check if this object matches any product
+          // Check if this object matches any product - exact ID match only
           for (const [productKey, productData] of Object.entries(products)) {
-           
-            if (objectName.includes(productKey.toLowerCase()) ||
-             // @ts-expect-error dsdssdsdsddsdsdsds
-                objectName.includes(productData.category)) {
+            if (objectName === productData.id.toLowerCase()) {
               foundProduct = productData
               matchedKey = productKey
               console.log('[ProductInteraction] Matched product key:', productKey, 'Product ID:', productData.id)
