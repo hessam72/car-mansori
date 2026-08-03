@@ -34,7 +34,7 @@
       { "name": "گردوی تیره", "hex": "#5C4033" },
       { "name": "بلوط سفید", "hex": "#F5E6D3" }
     ],
-    "billboardPosition": [-2, 2.5, 0]
+    "billboardPosition": [-4, 1.5, 0]
   },
 
   "coffee-table": {
