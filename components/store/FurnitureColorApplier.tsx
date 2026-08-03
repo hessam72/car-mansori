@@ -119,6 +119,27 @@ export function FurnitureColorApplier() {
       `[FurnitureColorApplier] Found ${meshCount} meshes, ${colorableCount} colorable, ${targets.length} targets`
     )
 
+    // Fallback: if no specific children found, color entire furniture
+    if (targets.length === 0 && meshCount > 0) {
+      console.log('[FurnitureColorApplier] No specific colorable children found, applying to all meshes (fallback)')
+      furnitureObject.traverse((child: THREE.Object3D) => {
+        if (child instanceof THREE.Mesh && child.material) {
+          if (!child.userData.originalMaterial) {
+            child.userData.originalMaterial = child.material
+            child.material = (child.material as THREE.Material).clone()
+          }
+          const material = child.material as THREE.MeshPhysicalMaterial | THREE.MeshStandardMaterial
+          targets.push({
+            material,
+            initialColor: material.color.clone(),
+            meshName: child.name,
+          })
+          console.log(`    -> Added ${child.name} to fallback targets`)
+        }
+      })
+      console.log(`[FurnitureColorApplier] Fallback added ${targets.length} targets`)
+    }
+
     // Store original color from first target and set it as current color
     if (targets.length > 0) {
       const originalColorHex = `#${targets[0].initialColor.getHexString()}`

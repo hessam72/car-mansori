@@ -76,6 +76,18 @@ export default function ConfigurableFurniture({
       }
     })
 
+    // Fallback: if no specific colorable parts found, apply to all meshes
+    if (targets.length === 0) {
+      console.log('[ConfigurableFurniture] No specific colorable parts found, applying to all meshes (fallback)')
+      clone.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.material) {
+          child.material = (child.material as THREE.Material).clone()
+          targets.push({ material: child.material as THREE.MeshPhysicalMaterial })
+        }
+      })
+      console.log(`[ConfigurableFurniture] Fallback added ${targets.length} targets`)
+    }
+
     return { furnitureModel: clone, paintTargets: targets }
   }, [gltf.scene])
 
