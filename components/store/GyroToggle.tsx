@@ -1,21 +1,62 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { MdScreenRotation, MdScreenRotationAlt } from 'react-icons/md'
 
 interface GyroToggleProps {
   onGyroChange: (enabled: boolean) => void
 }
 
+/** How long to wait for a real sensor reading before giving up */
+const SENSOR_PROBE_MS = 1000
+
 export function GyroToggle({ onGyroChange }: GyroToggleProps) {
   const [isGyroEnabled, setIsGyroEnabled] = useState(false)
   const [isSupported, setIsSupported] = useState(false)
-  const [permissionState, setPermissionState] = useState<'granted' | 'denied' | 'prompt'>('prompt')
+  const probeRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    // Check if DeviceOrientationEvent is supported
-    if (typeof window !== 'undefined' && 'DeviceOrientationEvent' in window) {
+    // The constructor exists in desktop Chrome/Firefox too, where no sensor
+    // ever fires — require a touch device so the button isn't a desktop no-op
+    if (
+      typeof window !== 'undefined' &&
+      'DeviceOrientationEvent' in window &&
+      window.matchMedia('(pointer: coarse)').matches
+    ) {
       setIsSupported(true)
     }
+  }, [])
+
+  const disable = useCallback(() => {
+    setIsGyroEnabled(false)
+    onGyroChange(false)
+  }, [onGyroChange])
+
+  // Enabling only means "we asked" — confirm a reading actually arrives,
+  // otherwise the camera silently freezes with the toggle lit up
+  const enable = useCallback(() => {
+    setIsGyroEnabled(true)
+    onGyroChange(true)
+
+    const onFirstReading = (e: DeviceOrientationEvent) => {
+      if (e.alpha === null && e.beta === null && e.gamma === null) return
+      cleanup()
+    }
+    const cleanup = () => {
+      window.removeEventListener('deviceorientation', onFirstReading)
+      if (probeRef.current) clearTimeout(probeRef.current)
+      probeRef.current = null
+    }
+
+    window.addEventListener('deviceorientation', onFirstReading, { passive: true })
+    probeRef.current = setTimeout(() => {
+      cleanup()
+      disable()
+      console.warn('[GyroToggle] no deviceorientation readings — sensor unavailable')
+    }, SENSOR_PROBE_MS)
+  }, [onGyroChange, disable])
+
+  useEffect(() => () => {
+    if (probeRef.current) clearTimeout(probeRef.current)
   }, [])
 
   const requestPermission = async () => {
@@ -25,30 +66,24 @@ export function GyroToggle({ onGyroChange }: GyroToggleProps) {
       // iOS 13+ requires explicit permission
       if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
         const permission = await (DeviceOrientationEvent as any).requestPermission()
-        setPermissionState(permission)
-
         if (permission === 'granted') {
-          setIsGyroEnabled(true)
-          onGyroChange(true)
+          enable()
         } else {
-          alert('Gyroscope permission denied')
+          console.warn('[GyroToggle] device orientation permission denied')
         }
       } else {
         // Non-iOS or older browsers - permission not required
-        setPermissionState('granted')
-        setIsGyroEnabled(true)
-        onGyroChange(true)
+        enable()
       }
     } catch (error) {
       console.error('Error requesting device orientation permission:', error)
-      alert('Failed to enable gyroscope controls')
     }
   }
 
   const toggleGyro = () => {
     if (isGyroEnabled) {
-      setIsGyroEnabled(false)
-      onGyroChange(false)
+      if (probeRef.current) clearTimeout(probeRef.current)
+      disable()
     } else {
       requestPermission()
     }

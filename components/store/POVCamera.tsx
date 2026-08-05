@@ -10,14 +10,39 @@ interface POVCameraProps {
 // Frame-loop scratch — never allocate inside useFrame
 const _euler = new THREE.Euler(0, 0, 0, 'YXZ')
 
+// Sensor-handler scratch — same rule, deviceorientation fires ~60Hz
+const _zee = new THREE.Vector3(0, 0, 1)
+const _q0 = new THREE.Quaternion()
+// -90° about X: maps the device frame (screen-up = +Y) onto three's world-up
+const _q1 = new THREE.Quaternion(-Math.SQRT1_2, 0, 0, Math.SQRT1_2)
+const _devEuler = new THREE.Euler(0, 0, 0, 'YXZ')
+const _devQuat = new THREE.Quaternion()
+const _out = new THREE.Euler(0, 0, 0, 'YXZ')
+
+const DEG = Math.PI / 180
+// Stop short of straight up/down: past ±90° the YXZ euler inverts
+const PITCH_LIMIT = 85 * DEG
+
 // Below this yaw+pitch delta the look-easing is done — snap and stop
 // requesting frames (matters under the demand frameloop)
 const SETTLE_EPSILON = 1e-4
+
+// Time constant of the look ease. The gyro stream is already fused by the OS,
+// so it only needs enough damping to kill jitter (~33ms); drag needs more.
+const GYRO_DAMPING = 30
+const DRAG_DAMPING = 15
+
+function screenAngleRad() {
+  const angle =
+    screen?.orientation?.angle ?? (window as unknown as { orientation?: number }).orientation ?? 0
+  return angle * DEG
+}
 
 export function usePOVCamera(props?: POVCameraProps) {
   const { gyroEnabled = false } = props || {}
   const { camera, gl } = useThree()
   const regress = useThree((s) => s.performance.regress)
+  const invalidate = useThree((s) => s.invalidate)
   const targetYaw = useRef(0)
   const targetPitch = useRef(0)
   const currentYaw = useRef(0)
@@ -25,7 +50,12 @@ export function usePOVCamera(props?: POVCameraProps) {
   const isDragging = useRef(false)
   const settledRef = useRef(true)
   const previousMouse = useRef({ x: 0, y: 0 })
-  const previousOrientation = useRef<{ alpha: number; beta: number; gamma: number } | null>(null)
+  // Gyro yaw is tracked relative to the heading at the moment gyro was enabled:
+  // the compass is unreliable indoors, and an absolute anchor would snap the
+  // view away from wherever the user was already looking.
+  const yawBase = useRef(0)
+  const yawAccum = useRef(0)
+  const prevRawYaw = useRef<number | null>(null)
 
   useEffect(() => {
     const canvas = gl.domElement
@@ -76,61 +106,62 @@ export function usePOVCamera(props?: POVCameraProps) {
     }
   }, [gl, gyroEnabled, regress])
 
-  // Gyroscope controls
+  // Gyroscope controls — absolute device attitude, not integrated deltas.
+  // Deltas drift, lose fast motion, and blow up at the euler singularities;
+  // composing the raw angles into a quaternion is exact at every hold angle.
   useEffect(() => {
     if (!gyroEnabled) {
-      previousOrientation.current = null
+      prevRawYaw.current = null
+      yawAccum.current = 0
       return
+    }
+
+    let orient = screenAngleRad()
+    const onScreenRotate = () => {
+      orient = screenAngleRad()
     }
 
     const handleOrientation = (event: DeviceOrientationEvent) => {
       if (event.alpha === null || event.beta === null || event.gamma === null) return
 
-      // Initialize on first read
-      if (!previousOrientation.current) {
-        previousOrientation.current = {
-          alpha: event.alpha,
-          beta: event.beta,
-          gamma: event.gamma
-        }
-        return // Skip first frame (no delta to calculate)
+      // Device attitude → world attitude (three's DeviceOrientationControls math)
+      _devEuler.set(event.beta * DEG, event.alpha * DEG, -event.gamma * DEG)
+      _devQuat.setFromEuler(_devEuler)
+      _devQuat.multiply(_q1)
+      _devQuat.multiply(_q0.setFromAxisAngle(_zee, -orient))
+
+      // .z is device roll — discarded so the horizon stays level while walking
+      _out.setFromQuaternion(_devQuat, 'YXZ')
+
+      // Yaw: unwrapped so the ease never takes the long way round the circle
+      if (prevRawYaw.current === null) {
+        yawBase.current = targetYaw.current
+        yawAccum.current = 0
+      } else {
+        let d = _out.y - prevRawYaw.current
+        if (d > Math.PI) d -= 2 * Math.PI
+        else if (d < -Math.PI) d += 2 * Math.PI
+        yawAccum.current += d
       }
+      prevRawYaw.current = _out.y
+      targetYaw.current = yawBase.current + yawAccum.current
 
-      // Calculate frame-to-frame delta
-      let deltaAlpha = event.alpha - previousOrientation.current.alpha
-      const deltaBeta = Math.max(-10, Math.min(10, event.beta - previousOrientation.current.beta))
-      const deltaGamma = Math.max(-10, Math.min(10, event.gamma - previousOrientation.current.gamma))
+      // Pitch: absolute — gravity is a real reference, unlike the compass
+      targetPitch.current = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, _out.x))
 
-      // Fix alpha wraparound (compass 0°-360°)
-      if (deltaAlpha > 180) deltaAlpha -= 360
-      if (deltaAlpha < -180) deltaAlpha += 360
-
-      // Update previous reference
-      previousOrientation.current = {
-        alpha: event.alpha,
-        beta: event.beta,
-        gamma: event.gamma
-      }
-
-      // Map device orientation to camera rotation
-      // Beta: device tilt forward/back → camera pitch (up/down)
-      // Gamma: device tilt left/right → camera yaw (left/right)
-      // Alpha: compass heading → additional yaw control
-
-      const pitchSensitivity = 0.015
-      const yawSensitivity = 0.02
-
-      // Accumulate incremental rotation
-      targetPitch.current += deltaBeta * pitchSensitivity
-      targetYaw.current += deltaGamma * yawSensitivity + deltaAlpha * yawSensitivity * 0.3
+      invalidate()
     }
 
-    window.addEventListener('deviceorientation', handleOrientation)
+    window.addEventListener('deviceorientation', handleOrientation, { passive: true })
+    screen.orientation?.addEventListener('change', onScreenRotate)
+    window.addEventListener('orientationchange', onScreenRotate)
 
     return () => {
       window.removeEventListener('deviceorientation', handleOrientation)
+      screen.orientation?.removeEventListener('change', onScreenRotate)
+      window.removeEventListener('orientationchange', onScreenRotate)
     }
-  }, [gyroEnabled])
+  }, [gyroEnabled, invalidate])
 
   useFrame((_, delta) => {
     const dYaw = targetYaw.current - currentYaw.current
@@ -144,7 +175,7 @@ export function usePOVCamera(props?: POVCameraProps) {
       settledRef.current = true
     } else {
       // Smooth damping factor (higher = snappier, lower = smoother)
-      const dampingFactor = 15
+      const dampingFactor = gyroEnabled ? GYRO_DAMPING : DRAG_DAMPING
       const t = 1 - Math.exp(-dampingFactor * delta)
       currentYaw.current += dYaw * t
       currentPitch.current += dPitch * t
