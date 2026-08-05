@@ -56,21 +56,21 @@ function ErrorScreen({ message }: { message: string }) {
 }
 
 function PhysicsManager({
-  onSetJoystickInput,
+  onJoystickInputReady,
   gyroEnabled,
   playerStart
 }: {
-  onSetJoystickInput: (callback: (x: number, y: number) => void) => void
+  onJoystickInputReady: (ref: React.RefObject<{ x: number; y: number }>) => void
   gyroEnabled: boolean
   playerStart: [number, number, number]
 }) {
   const physics = usePhysics()
-  const { setJoystickInput } = usePlayerController(physics, playerStart)
+  const { joystickInput } = usePlayerController(physics, playerStart)
   usePOVCamera({ gyroEnabled })
 
   useEffect(() => {
-    onSetJoystickInput(() => (x: number, y: number) => setJoystickInput(x, y))
-  }, [setJoystickInput, onSetJoystickInput])
+    onJoystickInputReady(joystickInput)
+  }, [joystickInput, onJoystickInputReady])
 
   return (
     <RigidBody
@@ -93,7 +93,7 @@ type LoadingPhase = 'loading' | 'transitioning' | 'ready'
 export default function Scene() {
   const { config, loading, error } = useStoreConfig()
   const { settings } = useQuality()
-  const [joystickCallback, setJoystickCallback] = useState<((x: number, y: number) => void) | null>(null)
+  const [joystickInputRef, setJoystickInputRef] = useState<React.RefObject<{ x: number; y: number }> | null>(null)
   const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>('loading')
   const [loadedCount, setLoadedCount] = useState(0)
   const [totalCount, setTotalCount] = useState(0)
@@ -141,11 +141,6 @@ export default function Scene() {
   const handleGalleryError = useCallback((_category: string, err: Error) => {
     setGalleryError(err.message || 'Failed to load the gallery model')
   }, [])
-
-  const handleJoystickMove = useCallback((x: number, y: number) => {
-    markStoreActivity()
-    joystickCallback?.(x, y)
-  }, [joystickCallback])
 
   const retryGallery = useCallback(() => {
     // Purge the cached rejections, then remount the loader block
@@ -288,7 +283,7 @@ export default function Scene() {
           {/* Physics system - only after transition ready */}
           {loadingPhase === 'ready' && (
             <PhysicsManager
-              onSetJoystickInput={setJoystickCallback}
+              onJoystickInputReady={setJoystickInputRef}
               gyroEnabled={gyroEnabled}
               playerStart={config.camera?.playerStart ?? [0, 2, 5]}
             />
@@ -407,8 +402,8 @@ export default function Scene() {
       )}
 
       {/* Virtual joystick for mobile - only after ready */}
-      {loadingPhase === 'ready' && joystickCallback && (
-        <VirtualJoystick onMove={handleJoystickMove} hidden={showAR} />
+      {loadingPhase === 'ready' && joystickInputRef && (
+        <VirtualJoystick joystickInput={joystickInputRef} onActivity={wake} hidden={showAR} />
       )}
 
       {/* Background audio */}

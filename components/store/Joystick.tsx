@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import nipplejs from 'nipplejs'
@@ -30,10 +30,6 @@ export function useJoystickControls(playerVelocity: React.RefObject<THREE.Vector
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
     }
-  }, [])
-
-  const setJoystickInput = useCallback((x: number, y: number) => {
-    joystickInput.current = { x, y }
   }, [])
 
   /** Applies input to playerVelocity; returns whether any input is active */
@@ -72,19 +68,22 @@ export function useJoystickControls(playerVelocity: React.RefObject<THREE.Vector
     return hasInput
   }
 
-  return { updateMovement, setJoystickInput }
+  return { updateMovement, joystickInput }
 }
 
 // Virtual joystick component for mobile
-export function VirtualJoystick({ onMove, hidden }: { onMove: (x: number, y: number) => void; hidden?: boolean }) {
+export function VirtualJoystick({
+  joystickInput,
+  onActivity,
+  hidden
+}: {
+  joystickInput: React.RefObject<{ x: number; y: number }>
+  onActivity?: () => void
+  hidden?: boolean
+}) {
   const zoneRef = useRef<HTMLDivElement>(null)
-  const onMoveRef = useRef(onMove)
   const isTouchActiveRef = useRef(false)
-
-  // Update ref when callback changes without recreating manager
-  useEffect(() => {
-    onMoveRef.current = onMove
-  }, [onMove])
+  const lastActivityRef = useRef(0)
 
   useEffect(() => {
     if (!zoneRef.current) return
@@ -99,6 +98,9 @@ export function VirtualJoystick({ onMove, hidden }: { onMove: (x: number, y: num
 
     manager.on('start', () => {
       isTouchActiveRef.current = true
+      // Trigger activity on touch start
+      onActivity?.()
+      lastActivityRef.current = Date.now()
     })
 
     manager.on('move', (evt) => {
@@ -107,11 +109,27 @@ export function VirtualJoystick({ onMove, hidden }: { onMove: (x: number, y: num
       const force = Math.min(evt.data.force, 2) / 2
       const x = Math.cos(angle) * force
       const y = Math.sin(angle) * force
-      onMoveRef.current(x, y)
+
+      // Write directly to ref (same as WASD keyboard input)
+      if (joystickInput.current) {
+        joystickInput.current.x = x
+        joystickInput.current.y = y
+      }
+
+      // Throttle activity marks to ~10Hz instead of 60Hz
+      const now = Date.now()
+      if (now - lastActivityRef.current > 100) {
+        onActivity?.()
+        lastActivityRef.current = now
+      }
     })
 
     manager.on('end', () => {
-      onMoveRef.current(0, 0)
+      // Reset to zero (same as WASD key release)
+      if (joystickInput.current) {
+        joystickInput.current.x = 0
+        joystickInput.current.y = 0
+      }
       isTouchActiveRef.current = false
     })
 
@@ -123,7 +141,7 @@ export function VirtualJoystick({ onMove, hidden }: { onMove: (x: number, y: num
         manager.destroy()
       }
     }
-  }, [])
+  }, [joystickInput, onActivity])
 
   return (
     <div

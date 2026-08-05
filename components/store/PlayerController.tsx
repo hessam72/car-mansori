@@ -49,7 +49,7 @@ export function usePlayerController(
   physics: ReturnType<typeof usePhysics>,
   startPosition?: [number, number, number]
 ) {
-  const { updateMovement, setJoystickInput } = useJoystickControls(physics.playerVelocity)
+  const { updateMovement, joystickInput } = useJoystickControls(physics.playerVelocity)
 
   usePlayerPhysics(physics, startPosition)
 
@@ -79,5 +79,5 @@ export function usePlayerController(
     )
   })
 
-  return { setJoystickInput }
+  return { joystickInput }
 }
