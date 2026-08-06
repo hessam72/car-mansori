@@ -775,10 +775,10 @@
   margin-block-start: 2.75rem;
 }
 @media (min-width: 560px) {
-  .about-grid { grid-template-columns: repeat(2, 1fr); gap: 1.15rem; }
+  .about-grid { grid-template-columns: repeat(1, 1fr); gap: 1.15rem; }
 }
 @media (min-width: 1024px) {
-  .about-grid { grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+  .about-grid { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
 }
 
 .about-card {
