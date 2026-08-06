@@ -1,4 +1,4 @@
-import AboutImage from "./AboutImage";
+import VisionImage from "./VisionImage";
 import AboutReveal from "./AboutReveal";
 import { Eyebrow, Heading } from "./AboutHeading";
 import type { AboutCopy } from "./content";
@@ -13,7 +13,7 @@ export default function AboutVision({ copy }: { copy: AboutCopy }) {
         </AboutReveal>
 
         <AboutReveal className="about-band-figure" delay={100}>
-          <AboutImage
+          <VisionImage
             slot={copy.vision.image}
             ratio="wide"
             blend

@@ -983,3 +983,19 @@
   .about-shell { transition: none; }
   .about-card:hover { transform: none; }
 }
+
+
+.vision-img{
+  height:auto !important; 
+
+}
+ .vision-figure{
+overflow:visible !important;
+    margin-bottom:8rem !important;
+    }
+  @media(max-width: 768px) {
+    .vision-figure{
+
+    margin-bottom:2rem !important;
+    }
+  }
