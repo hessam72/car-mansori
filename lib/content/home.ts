@@ -20,9 +20,10 @@ export const BRAND = {
 export const NAV_LINKS = [
   { label: "خانه", href: "#top" },
   { label: "نمایشگاه سه‌بعدی", href: "/store" },
+    { label: "درباره ما", href: "/about" },
+
   { label: "امکانات", href: "#features" },
   { label: "واقعیت افزوده", href: "#ar" },
-  { label: "چرا ما؟", href: "#why" },
   { label: "تماس با ما", href: "#contact" },
 ] as const;
 
