@@ -68,6 +68,7 @@ export type LampConfig = {
 /** Camera positioning and transition config */
 export type CameraConfig = {
   playerStart: [number, number, number]
+  cameraHeight?: number
   transitionTarget: [number, number, number]
   transitionStart: [number, number, number]
   lookAtStart: [number, number, number]

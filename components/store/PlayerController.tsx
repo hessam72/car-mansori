@@ -8,7 +8,8 @@ import { useRef } from 'react'
 
 export function usePlayerPhysics(
   physics: ReturnType<typeof usePhysics>,
-  startPosition: [number, number, number] = [24, 1.5, 12]
+  startPosition: [number, number, number] = [24, 1.5, 12],
+  cameraHeight: number = 1.3
 ) {
   const initTime = useRef(Date.now())
   const isInitialized = useRef(false)
@@ -23,7 +24,7 @@ export function usePlayerPhysics(
     if (elapsed < 200 && !isInitialized.current) {
       rigidBodyRef.current.setTranslation({ x: startPosition[0], y: startPosition[1], z: startPosition[2] }, true)
       rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
-      state.camera.position.set(startPosition[0], startPosition[1] + 1.3, startPosition[2])
+      state.camera.position.set(startPosition[0], startPosition[1] + cameraHeight, startPosition[2])
       isInitialized.current = true
       return
     }
@@ -34,24 +35,25 @@ export function usePlayerPhysics(
 
     // Update camera to follow rigid body with offset
     const pos = rigidBodyRef.current.translation()
-    state.camera.position.set(pos.x, pos.y + 1.3, pos.z)
+    state.camera.position.set(pos.x, pos.y + cameraHeight, pos.z)
 
     // Safety: teleport if fallen
     if (pos.y < -5) {
       rigidBodyRef.current.setTranslation({ x: startPosition[0], y: startPosition[1], z: startPosition[2] }, true)
       rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
-      state.camera.position.set(startPosition[0], startPosition[1] + 1.3, startPosition[2])
+      state.camera.position.set(startPosition[0], startPosition[1] + cameraHeight, startPosition[2])
     }
   })
 }
 
 export function usePlayerController(
   physics: ReturnType<typeof usePhysics>,
-  startPosition?: [number, number, number]
+  startPosition?: [number, number, number],
+  cameraHeight?: number
 ) {
   const { updateMovement, joystickInput } = useJoystickControls(physics.playerVelocity)
 
-  usePlayerPhysics(physics, startPosition)
+  usePlayerPhysics(physics, startPosition, cameraHeight)
 
   useFrame((state, delta) => {
     const { rigidBodyRef, playerVelocity } = physics

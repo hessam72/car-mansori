@@ -58,14 +58,16 @@ function ErrorScreen({ message }: { message: string }) {
 function PhysicsManager({
   onJoystickInputReady,
   gyroEnabled,
-  playerStart
+  playerStart,
+  cameraHeight
 }: {
   onJoystickInputReady: (ref: React.RefObject<{ x: number; y: number }>) => void
   gyroEnabled: boolean
   playerStart: [number, number, number]
+  cameraHeight?: number
 }) {
   const physics = usePhysics()
-  const { joystickInput } = usePlayerController(physics, playerStart)
+  const { joystickInput } = usePlayerController(physics, playerStart, cameraHeight)
   usePOVCamera({ gyroEnabled })
 
   useEffect(() => {
@@ -210,7 +212,7 @@ export default function Scene() {
             <Environment
               files="/hdr/main_hdr.exr"
               background={false}
-              environmentIntensity={0.1}
+              environmentIntensity={.8}
               resolution={settings.envResolution}
             />
           </Suspense>
@@ -286,6 +288,7 @@ export default function Scene() {
               onJoystickInputReady={setJoystickInputRef}
               gyroEnabled={gyroEnabled}
               playerStart={config.camera?.playerStart ?? [0, 2, 5]}
+              cameraHeight={config.camera?.cameraHeight}
             />
           )}
 
