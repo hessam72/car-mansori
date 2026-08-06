@@ -12,7 +12,7 @@ export default function AboutVision({ copy }: { copy: AboutCopy }) {
           <Heading id="about-vision" segments={copy.vision.heading} />
         </AboutReveal>
 
-        <AboutReveal className="about-hero-figure" delay={100}>
+        <AboutReveal className="about-band-figure" delay={100}>
           <AboutImage
             slot={copy.vision.image}
             ratio="wide"

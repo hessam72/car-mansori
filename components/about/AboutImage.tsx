@@ -19,18 +19,29 @@ export default function AboutImage({
   sizes,
   priority = false,
   blend = false,
+  backdrop = false,
 }: {
   slot: Slot;
-  ratio: "wide" | "card" | "tall";
+  /** "fill" stretches to a positioned parent instead of holding a ratio. */
+  ratio: "wide" | "card" | "tall" | "fill";
   sizes: string;
   priority?: boolean;
   /** Fade the image out on every edge so it melts into the page. */
   blend?: boolean;
+  /** Frameless full-bleed variant that sits behind copy; feathers wider and
+   *  drops its empty-slot placeholder to the bottom so it never lands behind
+   *  the headline. */
+  backdrop?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
 
   return (
-    <figure className="about-figure" data-ratio={ratio} data-blend={blend ? "" : undefined}>
+    <figure
+      className="about-figure"
+      data-ratio={ratio}
+      data-blend={blend ? "" : undefined}
+      data-backdrop={backdrop ? "" : undefined}
+    >
       {failed ? (
         <div className="about-img-fallback">
           <ImageIcon />

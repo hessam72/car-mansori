@@ -55,6 +55,9 @@
   /* ── Rhythm ────────────────────────────────────────────────────────── */
   --ab-max: 68rem;
   --ab-radius: 1.75rem;
+  /* Drives both the header's own height and how far the hero backdrop is
+     pulled up behind it — the two must not drift apart. */
+  --ab-header-h: 4rem;
 
   /* ── Type stacks ───────────────────────────────────────────────────────
      Persian by default. `var(--x, fallback)` means the host app's next/font
@@ -179,7 +182,7 @@
   position: relative;
   max-inline-size: var(--ab-max);
   margin-inline: auto;
-  block-size: 4rem;
+  block-size: var(--ab-header-h);
   padding-inline: 1rem;
 }
 .about-brand {
@@ -215,8 +218,8 @@
 }
 
 @media (min-width: 640px) {
+  .about-root { --ab-header-h: 4.75rem; }
   .about-header-inner {
-    block-size: 4.75rem;
     padding-inline: 1.5rem;
   }
   .about-brand { left: 1.5rem; }
@@ -233,6 +236,10 @@
   padding: 0.42rem 0.7rem;
   border-radius: 999px;
   border: 1px solid var(--ab-hairline);
+  /* Dark backing, matching the language pill: over the hero the header floats
+     on the photograph, and a hairline border alone vanishes against a light
+     frame. */
+  background: rgb(5 8 14 / 48%);
   color: var(--ab-text-dim);
   font-size: 0.78rem;
   text-decoration: none;
@@ -496,6 +503,13 @@
 @media (min-width: 768px) {
   .about-figure[data-ratio="tall"] { aspect-ratio: 3 / 4; }
 }
+/* Fills its positioned parent instead of holding an aspect ratio — the hero
+   backdrop, whose height is set by the copy it sits behind. */
+.about-figure[data-ratio="fill"] {
+  position: absolute;
+  inset: 0;
+  block-size: 100%;
+}
 
 /* Borderless variant — the image melts into the page on every edge instead of
    sitting in a frame. Used by the hero and the vision band. */
@@ -522,6 +536,48 @@
     72% 66% at 50% 45%,
     rgb(31 45 69 / 62%),
     rgb(23 34 54 / 26%) 52%,
+    transparent 82%
+  );
+}
+
+/* Backdrop variant — frameless, and feathered on every edge with a wider,
+   gentler mask than the framed blend above, because it spans the full page
+   width and must not show a seam anywhere along it. */
+.about-figure[data-backdrop] {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+/* A purely vertical fade, not the radial used by framed figures: this image
+   runs edge to edge, so its left/right sides meet the viewport and need no
+   feathering — only the bottom, where the hero dissolves into the first
+   panel. One mask layer keeps this working everywhere (multi-layer masks need
+   mask-composite, which Chrome only shipped in 120). */
+.about-figure[data-backdrop] .about-img,
+.about-figure[data-backdrop] .about-img-fallback {
+  -webkit-mask-image: linear-gradient(
+    180deg, #000 0%, #000 52%, rgb(0 0 0 / 0.5) 78%, transparent 100%);
+  mask-image: linear-gradient(
+    180deg, #000 0%, #000 52%, rgb(0 0 0 / 0.5) 78%, transparent 100%);
+}
+
+/* Pulls any source image down into the ink palette before a single overlay is
+   applied. This is what makes legibility independent of the photograph — a
+   blown-out white frame lands around mid-grey here, and the scrim and text
+   well then take it the rest of the way. */
+.about-figure[data-backdrop] .about-img {
+  filter: brightness(0.6) saturate(0.85) contrast(1.04);
+}
+/* The empty-slot placeholder drops to the bottom of the backdrop and dims —
+   centred, it would sit directly behind the headline. */
+.about-figure[data-backdrop] .about-img-fallback {
+  justify-content: flex-end;
+  padding-block-end: 2.75rem;
+  opacity: 0.5;
+  background: radial-gradient(
+    85% 75% at 50% 45%,
+    rgb(31 45 69 / 52%),
+    rgb(23 34 54 / 20%) 55%,
     transparent 82%
   );
 }
@@ -556,18 +612,78 @@
 }
 
 /* ─────────────────────────────────────────────
-   Hero
+   Hero — the photograph is the backdrop, not a block beneath the copy.
+   Legibility does not depend on which image is dropped in: three independent
+   layers guarantee contrast — a vertical scrim, a radial text well behind the
+   centred copy, and shadows on the type itself.
 ───────────────────────────────────────────── */
 .about-hero {
   position: relative;
+  /* Contains the z-index:-1 backdrop, so it can sit behind the copy without
+     falling behind the page background. */
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-block-size: clamp(29rem, 76vh, 45rem);
   padding-inline: 1.25rem;
-  padding-block: 3rem 1.5rem;
+  padding-block: 3.5rem 4.5rem;
   text-align: center;
 }
 @media (min-width: 768px) {
-  .about-hero { padding-block: 5rem 2.5rem; }
+  .about-hero { padding-block: 4.5rem 6rem; }
 }
+
+/* Pulled up under the sticky header so the image starts at the very top of
+   the page rather than leaving a bare strip above it. */
+.about-hero-backdrop {
+  position: absolute;
+  z-index: -1;
+  inset-inline: 0;
+  inset-block-start: calc(-1 * var(--ab-header-h));
+  inset-block-end: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Layer 1 — vertical scrim. Heaviest at the top (the header sits over it) and
+   at the bottom (where the hero meets the first panel); deliberately light
+   through the middle so the photograph is still the thing you see. It stays
+   semi-transparent at every stop: an opaque band would seam against the
+   navy page gradient behind it. */
+.about-hero-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgb(5 8 14 / 82%) 0%,
+    rgb(10 17 32 / 34%) 28%,
+    rgb(10 17 32 / 38%) 60%,
+    rgb(7 12 22 / 55%) 86%,
+    transparent 100%
+  );
+}
+
+/* Layer 2 — text well. Darkens exactly the area the copy occupies and fades
+   out well before the edges, so the centre never washes out no matter how
+   bright the photograph is. */
+.about-hero-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    62% 56% at 50% 47%,
+    rgb(5 8 14 / 76%),
+    rgb(5 8 14 / 42%) 55%,
+    transparent 80%
+  );
+}
+
 .about-hero-inner {
+  position: relative;
+  z-index: 1;
   max-inline-size: 52rem;
   margin-inline: auto;
   display: flex;
@@ -578,7 +694,25 @@
 .about-hero .about-lead {
   max-inline-size: 42rem;
 }
-.about-hero-figure {
+
+/* Layer 3 — type shadows. */
+.about-hero .about-h1 {
+  text-shadow: 0 2px 20px rgb(5 8 14 / 80%), 0 1px 4px rgb(5 8 14 / 65%);
+}
+.about-hero .about-lead {
+  text-shadow: 0 1px 14px rgb(5 8 14 / 85%);
+}
+/* text-shadow would show through a background-clip:text fill as a dark blur.
+   filter: drop-shadow shadows the painted result instead, so the gold keeps
+   its raised read over a photograph. */
+.about-hero .about-gold {
+  text-shadow: none;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 80%))
+    drop-shadow(0 0 22px rgb(194 157 104 / 34%));
+}
+
+/* Full-width figure used by the vision band (the hero no longer uses one). */
+.about-band-figure {
   max-inline-size: var(--ab-max);
   margin-inline: auto;
   margin-block-start: 2.5rem;
