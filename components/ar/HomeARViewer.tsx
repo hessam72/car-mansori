@@ -111,6 +111,7 @@ export default function HomeARViewer({
         ar-scale="fixed"
         ar-placement="floor"
         camera-controls
+        // @ts-expect-error ddkslkdlskldklsdks
         scale="0.5"
         auto-rotate
         auto-rotate-delay={1200}

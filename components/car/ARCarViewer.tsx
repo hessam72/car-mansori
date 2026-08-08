@@ -104,7 +104,7 @@ export default function ARCarViewer({
         ar-modes="webxr scene-viewer quick-look"
         ar-scale="fixed"
         ar-placement="floor"
-
+// @ts-expect-error dfjdjfldjflj
         scale="0.5"
         xr-environment
 
