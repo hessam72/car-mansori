@@ -111,6 +111,7 @@ export default function HomeARViewer({
         ar-scale="fixed"
         ar-placement="floor"
         camera-controls
+        scale="0.5"
         auto-rotate
         auto-rotate-delay={1200}
         shadow-intensity={1}
