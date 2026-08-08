@@ -12,10 +12,10 @@
     "weight": "85 kg",
     "colors": [
       { "name": "خاکستری ذغالی", "hex": "#36454F" },
-      { "name": "بژ", "hex": "#D4C5B9" },
+      { "name": "یاسی", "hex": "#aaaaee" },
       { "name": "آبی نفتی", "hex": "#1B2F5C" }
     ],
-    "billboardPosition": [2, 1.5, 0]
+    "billboardPosition": [2, 1, 0]
   },
 
   "dining-chair": {
@@ -32,9 +32,9 @@
     "colors": [
       { "name": "بلوط طبیعی", "hex": "#C19A6B" },
       { "name": "گردوی تیره", "hex": "#5C4033" },
-      { "name": "بلوط سفید", "hex": "#F5E6D3" }
+      { "name": "قرمز", "hex": "#781e00" }
     ],
-    "billboardPosition": [-4, 1.5, 0]
+    "billboardPosition": [-4, 0.8, 0]
   },
 
   "coffee-table": {
@@ -48,48 +48,7 @@
     "material": "شیشه نشکن و فلز",
     "weight": "22 kg",
     "colors": [
-      { "name": "فلز مشکی", "hex": "#1C1C1C" },
-      { "name": "فلز طلایی", "hex": "#D4AF37" },
-      { "name": "کروم نقره‌ای", "hex": "#C0C0C0" }
+     
     ],
-    "billboardPosition": [-5, 2.5, -2]
-  },
-
-  "bookshelf": {
-    "id": "modern-sofa-04",
-    "category": "مبل",
-    "type": "راحتی",
-    "name": "قفسه کتاب صنعتی",
-    "glbPath": "/models/furniture/bookshelf-industrial.glb",
-    "usdzPath": "/models/Furniture/3DModel-optimized.usdz",
-    "dimensions": "180cm × 40cm × 200cm",
-    "material": "قاب فلزی و طبقات چوبی",
-    "shelves": "۵ طبقه قابل تنظیم",
-    "weight": "45 kg",
-    "colors": [
-      { "name": "چوب روستیک", "hex": "#8B4513" },
-      { "name": "اسپرسو", "hex": "#3E2723" },
-      { "name": "راش روشن", "hex": "#B8A896" }
-    ],
-    "billboardPosition": [5.1, 2.5, 4.7]
-  },
-
-  "armchair": {
-    "id": "modern-sofa-05",
-    "category": "مبل",
-    "type": "راحتی",
-    "name": "صندلی دسته‌دار مخملی",
-    "glbPath": "/models/Furniture/3DModel-optimized.glb",
-    "usdzPath": "/models/Furniture/3DModel-optimized.usdz",
-    "dimensions": "80cm × 85cm × 90cm",
-    "material": "روکش مخمل و چوب راش",
-    "مبلCapacity": "۱ نفر",
-    "weight": "18 kg",
-    "colors": [
-      { "name": "سبز زمردی", "hex": "#50C878" },
-      { "name": "سرخابی", "hex": "#800020" },
-      { "name": "زرد خردلی", "hex": "#E1AD01" }
-    ],
-    "billboardPosition": [0, 2.5, -5]
-  }
-}
+    "billboardPosition": [5, 1, -5.2]
+  }}
