@@ -41,7 +41,7 @@ export function FurnitureColorApplier() {
 
     scene.traverse((child) => {
       const childName = child.name.toLowerCase()
-      if (childName === searchName || childName.includes(searchName)) {
+      if (childName === searchName) {
         if (!furnitureObject) {
           furnitureObject = child
           console.log(`[FurnitureColorApplier] Found object: "${child.name}" (type: ${child.type})`)

@@ -100,8 +100,8 @@ export default function ProductInteraction({ onProductClick }: ProductInteractio
             rootObject = rootObject.parent
           }
 
-          console.log('[ProductInteraction] Calling onProductClick with key:', matchedKey)
-          onProductClick(foundProduct, position, rootObject, matchedKey)
+          console.log('[ProductInteraction] Calling onProductClick with ID:', foundProduct.id)
+          onProductClick(foundProduct, position, rootObject, foundProduct.id)
         }
       }
     }
