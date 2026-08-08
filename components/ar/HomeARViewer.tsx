@@ -108,11 +108,10 @@ export default function HomeARViewer({
         loading="eager"
         ar
         ar-modes="webxr scene-viewer quick-look"
-        ar-scale="fixed"
+        ar-scale="auto"
         ar-placement="floor"
         camera-controls
-        // @ts-expect-error ddkslkdlskldklsdks
-        scale="0.5"
+        // scale="0.5"
         auto-rotate
         auto-rotate-delay={1200}
         shadow-intensity={1}
