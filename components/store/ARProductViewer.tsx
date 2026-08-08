@@ -102,7 +102,7 @@ export default function ARProductViewer({
         // AR Configuration
         ar
         ar-modes="webxr scene-viewer quick-look"
-        ar-scale="fixed"
+        ar-scale="auto"
         ar-placement="floor"
         xr-environment
 
@@ -116,10 +116,10 @@ export default function ARProductViewer({
         exposure={1}
 
         // Camera settings
-        camera-orbit="0deg 75deg 0.5m"
+        camera-orbit="0deg 75deg 3m"
         min-camera-orbit="auto auto 0.1m"
-        max-camera-orbit="auto auto 2m"
-        field-of-view="30deg"
+        max-camera-orbit="auto auto 10m"
+        field-of-view="40deg"
 
         // Interaction
         interaction-prompt="auto"

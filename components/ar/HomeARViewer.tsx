@@ -111,6 +111,10 @@ export default function HomeARViewer({
         ar-scale="auto"
         ar-placement="floor"
         camera-controls
+         camera-orbit="45deg 75deg 4m"
+        min-camera-orbit="auto auto 1m"
+        max-camera-orbit="auto auto 30m"
+        field-of-view="40deg"
         // scale="0.5"
         auto-rotate
         auto-rotate-delay={1200}

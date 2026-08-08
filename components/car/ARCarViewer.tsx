@@ -102,7 +102,7 @@ export default function ARCarViewer({
         // AR Configuration
         ar
         ar-modes="webxr scene-viewer quick-look"
-        ar-scale="fixed"
+        ar-scale="auto"
         ar-placement="floor"
         // scale="0.5"
         xr-environment
@@ -119,7 +119,7 @@ export default function ARCarViewer({
         // Camera settings - adjusted for car size
         camera-orbit="45deg 75deg 3m"
         min-camera-orbit="auto auto 1m"
-        max-camera-orbit="auto auto 10m"
+        max-camera-orbit="auto auto 30m"
         field-of-view="40deg"
 
         // Interaction
