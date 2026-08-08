@@ -38,7 +38,7 @@ function ShahrOmidLogo() {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src="/images/shahr-omid-logo.png"
+        src="/images/Furnitures OC LOGO.png"
         alt="Lumina Museum"
         style={{
           width: '13rem',

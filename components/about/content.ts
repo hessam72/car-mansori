@@ -73,7 +73,7 @@ export type AboutCopy = {
 };
 
 /** Brand logo. Falls back to a gold wordmark when the file is absent. */
-export const ABOUT_LOGO = "/images/shahr-omid-logo.png";
+export const ABOUT_LOGO = "/images/Furnitures OC LOGO.png";
 
 /** Where the page links "home" to. Change once when porting. */
 export const ABOUT_HOME_HREF = "/";

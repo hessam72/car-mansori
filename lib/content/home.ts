@@ -9,12 +9,12 @@ export type HeadingSegment = { text: string; gold?: boolean };
 
 export const CONTACT_PHONE_DISPLAY = "۰۹۱۲۹۲۱۴۷۴۲";
 /** E.164 for the tel: href — must stay ASCII. */
-export const CONTACT_PHONE_HREF = "tel:+989123456789";
+export const CONTACT_PHONE_HREF = "tel:+989129214742";
 
 export const BRAND = {
   name: "شهر امید",
   tagline: "نمایشگاه مجازی مبلمان",
-  logoSrc: "/images/shahr-omid-logo.png",
+  logoSrc: "/images/Furnitures OC LOGO.png",
 } as const;
 
 export const NAV_LINKS = [

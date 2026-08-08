@@ -5,7 +5,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 
 /* ─────────────────────────────────────────────────────────────
    Shahr Omid brand logo
-   Tries to load /images/shahr-omid-logo.png; falls back to the
+   Tries to load /images/Furnitures OC LOGO.png; falls back to the
    Persian text mark if the file hasn't been placed yet.
 ───────────────────────────────────────────────────────────── */
 function ShahrOmidLogo() {
@@ -15,7 +15,7 @@ function ShahrOmidLogo() {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src="/images/shahr-omid-logo.png"
+        src="/images/Furnitures OC LOGO.png"
         alt="شهر امید"
         style={{    width: '13rem',
           height: 'auto',

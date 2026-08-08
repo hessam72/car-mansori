@@ -26,7 +26,7 @@ export default function LoadingScreen() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/images/shahr-omid-logo.png"
+            src="/images/Furnitures OC LOGO.png"
             alt=""
             className="w-40 h-auto"
             style={{ filter: "brightness(1.15) drop-shadow(0 0 30px rgba(255,215,0,0.25))" }}
