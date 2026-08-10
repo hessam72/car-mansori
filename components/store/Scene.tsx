@@ -22,7 +22,6 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import ProductInteraction, { type ProductData } from './ProductInteraction'
 import ProductDrawer from './ProductDrawer'
 import ARProductViewer from './ARProductViewer'
-import { FurnitureColorPicker } from './FurnitureColorPicker'
 import { FurnitureColorApplier } from './FurnitureColorApplier'
 import { useFurnitureConfig } from '@/stores/furnitureConfigStore'
 import { LoadingScreen } from './LoadingScreen'
@@ -296,23 +295,6 @@ export default function Scene() {
           )}
 
 
-          {/* Furniture color picker - 3D floating circles */}
-          {loadingPhase === 'ready' &&
-            selectedProduct &&
-            selectedProduct.colors &&
-            selectedProduct.colors.length > 0 &&
-            selectedObjectPosition && (
-              <FurnitureColorPicker
-                position={[
-                  selectedObjectPosition[0],
-                  selectedObjectPosition[1] + 2, // Float 2 units above object
-                  selectedObjectPosition[2],
-                ]}
-                colors={selectedProduct.colors}
-                currentColor={currentColor || selectedProduct.colors[0].hex}
-                originalColor={originalColor || undefined}
-              />
-            )}
 
           {/* Furniture color applier - applies colors to scene furniture */}
           {loadingPhase === 'ready' && <FurnitureColorApplier />}
