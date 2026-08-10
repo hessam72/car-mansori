@@ -96,7 +96,7 @@ export function GyroToggle({ onGyroChange }: GyroToggleProps) {
     <button
       onClick={toggleGyro}
       aria-pressed={isGyroEnabled}
-      className={`fixed top-4 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border bg-black/40 backdrop-blur-md transition-colors duration-200 ${
+      className={`fixed left-3 top-32 z-30 flex h-10 w-10 items-center justify-center rounded-full border bg-black/40 backdrop-blur-md transition-colors duration-200 ${
         isGyroEnabled
           ? 'border-[#d4af37]/50 text-[#d4af37]'
           : 'border-white/10 text-white/70 hover:border-white/30 hover:text-white'

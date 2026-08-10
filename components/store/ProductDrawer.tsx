@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion, PanInfo } from 'framer-motion'
 import { X, ChevronDown, ShoppingBag } from 'lucide-react'
 import { useFurnitureConfig } from '@/stores/furnitureConfigStore'
+import { faPrice } from '@/lib/store/catalog'
 import type { ProductData } from './ProductInteraction'
 
 interface ProductDrawerProps {
@@ -20,8 +21,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'fabric', label: 'جنس پارچه' },
   { id: 'dimensions', label: 'ابعاد' }
 ]
-
-const faPrice = (n: number) => `${new Intl.NumberFormat('fa-IR').format(n)} تومان`
 
 const SPRING = { type: 'spring' as const, damping: 34, stiffness: 320, mass: 0.8 }
 

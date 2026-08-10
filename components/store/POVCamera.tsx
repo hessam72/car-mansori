@@ -5,6 +5,10 @@ import * as THREE from 'three'
 
 interface POVCameraProps {
   gyroEnabled?: boolean
+  /** Suspends the look easing while something else owns the camera */
+  frozen?: boolean
+  /** Bump to adopt the camera's current orientation as the new look target */
+  resyncKey?: number
 }
 
 // Frame-loop scratch — never allocate inside useFrame
@@ -39,7 +43,7 @@ function screenAngleRad() {
 }
 
 export function usePOVCamera(props?: POVCameraProps) {
-  const { gyroEnabled = false } = props || {}
+  const { gyroEnabled = false, frozen = false, resyncKey = 0 } = props || {}
   const { camera, gl } = useThree()
   const regress = useThree((s) => s.performance.regress)
   const invalidate = useThree((s) => s.invalidate)
@@ -56,6 +60,20 @@ export function usePOVCamera(props?: POVCameraProps) {
   const yawBase = useRef(0)
   const yawAccum = useRef(0)
   const prevRawYaw = useRef<number | null>(null)
+
+  // Adopt whatever orientation the camera was left in — after a camera flight
+  // the refs still hold the pre-flight heading, and the first unfrozen frame
+  // would snap the view back to it. Read in the same YXZ order the frame loop
+  // writes with, so no sign correction is needed.
+  useEffect(() => {
+    if (!resyncKey) return
+    _euler.setFromQuaternion(camera.quaternion, 'YXZ')
+    targetYaw.current = currentYaw.current = _euler.y
+    targetPitch.current = currentPitch.current = _euler.x
+    prevRawYaw.current = null
+    yawAccum.current = 0
+    settledRef.current = true
+  }, [resyncKey, camera])
 
   useEffect(() => {
     const canvas = gl.domElement
@@ -74,7 +92,7 @@ export function usePOVCamera(props?: POVCameraProps) {
     }
 
     const onPointerMove = (e: PointerEvent) => {
-      if (gyroEnabled) return
+      if (gyroEnabled || frozen) return
       if (!isDragging.current) return
 
       const deltaX = e.clientX - previousMouse.current.x
@@ -104,7 +122,7 @@ export function usePOVCamera(props?: POVCameraProps) {
       canvas.removeEventListener('pointermove', onPointerMove)
       canvas.removeEventListener('pointercancel', onPointerUp)
     }
-  }, [gl, gyroEnabled, regress])
+  }, [gl, gyroEnabled, frozen, regress])
 
   // Gyroscope controls — absolute device attitude, not integrated deltas.
   // Deltas drift, lose fast motion, and blow up at the euler singularities;
@@ -164,6 +182,8 @@ export function usePOVCamera(props?: POVCameraProps) {
   }, [gyroEnabled, invalidate])
 
   useFrame((_, delta) => {
+    if (frozen) return
+
     const dYaw = targetYaw.current - currentYaw.current
     const dPitch = targetPitch.current - currentPitch.current
 

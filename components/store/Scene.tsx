@@ -22,6 +22,12 @@ import { LampLights } from './LampLights'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import ProductInteraction, { type ProductData } from './ProductInteraction'
 import ProductDrawer from './ProductDrawer'
+import { ProductFocusCamera, type FocusPose } from './ProductFocusCamera'
+import StoreTopBar from './StoreTopBar'
+import StoreSidebar from './StoreSidebar'
+import CategoryBar from './CategoryBar'
+import { resolveCatalogItem, type Catalog, type CatalogItem } from '@/lib/store/catalog'
+import { useShop } from '@/stores/storeShopStore'
 import ARProductViewer from './ARProductViewer'
 import { FurnitureColorApplier } from './FurnitureColorApplier'
 import { useFurnitureConfig } from '@/stores/furnitureConfigStore'
@@ -59,34 +65,66 @@ function PhysicsManager({
   onJoystickInputReady,
   gyroEnabled,
   playerStart,
-  cameraHeight
+  cameraHeight,
+  focusTarget,
+  onFocusArrive,
+  onFocusMiss
 }: {
   onJoystickInputReady: (ref: React.RefObject<{ x: number; y: number }>) => void
   gyroEnabled: boolean
   playerStart: [number, number, number]
   cameraHeight?: number
+  focusTarget: string | null
+  onFocusArrive: () => void
+  onFocusMiss: () => void
 }) {
   const physics = usePhysics()
-  const { joystickInput } = usePlayerController(physics, playerStart, cameraHeight)
-  usePOVCamera({ gyroEnabled })
+  // Both per-frame camera writers stand down while a flight owns the camera
+  const { joystickInput } = usePlayerController(physics, playerStart, cameraHeight, !!focusTarget)
+  const [resyncKey, setResyncKey] = useState(0)
+  usePOVCamera({ gyroEnabled, frozen: !!focusTarget, resyncKey })
 
   useEffect(() => {
     onJoystickInputReady(joystickInput)
   }, [joystickInput, onJoystickInputReady])
 
+  // Landing hand-off: teleport the body under the camera, then let the look
+  // easing adopt the landed orientation. Order matters — resyncing before the
+  // body moves would still leave the camera snapping back on the next frame.
+  const handleArrive = useCallback(
+    (pose: FocusPose) => {
+      const h = cameraHeight ?? 1.3
+      physics.rigidBodyRef.current?.setTranslation(
+        { x: pose.position.x, y: pose.position.y - h, z: pose.position.z },
+        true
+      )
+      physics.rigidBodyRef.current?.setLinvel({ x: 0, y: 0, z: 0 }, true)
+      setResyncKey((k) => k + 1)
+      onFocusArrive()
+    },
+    [physics, cameraHeight, onFocusArrive]
+  )
+
   return (
-    <RigidBody
-      ref={physics.rigidBodyRef}
-      type="dynamic"
-      position={playerStart}
-      enabledRotations={[false, true, false]}
-      lockRotations
-      linearDamping={2.5}
-      angularDamping={10}
-      canSleep={false}
-    >
-      <CapsuleCollider args={[0.6, 0.35]} />
-    </RigidBody>
+    <>
+      <ProductFocusCamera
+        targetName={focusTarget}
+        onArrive={handleArrive}
+        onMiss={onFocusMiss}
+      />
+      <RigidBody
+        ref={physics.rigidBodyRef}
+        type="dynamic"
+        position={playerStart}
+        enabledRotations={[false, true, false]}
+        lockRotations
+        linearDamping={2.5}
+        angularDamping={10}
+        canSleep={false}
+      >
+        <CapsuleCollider args={[0.6, 0.35]} />
+      </RigidBody>
+    </>
   )
 }
 
@@ -106,7 +144,17 @@ export default function Scene() {
   const [galleryError, setGalleryError] = useState<string | null>(null)
   const [modelsKey, setModelsKey] = useState(0)
 
+  // Browsing layer: catalogue tree, sidebar, and the camera flight
+  const [catalog, setCatalog] = useState<Catalog | null>(null)
+  const [products, setProducts] = useState<Record<string, ProductData>>({})
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [focusTarget, setFocusTarget] = useState<string | null>(null)
+  const [pendingItem, setPendingItem] = useState<CatalogItem | null>(null)
+  const [focusedName, setFocusedName] = useState<string | null>(null)
+  const [focusedId, setFocusedId] = useState<string | null>(null)
+
   const { selectFurniture, initializeColor, currentColor, originalColor } = useFurnitureConfig()
+  const addToCart = useShop((s) => s.addToCart)
 
   // Sustained-FPS ladder scale (same mechanism as /car)
   const [perfScale, setPerfScale] = useState(1)
@@ -159,6 +207,64 @@ export default function Scene() {
     }
   }, [config])
 
+  // The catalogue tree and the room's products. ProductInteraction fetches
+  // products.json too, but that copy lives inside the Canvas and drives the
+  // raycast; the HUD needs its own to resolve a catalogue pick.
+  useEffect(() => {
+    Promise.all([
+      fetch('/config/catalog.json').then((r) => r.json()),
+      fetch('/config/products.json').then((r) => r.json())
+    ])
+      .then(([cat, prods]) => {
+        setCatalog(cat)
+        setProducts(prods)
+      })
+      .catch((err) => console.error('Failed to load catalog:', err))
+  }, [])
+
+  /** Menu pick → fly the camera to the product's mesh */
+  const handleCatalogSelect = useCallback(
+    (item: CatalogItem) => {
+      if (!products[item.sceneObject]) return
+      setSelectedProduct(null)
+      setFocusedName(null)
+      setFocusedId(null)
+      setPendingItem(item)
+      setFocusTarget(item.sceneObject)
+      wake()
+    },
+    [products, wake]
+  )
+
+  /** Flight landed — reveal the name chip and open the drawer */
+  const handleFocusArrive = useCallback(() => {
+    setFocusTarget(null)
+    const item = pendingItem
+    setPendingItem(null)
+    if (!item) return
+
+    const resolved = resolveCatalogItem(item, products)
+    if (!resolved) return
+
+    selectFurniture(item.sceneObject, null)
+    initializeColor()
+    setSelectedProduct(resolved)
+    setFocusedName(item.name)
+    setFocusedId(item.id)
+  }, [pendingItem, products, selectFurniture, initializeColor])
+
+  const handleFocusMiss = useCallback(() => {
+    setFocusTarget(null)
+    setPendingItem(null)
+  }, [])
+
+  const closeProduct = useCallback(() => {
+    setSelectedProduct(null)
+    setSelectedObjectPosition(null)
+    setFocusedName(null)
+    setFocusedId(null)
+  }, [])
+
   if (loading) return <LoadingScreen />
   if (error) return <ErrorScreen message={error} />
   if (!config) return <ErrorScreen message="No store config found" />
@@ -203,7 +309,7 @@ export default function Scene() {
           {/* Demand-loop governor: frames flow while there is input or a
               transition; the loop parks (0 GPU) when the player stands still */}
           <ActivityGovernor
-            forceActive={!IDLE_DEMAND || loadingPhase !== 'ready' || gyroEnabled}
+            forceActive={!IDLE_DEMAND || loadingPhase !== 'ready' || gyroEnabled || !!focusTarget}
             onIdleChange={setIdle}
           />
 
@@ -270,6 +376,9 @@ export default function Scene() {
               gyroEnabled={gyroEnabled}
               playerStart={config.camera?.playerStart ?? [0, 2, 5]}
               cameraHeight={config.camera?.cameraHeight}
+              focusTarget={focusTarget}
+              onFocusArrive={handleFocusArrive}
+              onFocusMiss={handleFocusMiss}
             />
           )}
 
@@ -282,6 +391,9 @@ export default function Scene() {
                 console.log('[Scene] Clicked object:', clickedObject?.name)
                 setSelectedProduct(product)
                 setSelectedObjectPosition(position || null)
+                // Already standing in front of it — no flight, just the chip
+                setFocusedName(product?.name ?? null)
+                setFocusedId(null)
                 if (product && product.colors && product.colors.length > 0) {
                   // Use productKey (e.g., "modern-sofa") instead of product.id (e.g., "modern-sofa-01")
                   const furnitureId = productKey || product.id
@@ -326,13 +438,11 @@ export default function Scene() {
       <AnimatePresence>
         {selectedProduct && (
           <ProductDrawer
-            key={selectedProduct.id}
+            key={focusedId ?? selectedProduct.id}
             product={selectedProduct}
-            onClose={() => {
-              setSelectedProduct(null)
-              setSelectedObjectPosition(null)
-            }}
+            onClose={closeProduct}
             onViewAR={() => setShowAR(true)}
+            onAddToCart={() => addToCart(focusedId ?? selectedProduct.id)}
           />
         )}
       </AnimatePresence>
@@ -378,9 +488,36 @@ export default function Scene() {
         <VirtualJoystick
           joystickInput={joystickInputRef}
           onActivity={wake}
-          hidden={showAR}
+          hidden={showAR || !!focusTarget}
           liftPx={selectedProduct ? 168 : 0}
         />
+      )}
+
+      {/* Top HUD + category browser. The container is pointer-transparent so
+          look-drag still reaches the canvas in the gaps between controls. */}
+      {loadingPhase === 'ready' && (
+        <>
+          <div
+            dir="rtl"
+            className="font-persian pointer-events-none fixed inset-x-0 top-0 z-30 px-3
+                       pt-[max(0.75rem,env(safe-area-inset-top))]"
+          >
+            <div className="pointer-events-none mx-auto max-w-[560px]">
+              <StoreTopBar
+                onOpenMenu={() => setSidebarOpen(true)}
+                productName={focusTarget ? null : focusedName}
+                productId={focusedId}
+              />
+              <CategoryBar
+                catalog={catalog}
+                onSelect={handleCatalogSelect}
+                collapsed={!!focusTarget}
+              />
+            </div>
+          </div>
+
+          <StoreSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        </>
       )}
 
       {/* Background audio */}

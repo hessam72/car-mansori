@@ -33,7 +33,7 @@ export function StoreQualityButton() {
   }, [open])
 
   return (
-    <div ref={rootRef} className="fixed right-16 top-4 z-50" dir="ltr">
+    <div ref={rootRef} className="fixed left-3 top-[11.5rem] z-30" dir="ltr">
       <button
         onClick={() => setOpen((v) => !v)}
         className={`${GHOST_BTN} ${open ? 'border-[#d4af37]/50 text-[#d4af37]' : ''}`}
@@ -45,7 +45,7 @@ export function StoreQualityButton() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 w-60 rounded-2xl border border-white/10 bg-black/75 p-4 shadow-[0_16px_48px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+        <div className="absolute left-0 top-12 w-60 rounded-2xl border border-white/10 bg-black/75 p-4 shadow-[0_16px_48px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
           <QualitySelector />
         </div>
       )}
