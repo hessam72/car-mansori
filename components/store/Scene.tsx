@@ -66,6 +66,8 @@ function PhysicsManager({
   playerStart,
   cameraHeight,
   focusTarget,
+  focusId,
+  focusFallbackPoint,
   onFocusArrive,
   onFocusMiss
 }: {
@@ -74,6 +76,8 @@ function PhysicsManager({
   playerStart: [number, number, number]
   cameraHeight?: number
   focusTarget: string | null
+  focusId?: string
+  focusFallbackPoint?: [number, number, number]
   onFocusArrive: () => void
   onFocusMiss: () => void
 }) {
@@ -108,6 +112,8 @@ function PhysicsManager({
     <>
       <ProductFocusCamera
         targetName={focusTarget}
+        targetId={focusId}
+        fallbackPoint={focusFallbackPoint}
         onArrive={handleArrive}
         onMiss={onFocusMiss}
       />
@@ -224,7 +230,14 @@ export default function Scene() {
   /** Menu pick → fly the camera to the product's mesh */
   const handleCatalogSelect = useCallback(
     (item: CatalogItem) => {
-      if (!products[item.sceneObject]) return
+      if (!products[item.sceneObject]) {
+        console.warn(
+          `[Scene] Catalogue item "${item.id}" points at sceneObject "${item.sceneObject}", ` +
+            'which is not in products.json. Known keys:',
+          Object.keys(products)
+        )
+        return
+      }
       setSelectedProduct(null)
       setFocusedName(null)
       setFocusedId(null)
@@ -235,27 +248,41 @@ export default function Scene() {
     [products, wake]
   )
 
-  /** Flight landed — reveal the name chip and open the drawer */
+  /** Open the drawer and show the name chip. Shared by the landed and the
+   *  couldn't-fly paths so a failed flight is never a dead end. */
+  const revealProduct = useCallback(
+    (item: CatalogItem) => {
+      const resolved = resolveCatalogItem(item, products)
+      if (!resolved) return
+      selectFurniture(item.sceneObject, null)
+      initializeColor()
+      setSelectedProduct(resolved)
+      setFocusedName(item.name)
+      setFocusedId(item.id)
+    },
+    [products, selectFurniture, initializeColor]
+  )
+
+  /** Flight landed */
   const handleFocusArrive = useCallback(() => {
     setFocusTarget(null)
     const item = pendingItem
     setPendingItem(null)
-    if (!item) return
+    if (item) revealProduct(item)
+  }, [pendingItem, revealProduct])
 
-    const resolved = resolveCatalogItem(item, products)
-    if (!resolved) return
-
-    selectFurniture(item.sceneObject, null)
-    initializeColor()
-    setSelectedProduct(resolved)
-    setFocusedName(item.name)
-    setFocusedId(item.id)
-  }, [pendingItem, products, selectFurniture, initializeColor])
-
+  /** No flight was possible — reveal the product where the player stands */
   const handleFocusMiss = useCallback(() => {
     setFocusTarget(null)
+    const item = pendingItem
     setPendingItem(null)
-  }, [])
+    if (item) revealProduct(item)
+  }, [pendingItem, revealProduct])
+
+  // The room may be authored on the product id rather than the products.json
+  // key, and carries an authored position either way — both are extra ways for
+  // the flight to find its target
+  const focusBase = pendingItem ? products[pendingItem.sceneObject] : undefined
 
   const closeProduct = useCallback(() => {
     setSelectedProduct(null)
@@ -376,6 +403,8 @@ export default function Scene() {
               playerStart={config.camera?.playerStart ?? [0, 2, 5]}
               cameraHeight={config.camera?.cameraHeight}
               focusTarget={focusTarget}
+              focusId={focusBase?.id}
+              focusFallbackPoint={focusBase?.billboardPosition}
               onFocusArrive={handleFocusArrive}
               onFocusMiss={handleFocusMiss}
             />

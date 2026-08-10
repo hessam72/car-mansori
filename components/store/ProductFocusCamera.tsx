@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { markStoreActivity } from './activityGovernor'
+import { findSceneObject, describeSceneNames } from '@/lib/store/sceneObject'
 import type { FocusOverride } from '@/lib/store/catalog'
 
 // Frame-loop scratch — never allocate inside useFrame (same rule as
@@ -36,6 +37,41 @@ export interface FocusPose {
  * only direction guaranteed not to end up inside a wall — the room geometry is
  * a single GLB with no navmesh to test against.
  */
+/**
+ * Places the camera `distance` from `center`, `height` above it, on the side
+ * the player is already standing — the only bearing guaranteed not to end up
+ * inside a wall, since the room is one GLB with no navmesh to test against.
+ */
+function poseAround(
+  center: THREE.Vector3,
+  from: THREE.Vector3,
+  distance: number,
+  height: number,
+  azimuthDeg?: number
+): FocusPose {
+  if (azimuthDeg !== undefined) {
+    const a = azimuthDeg * DEG
+    _dir.set(Math.sin(a), 0, Math.cos(a))
+  } else {
+    _dir.set(from.x - center.x, 0, from.z - center.z)
+    if (_dir.lengthSq() < 1e-4) _dir.set(0, 0, 1)
+    _dir.normalize()
+  }
+
+  const position = center.clone().addScaledVector(_dir, distance)
+  position.y = center.y + height
+
+  // Orientation via a scratch camera rather than camera.lookAt, so the result
+  // is a quaternion we can slerp toward instead of a look-at point we'd have
+  // to lerp (which whips the view through a curve and introduces roll)
+  _aim.position.copy(position)
+  _aim.up.set(0, 1, 0)
+  _aim.lookAt(center)
+
+  return { position, quaternion: _aim.quaternion.clone() }
+}
+
+/** Viewing pose derived from the object's world bounds. */
 export function poseForObject(
   obj: THREE.Object3D,
   from: THREE.Vector3,
@@ -45,39 +81,47 @@ export function poseForObject(
   _box.getCenter(_center)
   _box.getSize(_size)
 
-  const distance =
-    override?.distance ?? THREE.MathUtils.clamp(Math.max(_size.x, _size.z) * 1.1 + 1.2, 1.8, 6)
+  return poseAround(
+    _center,
+    from,
+    override?.distance ?? THREE.MathUtils.clamp(Math.max(_size.x, _size.z) * 1.1 + 1.2, 1.8, 6),
+    override?.height ?? Math.max(_size.y * 0.25, 0.35),
+    override?.azimuthDeg
+  )
+}
 
-  if (override?.azimuthDeg !== undefined) {
-    const a = override.azimuthDeg * DEG
-    _dir.set(Math.sin(a), 0, Math.cos(a))
-  } else {
-    _dir.set(from.x - _center.x, 0, from.z - _center.z)
-    if (_dir.lengthSq() < 1e-4) _dir.set(0, 0, 1)
-    _dir.normalize()
-  }
-
-  const position = _center.clone().addScaledVector(_dir, distance)
-  position.y = _center.y + (override?.height ?? Math.max(_size.y * 0.25, 0.35))
-
-  // Orientation via a scratch object rather than camera.lookAt, so the result
-  // is a quaternion we can slerp toward instead of a look-at point we'd have
-  // to lerp (which whips the view through a curve and introduces roll)
-  _aim.position.copy(position)
-  _aim.up.set(0, 1, 0)
-  _aim.lookAt(_center)
-
-  return { position, quaternion: _aim.quaternion.clone() }
+/**
+ * Viewing pose around a bare world point — the fallback when the mesh can't be
+ * resolved but products.json carries an authored `billboardPosition`.
+ */
+export function poseForPoint(
+  point: [number, number, number],
+  from: THREE.Vector3,
+  override?: FocusOverride
+): FocusPose {
+  _center.set(point[0], point[1], point[2])
+  return poseAround(
+    _center,
+    from,
+    override?.distance ?? 2.6,
+    override?.height ?? 0.35,
+    override?.azimuthDeg
+  )
 }
 
 interface ProductFocusCameraProps {
-  /** Scene-object name to fly to; null parks the component */
+  /** products.json key to fly to; null parks the component */
   targetName: string | null
+  /** Product id — a second name to try, since the room may be authored on it */
+  targetId?: string
+  /** Authored world position, used when the mesh itself can't be resolved */
+  fallbackPoint?: [number, number, number]
   /** Per-item override of the automatic pose */
   focus?: FocusOverride
   /** Called once the flight lands, with the final pose */
   onArrive: (pose: FocusPose) => void
-  /** Called if the named object isn't in the scene */
+  /** Called when no flight is possible — the caller should reveal the product
+   *  anyway rather than leaving the interaction as a dead end */
   onMiss?: () => void
 }
 
@@ -94,6 +138,8 @@ interface ProductFocusCameraProps {
  */
 export function ProductFocusCamera({
   targetName,
+  targetId,
+  fallbackPoint,
   focus,
   onArrive,
   onMiss
@@ -111,13 +157,29 @@ export function ProductFocusCamera({
       return
     }
 
-    const search = targetName.toLowerCase()
-    let target: THREE.Object3D | undefined
-    scene.traverse((child) => {
-      if (!target && child.name.toLowerCase() === search) target = child
-    })
+    const target = findSceneObject(scene, [targetName, targetId])
 
-    if (!target) {
+    let pose: FocusPose | null = null
+    if (target) {
+      pose = poseForObject(target, camera.position, focus)
+    } else if (fallbackPoint) {
+      // The room may be authored on names we can't match. products.json still
+      // says where the product stands, so fly there rather than doing nothing.
+      console.warn(
+        `[ProductFocusCamera] No object matched "${targetName}"/"${targetId ?? '—'}"; ` +
+          'falling back to billboardPosition. Scene names:',
+        describeSceneNames(scene)
+      )
+      pose = poseForPoint(fallbackPoint, camera.position, focus)
+    } else {
+      console.warn(
+        `[ProductFocusCamera] No object matched "${targetName}"/"${targetId ?? '—'}" ` +
+          'and no billboardPosition to fall back to. Scene names:',
+        describeSceneNames(scene)
+      )
+    }
+
+    if (!pose) {
       endPose.current = null
       onMiss?.()
       return
@@ -125,12 +187,12 @@ export function ProductFocusCamera({
 
     startPos.current.copy(camera.position)
     startQuat.current.copy(camera.quaternion)
-    endPose.current = poseForObject(target, camera.position, focus)
+    endPose.current = pose
     startTime.current = performance.now()
 
     markStoreActivity()
     invalidate()
-  }, [targetName, focus, scene, camera, invalidate, onMiss])
+  }, [targetName, targetId, fallbackPoint, focus, scene, camera, invalidate, onMiss])
 
   useFrame(() => {
     const end = endPose.current
