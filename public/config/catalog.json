@@ -61,7 +61,8 @@
       "price": 71000000,
       "mainCategory": "sofa",
       "subCategory": "sectional",
-      "sceneObject": "modern-sofa"
+      "sceneObject": "modern-sofa",
+      "focus": { "azimuthDeg": 180 }
     },
     {
       "id": "single-nordic",

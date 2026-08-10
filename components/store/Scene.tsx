@@ -26,7 +26,12 @@ import { ProductFocusCamera, type FocusPose } from './ProductFocusCamera'
 import StoreTopBar from './StoreTopBar'
 import StoreSidebar from './StoreSidebar'
 import CategoryBar from './CategoryBar'
-import { resolveCatalogItem, type Catalog, type CatalogItem } from '@/lib/store/catalog'
+import {
+  resolveCatalogItem,
+  type Catalog,
+  type CatalogItem,
+  type FocusOverride
+} from '@/lib/store/catalog'
 import { useShop } from '@/stores/storeShopStore'
 import ARProductViewer from './ARProductViewer'
 import { FurnitureColorApplier } from './FurnitureColorApplier'
@@ -68,6 +73,7 @@ function PhysicsManager({
   focusTarget,
   focusId,
   focusFallbackPoint,
+  focusOverride,
   onFocusArrive,
   onFocusMiss
 }: {
@@ -78,6 +84,7 @@ function PhysicsManager({
   focusTarget: string | null
   focusId?: string
   focusFallbackPoint?: [number, number, number]
+  focusOverride?: FocusOverride
   onFocusArrive: () => void
   onFocusMiss: () => void
 }) {
@@ -114,6 +121,7 @@ function PhysicsManager({
         targetName={focusTarget}
         targetId={focusId}
         fallbackPoint={focusFallbackPoint}
+        focus={focusOverride}
         onArrive={handleArrive}
         onMiss={onFocusMiss}
       />
@@ -147,6 +155,8 @@ type PendingFocus = {
   /** product id — the resolver's second name, since the room may use it */
   id?: string
   fallbackPoint?: [number, number, number]
+  /** Authored pose override from catalog.json (`focus.azimuthDeg` etc.) */
+  focus?: FocusOverride
   item?: CatalogItem
   product?: ProductData
   object?: THREE.Object3D | null
@@ -273,6 +283,7 @@ export default function Scene() {
         sceneObject: item.sceneObject,
         id: base.id,
         fallbackPoint: base.billboardPosition,
+        focus: item.focus,
         item
       })
     },
@@ -435,6 +446,7 @@ export default function Scene() {
               focusTarget={focusTarget}
               focusId={pendingFocus?.id}
               focusFallbackPoint={pendingFocus?.fallbackPoint}
+              focusOverride={pendingFocus?.focus}
               onFocusArrive={handleFocusArrive}
               onFocusMiss={handleFocusMiss}
             />
