@@ -2,313 +2,264 @@
 
 import { useState } from 'react'
 import { motion, PanInfo } from 'framer-motion'
-import { X, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, ChevronDown, ShoppingBag } from 'lucide-react'
 import { useFurnitureConfig } from '@/stores/furnitureConfigStore'
-
-interface FurnitureColor {
-  name: string
-  hex: string
-}
-
-interface ProductData {
-  id: string
-  name: string
-  category?: string
-  type?: string
-  dimensions?: string
-  material?: string
-  weight?: string
-  seatingCapacity?: string
-  shelves?: string
-  colors?: FurnitureColor[]
-  fabricType?: string
-  detailedDescription?: string
-  fabricMaterials?: string[]
-  glbPath?: string
-  usdzPath?: string
-}
+import type { ProductData } from './ProductInteraction'
 
 interface ProductDrawerProps {
   product: ProductData | null
   onClose: () => void
   onViewAR?: () => void
+  onAddToCart?: () => void
 }
 
-type Tab = 'colors' | 'details' | 'fabric' | 'dimensions'
+type Tab = 'details' | 'fabric' | 'dimensions'
 
-export default function ProductDrawer({ product, onClose, onViewAR }: ProductDrawerProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('colors')
-  const [isMinimized, setIsMinimized] = useState(false)
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'details', label: 'جزییات' },
+  { id: 'fabric', label: 'جنس پارچه' },
+  { id: 'dimensions', label: 'ابعاد' }
+]
+
+const faPrice = (n: number) => `${new Intl.NumberFormat('fa-IR').format(n)} تومان`
+
+const SPRING = { type: 'spring' as const, damping: 34, stiffness: 320, mass: 0.8 }
+
+export default function ProductDrawer({
+  product,
+  onClose,
+  onViewAR,
+  onAddToCart
+}: ProductDrawerProps) {
+  const [activeTab, setActiveTab] = useState<Tab>('details')
+  const [expanded, setExpanded] = useState(false)
   const { setColor, currentColor } = useFurnitureConfig()
 
   if (!product) return null
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
-    if (info.offset.y > 100 && !isMinimized) {
-      onClose()
-    }
+  // Drag-down dismisses; the sheet is the only pointer-blocking surface, so the
+  // canvas underneath keeps receiving look-drag while this is open
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
+    if (info.offset.y > 90 || info.velocity.y > 600) onClose()
   }
 
-  const handleColorSelect = (colorHex: string) => {
-    setColor(colorHex)
-    if (activeTab === 'colors') {
-      setIsMinimized(true)
-    }
-  }
-
-  const tabs = [
-    { id: 'colors' as Tab, label: 'انتخاب رنگ' },
-    { id: 'details' as Tab, label: 'جزییات' },
-    { id: 'fabric' as Tab, label: 'جنس پارچه' },
-    { id: 'dimensions' as Tab, label: 'ابعاد' }
-  ]
+  const activeColorName = product.colors?.find((c) => c.hex === currentColor)?.name
 
   return (
-    <>
-      {/* Backdrop */}
-      {!isMinimized && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40"
-          onClick={onClose}
-        />
-      )}
+    <motion.div
+      dir="rtl"
+      drag="y"
+      dragConstraints={{ top: 0, bottom: 0 }}
+      dragElastic={{ top: 0.04, bottom: 0.35 }}
+      onDragEnd={handleDragEnd}
+      initial={{ y: '110%' }}
+      animate={{ y: 0 }}
+      exit={{ y: '110%' }}
+      transition={SPRING}
+      className="font-persian fixed bottom-0 left-0 right-0 z-40 mx-auto flex max-w-[560px]
+                 flex-col overflow-hidden rounded-t-[28px] border-t border-white/[0.06]
+                 bg-[var(--surface-2)]/85 backdrop-blur-2xl"
+      style={{ boxShadow: '0 -18px 50px -20px rgb(0 0 0 / 80%)' }}
+    >
+      {/* Hairline gold edge */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px
+                   bg-gradient-to-l from-transparent via-[var(--gold-line-hi)] to-transparent"
+      />
 
-      {/* Drawer */}
-      <motion.div
-        drag="y"
-        dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={0.2}
-        onDragEnd={handleDragEnd}
-        initial={{ y: '100%' }}
-        animate={{ y: isMinimized ? 'calc(100% - 120px)' : 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className={`fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-4xl
-                   bg-[var(--surface-3)] rounded-t-3xl shadow-2xl flex flex-col
-                   ${isMinimized ? 'max-h-[120px]' : 'max-h-[50vh] md:max-h-[75vh]'}`}
-        style={{
-          boxShadow: '0 -4px 24px rgba(212, 175, 55, 0.15)'
-        }}
+      {/* Grab handle — doubles as the expand/collapse toggle */}
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        aria-label={expanded ? 'بستن جزییات' : 'نمایش جزییات'}
+        className="flex w-full cursor-grab justify-center pt-3 pb-1.5 active:cursor-grabbing"
       >
-        {/* Drag Handle + Minimize Button */}
-        <div className="flex justify-between items-center pt-4 pb-2 px-6">
-          <div className="flex-1 flex justify-center md:hidden">
-            <div className="h-1.5 w-12 rounded-full bg-white/20" />
-          </div>
-          {isMinimized && (
+        <span className="h-1 w-10 rounded-full bg-white/25 transition-colors hover:bg-white/40" />
+      </button>
+
+      <div className="px-5 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
+        {/* Title row */}
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="truncate text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">
+            {product.name}
+          </h2>
+
+          <div className="flex shrink-0 items-center gap-1">
             <button
-              onClick={() => setIsMinimized(false)}
-              className="p-1 rounded-full hover:bg-white/10 transition-colors"
+              onClick={() => setExpanded((v) => !v)}
+              className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px]
+                         text-[var(--text-secondary)] transition-colors hover:bg-white/[0.06]
+                         hover:text-[var(--gold-primary)]"
             >
-              <ChevronUp className="w-5 h-5 text-[var(--gold-primary)]" />
+              {expanded ? 'کمتر' : 'جزییات بیشتر'}
+              <ChevronDown
+                className={`h-3.5 w-3.5 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
+              />
             </button>
-          )}
+            <button
+              onClick={onClose}
+              aria-label="بستن"
+              className="rounded-full p-1.5 text-[var(--text-muted)] transition-colors
+                         hover:bg-white/[0.06] hover:text-[var(--text-primary)]"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
-        {/* Minimized Color Bar */}
-        {isMinimized && activeTab === 'colors' && (
-          <div className="flex gap-3 px-6 pb-4 overflow-x-auto scrollbar-hide">
-            {product.colors?.map((color) => {
-              const isActive = currentColor === color.hex
+        {/* Colors — one line, bare circles */}
+        {!!product.colors?.length && (
+          <div className="scrollbar-hide mt-3 flex items-center gap-3 overflow-x-auto py-1">
+            {product.colors.map((color) => {
+              const active = currentColor === color.hex
               return (
                 <button
                   key={color.hex}
-                  onClick={() => handleColorSelect(color.hex)}
-                  className="flex-shrink-0"
+                  onClick={() => setColor(color.hex)}
+                  title={color.name}
+                  aria-label={color.name}
+                  aria-pressed={active}
+                  className="relative h-7 w-7 shrink-0 rounded-full ring-1 ring-inset ring-white/20
+                             transition-transform duration-300 ease-[var(--ease-cinematic)]
+                             hover:scale-110 active:scale-95"
+                  style={{ backgroundColor: color.hex }}
                 >
-                  <div
-                    className={`w-14 h-14 rounded-full transition-all shadow-lg hover:scale-110 ${
-                      isActive
-                        ? 'border-4 border-[var(--gold-primary)] scale-110'
-                        : 'border-3 border-[var(--gold-primary)]/40 hover:border-[var(--gold-primary)]'
-                    }`}
-                    style={{ backgroundColor: color.hex }}
-                  />
+                  {active && (
+                    <motion.span
+                      aria-hidden
+                      layoutId="swatch-ring"
+                      transition={SPRING}
+                      className="absolute -inset-[3px] rounded-full ring-[1.5px] ring-[var(--gold-primary)]"
+                    />
+                  )}
                 </button>
               )
             })}
           </div>
         )}
 
-        {/* Expanded Content */}
-        {!isMinimized && (
-          <>
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-              <h2 className="text-2xl font-bold text-[var(--text-primary)] font-['Shabnam']">
-                {product.name}
-              </h2>
-              <div className="flex gap-2">
-                {activeTab === 'colors' && (
-                  <button
-                    onClick={() => setIsMinimized(true)}
-                    className="p-2 rounded-full hover:bg-white/10 transition-colors"
-                    title="کوچک کردن"
-                  >
-                    <ChevronDown className="w-6 h-6 text-[var(--gold-primary)]" />
-                  </button>
-                )}
-                <button
-                  onClick={onClose}
-                  className="p-2 rounded-full hover:bg-white/10 transition-colors"
-                >
-                  <X className="w-6 h-6 text-[var(--text-primary)]" />
-                </button>
-              </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-2 px-6 py-4 border-b border-white/10 overflow-x-auto scrollbar-hide">
-              {tabs.map((tab) => (
+        {/* Expanded detail pane */}
+        <motion.div
+          initial={false}
+          animate={{ height: expanded ? 'auto' : 0, opacity: expanded ? 1 : 0 }}
+          transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+          className="overflow-hidden"
+        >
+          <div className="mt-3 border-t border-white/[0.06] pt-2">
+            {/* Tabs — quiet underline strip */}
+            <div className="scrollbar-hide flex gap-4 overflow-x-auto">
+              {TABS.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id)
-                    if (tab.id !== 'colors') setIsMinimized(false)
-                  }}
-                  className={`px-4 py-2 rounded-lg whitespace-nowrap font-['Shabnam'] transition-all ${
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative shrink-0 pb-2 pt-1 text-[13px] transition-colors ${
                     activeTab === tab.id
-                      ? 'bg-[var(--gold-primary)] text-black font-bold'
-                      : 'bg-white/5 text-[var(--text-primary)] hover:bg-white/10'
+                      ? 'text-[var(--gold-primary)]'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                   }`}
                 >
                   {tab.label}
+                  {activeTab === tab.id && (
+                    <motion.span
+                      layoutId="tab-underline"
+                      transition={SPRING}
+                      className="absolute inset-x-0 bottom-0 h-px bg-[var(--gold-primary)]"
+                    />
+                  )}
                 </button>
               ))}
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-6">
-              {activeTab === 'colors' && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-bold text-[var(--text-primary)] font-['Shabnam'] mb-4">
-                    رنگ‌های موجود
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    {product.colors?.map((color) => {
-                      const isActive = currentColor === color.hex
-                      return (
-                        <button
-                          key={color.hex}
-                          onClick={() => handleColorSelect(color.hex)}
-                          className={`flex flex-col items-center gap-3 p-4 rounded-xl transition-colors ${
-                            isActive
-                              ? 'bg-[var(--gold-primary)]/20 ring-2 ring-[var(--gold-primary)]'
-                              : 'bg-white/5 hover:bg-white/10'
-                          }`}
-                        >
-                          <div
-                            className={`w-20 h-20 rounded-full transition-all shadow-lg ${
-                              isActive
-                                ? 'border-4 border-[var(--gold-primary)] scale-110'
-                                : 'border-4 border-[var(--gold-primary)]/40 hover:border-[var(--gold-primary)]'
-                            }`}
-                            style={{ backgroundColor: color.hex }}
-                          />
-                          <span className={`text-sm font-['Shabnam'] ${
-                            isActive ? 'text-[var(--gold-primary)] font-bold' : 'text-[var(--text-primary)]'
-                          }`}>
-                            {color.name}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
+            <div className="scrollbar-hide max-h-[26vh] overflow-y-auto overscroll-contain py-3 md:max-h-[38vh]">
               {activeTab === 'details' && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-bold text-[var(--text-primary)] font-['Shabnam'] mb-4">
-                    توضیحات محصول
-                  </h3>
-                  <p className="text-[var(--text-primary)]/80 leading-relaxed font-['Shabnam'] text-base">
-                    {product.detailedDescription || 'توضیحات موجود نیست'}
-                  </p>
-                </div>
+                <p className="text-[13px] leading-7 text-[var(--text-secondary)]">
+                  {product.detailedDescription || 'توضیحات موجود نیست'}
+                </p>
               )}
 
               {activeTab === 'fabric' && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-bold text-[var(--text-primary)] font-['Shabnam'] mb-4">
-                    جنس پارچه و مواد اولیه
-                  </h3>
-                  <div className="bg-white/5 rounded-xl p-4 mb-4">
-                    <p className="text-[var(--gold-primary)] font-semibold font-['Shabnam'] mb-2">
-                      جنس اصلی:
-                    </p>
-                    <p className="text-[var(--text-primary)] font-['Shabnam']">
+                <div className="space-y-3">
+                  <div className="flex items-baseline gap-2 text-[13px]">
+                    <span className="text-[var(--text-muted)]">جنس اصلی:</span>
+                    <span className="text-[var(--text-primary)]">
                       {product.fabricType || 'موجود نیست'}
-                    </p>
+                    </span>
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-[var(--gold-primary)] font-semibold font-['Shabnam']">
-                      مواد تشکیل‌دهنده:
-                    </p>
-                    <ul className="space-y-2">
-                      {product.fabricMaterials?.map((material, index) => (
-                        <li
-                          key={index}
-                          className="flex items-start gap-3 text-[var(--text-primary)] font-['Shabnam']"
-                        >
-                          <span className="text-[var(--gold-primary)] mt-1">•</span>
-                          {material}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  <ul className="space-y-1.5">
+                    {product.fabricMaterials?.map((material) => (
+                      <li
+                        key={material}
+                        className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)]"
+                      >
+                        <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--gold-primary)]" />
+                        {material}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 
               {activeTab === 'dimensions' && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-bold text-[var(--text-primary)] font-['Shabnam'] mb-4">
-                    مشخصات فنی
-                  </h3>
-                  <div className="grid gap-3">
-                    {[
-                      { label: 'ابعاد', value: product.dimensions },
-                      { label: 'جنس', value: product.material },
-                      { label: 'وزن', value: product.weight },
-                      { label: 'دسته‌بندی', value: product.category },
-                      { label: 'نوع', value: product.type },
-                      product.seatingCapacity && { label: 'ظرفیت نشستن', value: product.seatingCapacity },
-                      product.shelves && { label: 'تعداد قفسه', value: product.shelves }
-                    ].filter(Boolean).map((spec) => (
+                <dl className="grid gap-px overflow-hidden rounded-xl bg-white/[0.06]">
+                  {[
+                    { label: 'ابعاد', value: product.dimensions },
+                    { label: 'جنس', value: product.material },
+                    { label: 'وزن', value: product.weight },
+                    { label: 'دسته‌بندی', value: product.category },
+                    { label: 'نوع', value: product.type },
+                    { label: 'ظرفیت نشستن', value: product.seatingCapacity },
+                    { label: 'تعداد قفسه', value: product.shelves }
+                  ]
+                    .filter((spec) => spec.value)
+                    .map((spec) => (
                       <div
-                        key={spec!.label}
-                        className="flex justify-between items-center p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                        key={spec.label}
+                        className="flex items-center justify-between bg-[var(--surface-2)] px-3.5 py-2.5 text-[13px]"
                       >
-                        <span className="text-[var(--gold-primary)] font-semibold font-['Shabnam']">
-                          {spec!.label}:
-                        </span>
-                        <span className="text-[var(--text-primary)] font-['Shabnam']">
-                          {spec!.value || 'موجود نیست'}
-                        </span>
+                        <dt className="text-[var(--text-muted)]">{spec.label}</dt>
+                        <dd className="text-[var(--text-primary)]">{spec.value}</dd>
                       </div>
                     ))}
-                  </div>
-                </div>
+                </dl>
               )}
             </div>
 
-            {/* AR Button */}
             {onViewAR && (
-              <div className="p-6 border-t border-white/10">
-                <button
-                  onClick={onViewAR}
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-[var(--gold-primary)] to-[var(--gold-warm)]
-                           text-black font-bold text-lg font-['Shabnam']
-                           hover:shadow-lg hover:shadow-[var(--gold-primary)]/30
-                           transition-all duration-300 hover:scale-[1.02]"
-                >
-                  مشاهده در واقعیت افزوده
-                </button>
-              </div>
+              <button
+                onClick={onViewAR}
+                className="mb-1 w-full rounded-xl border border-[var(--border-default)] py-2.5
+                           text-[13px] text-[var(--gold-primary)] transition-colors
+                           hover:bg-[var(--gold-primary)]/10"
+              >
+                مشاهده در واقعیت افزوده
+              </button>
             )}
-          </>
-        )}
-      </motion.div>
-    </>
+          </div>
+        </motion.div>
+
+        {/* Price + bag */}
+        <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/[0.06] pt-3">
+          <div className="flex min-w-0 flex-col">
+            {activeColorName && (
+              <span className="truncate text-[11px] text-[var(--text-muted)]">{activeColorName}</span>
+            )}
+            <span className="persian-number text-[17px] font-bold leading-tight text-[var(--gold-primary)]">
+              {product.price ? faPrice(product.price) : 'استعلام قیمت'}
+            </span>
+          </div>
+
+          <button
+            onClick={onAddToCart}
+            className="flex h-10 shrink-0 items-center gap-2 rounded-full bg-gradient-to-l
+                       from-[var(--gold-primary)] to-[var(--gold-warm)] px-5 text-[13px]
+                       font-bold text-black shadow-lg shadow-[var(--gold-primary)]/20
+                       transition-transform duration-200 active:scale-[0.97]"
+          >
+            <ShoppingBag className="h-4 w-4" />
+            افزودن
+          </button>
+        </div>
+      </div>
+    </motion.div>
   )
 }

@@ -10,6 +10,7 @@
     "material": "پارچه و چوب جامد",
     "seatingCapacity": "۴-۵ نفر",
     "weight": "85 kg",
+    "price": 48500000,
     "colors": [
       { "name": "خاکستری ذغالی", "hex": "#36454F" },
       { "name": "یاسی", "hex": "#aaaaee" },
@@ -37,6 +38,7 @@
     "material": "چوب بلوط و چرم",
     "seatingCapacity": "۱ نفر",
     "weight": "6.5 kg",
+    "price": 7200000,
     "colors": [
       { "name": "بلوط طبیعی", "hex": "#C19A6B" },
       { "name": "گردوی تیره", "hex": "#5C4033" },
@@ -63,6 +65,7 @@
     "dimensions": "120cm × 60cm × 45cm",
     "material": "شیشه نشکن و فلز",
     "weight": "22 kg",
+    "price": 15900000,
     "colors": [
       { "name": "شیشه شفاف", "hex": "#E8F4F8" },
       { "name": "دودی", "hex": "#595959" },

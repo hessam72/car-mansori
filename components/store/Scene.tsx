@@ -5,6 +5,7 @@ import { Environment } from '@react-three/drei'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { Suspense, useMemo } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import { Physics } from '@react-three/rapier'
 import { useStoreConfig } from './hooks/useStoreConfig'
 import { ModelLoader } from './ModelLoader'
@@ -320,15 +321,21 @@ export default function Scene() {
       </Canvas>
       </div>
 
-      {/* Product Drawer - 2D bottom sheet */}
-      <ProductDrawer
-        product={selectedProduct}
-        onClose={() => {
-          setSelectedProduct(null)
-          setSelectedObjectPosition(null)
-        }}
-        onViewAR={() => setShowAR(true)}
-      />
+      {/* Product Drawer - 2D bottom sheet. No backdrop: the canvas below stays
+          interactive so look-drag and the joystick keep working while it's open */}
+      <AnimatePresence>
+        {selectedProduct && (
+          <ProductDrawer
+            key={selectedProduct.id}
+            product={selectedProduct}
+            onClose={() => {
+              setSelectedProduct(null)
+              setSelectedObjectPosition(null)
+            }}
+            onViewAR={() => setShowAR(true)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* AR Product Viewer - outside Canvas */}
       {showAR && selectedProduct?.glbPath && (
@@ -368,7 +375,12 @@ export default function Scene() {
 
       {/* Virtual joystick for mobile - only after ready */}
       {loadingPhase === 'ready' && joystickInputRef && (
-        <VirtualJoystick joystickInput={joystickInputRef} onActivity={wake} hidden={showAR} />
+        <VirtualJoystick
+          joystickInput={joystickInputRef}
+          onActivity={wake}
+          hidden={showAR}
+          liftPx={selectedProduct ? 168 : 0}
+        />
       )}
 
       {/* Background audio */}

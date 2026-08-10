@@ -19,7 +19,12 @@ export interface ProductData {
   weight?: string
   seatingCapacity?: string
   shelves?: string
+  /** Toman, unformatted — the drawer renders it with Intl 'fa-IR' */
+  price?: number
   colors?: FurnitureColor[]
+  fabricType?: string
+  detailedDescription?: string
+  fabricMaterials?: string[]
   glbPath?: string
   usdzPath?: string
   billboardPosition: [number, number, number]

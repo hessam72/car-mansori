@@ -75,11 +75,15 @@ export function useJoystickControls(playerVelocity: React.RefObject<THREE.Vector
 export function VirtualJoystick({
   joystickInput,
   onActivity,
-  hidden
+  hidden,
+  liftPx = 0
 }: {
   joystickInput: React.RefObject<{ x: number; y: number }>
   onActivity?: () => void
   hidden?: boolean
+  /** Raises the zone so the stick clears the product sheet. Must be `bottom`,
+   *  not a transform — nipplejs measures the zone rect live on touch. */
+  liftPx?: number
 }) {
   const zoneRef = useRef<HTMLDivElement>(null)
   const isTouchActiveRef = useRef(false)
@@ -146,8 +150,13 @@ export function VirtualJoystick({
   return (
     <div
       ref={zoneRef}
-      className="fixed bottom-0 right-0 w-40 h-40 pointer-events-auto z-50"
-      style={{ touchAction: 'none', display: hidden ? 'none' : 'block' }}
+      className="fixed right-0 w-40 h-40 pointer-events-auto z-[60]"
+      style={{
+        touchAction: 'none',
+        display: hidden ? 'none' : 'block',
+        bottom: liftPx,
+        transition: 'bottom 320ms var(--ease-cinematic)'
+      }}
     >
       <style jsx>{`
         div :global(.back) {
