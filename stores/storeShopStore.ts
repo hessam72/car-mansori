@@ -8,9 +8,12 @@ import { persist } from 'zustand/middleware'
 interface ShopState {
   liked: string[]
   cart: string[]
+  /** Ambient audio mute. Lives here so the sidebar can drive AudioPlayer. */
+  muted: boolean
   toggleLike: (id: string) => void
   addToCart: (id: string) => void
   clearCart: () => void
+  toggleMuted: () => void
 }
 
 export const useShop = create<ShopState>()(
@@ -18,6 +21,8 @@ export const useShop = create<ShopState>()(
     (set) => ({
       liked: [],
       cart: [],
+      muted: false,
+      toggleMuted: () => set((s) => ({ muted: !s.muted })),
       toggleLike: (id) =>
         set((s) => ({
           liked: s.liked.includes(id) ? s.liked.filter((x) => x !== id) : [...s.liked, id]

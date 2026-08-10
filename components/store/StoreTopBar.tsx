@@ -12,6 +12,8 @@ interface StoreTopBarProps {
   productName: string | null
   /** Catalogue id of the focused item, for the like toggle */
   productId: string | null
+  /** Rendered beside like/cart — the gyroscope toggle, or nothing on desktop */
+  children?: React.ReactNode
 }
 
 const BTN =
@@ -19,7 +21,12 @@ const BTN =
   'text-[var(--text-primary)] transition-colors duration-200 hover:text-[var(--gold-primary)] ' +
   'active:scale-95'
 
-export default function StoreTopBar({ onOpenMenu, productName, productId }: StoreTopBarProps) {
+export default function StoreTopBar({
+  onOpenMenu,
+  productName,
+  productId,
+  children
+}: StoreTopBarProps) {
   const liked = useShop((s) => s.liked)
   const cart = useShop((s) => s.cart)
   const toggleLike = useShop((s) => s.toggleLike)
@@ -42,17 +49,19 @@ export default function StoreTopBar({ onOpenMenu, productName, productId }: Stor
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-            className="glass specular pointer-events-none absolute left-1/2 max-w-[52%] -translate-x-1/2
+            className="glass specular pointer-events-none absolute left-1/2 max-w-[44%] -translate-x-1/2
                        truncate rounded-full px-4 py-1.5 text-center text-[12px]
-                       text-[var(--text-primary)]"
+                       text-[var(--text-primary)] md:max-w-[420px]"
           >
             {productName}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Left (RTL end): like + cart */}
+      {/* Left (RTL end): gyroscope (mobile only), like, cart */}
       <div className="flex items-center gap-2">
+        {children}
+
         <button
           onClick={() => productId && toggleLike(productId)}
           disabled={!productId}

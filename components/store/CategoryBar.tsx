@@ -58,12 +58,15 @@ export default function CategoryBar({ catalog, onSelect, collapsed }: CategoryBa
                               : 'text-[var(--text-primary)] hover:text-[var(--gold-primary)]'
                           }`}
             >
+              {/* The tint has to be its own layer: `glass` sets the
+                  `background` shorthand, so a bg-* utility on this element
+                  resolves to transparent */}
               {active && (
                 <motion.span
                   layoutId="cat-active"
                   transition={SPRING}
                   aria-hidden
-                  className="absolute inset-0 rounded-full bg-[var(--gold-primary)]/12"
+                  className="absolute inset-0 rounded-full bg-[#d4af37]/12"
                 />
               )}
               <span className="relative">{cat.label}</span>

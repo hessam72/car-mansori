@@ -2,7 +2,9 @@
 
 import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X } from 'lucide-react'
+import { X, Volume2, VolumeX } from 'lucide-react'
+import QualitySelector from '@/components/car/QualitySelector'
+import { useShop } from '@/stores/storeShopStore'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
@@ -19,6 +21,8 @@ interface StoreSidebarProps {
 export default function StoreSidebar({ open, onClose, returnFocusTo }: StoreSidebarProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const muted = useShop((s) => s.muted)
+  const toggleMuted = useShop((s) => s.toggleMuted)
 
   useEffect(() => {
     if (!open) return
@@ -96,7 +100,34 @@ export default function StoreSidebar({ open, onClose, returnFocusTo }: StoreSide
               </button>
             </div>
 
-            <div className="flex-1" />
+            <div className="mt-6 flex flex-1 flex-col gap-5 overflow-y-auto">
+              {/* Ambient sound */}
+              <section>
+                <h3 className="mb-2 text-[11px] text-[var(--text-muted)]">صدا</h3>
+                <button
+                  onClick={toggleMuted}
+                  aria-pressed={!muted}
+                  className="glass-flat flex w-full items-center justify-between rounded-xl px-3.5 py-3
+                             text-[13px] text-[var(--text-primary)] transition-colors
+                             hover:border-[var(--color-gold-line-hi)]"
+                >
+                  <span>{muted ? 'صدای پس‌زمینه خاموش' : 'صدای پس‌زمینه روشن'}</span>
+                  {muted ? (
+                    <VolumeX className="h-4 w-4 text-[var(--text-muted)]" />
+                  ) : (
+                    <Volume2 className="h-4 w-4 text-[var(--gold-primary)]" />
+                  )}
+                </button>
+              </section>
+
+              {/* Graphics quality — shares the persisted tier with /car */}
+              <section>
+                <h3 className="mb-2 text-[11px] text-[var(--text-muted)]">کیفیت گرافیک</h3>
+                <div className="glass-flat rounded-xl p-3.5" dir="ltr">
+                  <QualitySelector />
+                </div>
+              </section>
+            </div>
           </motion.aside>
         </>
       )}

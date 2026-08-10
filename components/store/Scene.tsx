@@ -38,7 +38,6 @@ import { GyroToggle } from './GyroToggle'
 import { SceneTransition } from './SceneTransition'
 import { CameraTransition } from './CameraTransition'
 import { ParticleReveal } from './ParticleReveal'
-import { StoreQualityButton } from './StoreQualityButton'
 import { ActivityGovernor, markStoreActivity } from './activityGovernor'
 import { PerfLadder } from '@/components/three/PerfLadder'
 import { clampDprToBudget } from '@/lib/three/dprBudget'
@@ -499,15 +498,22 @@ export default function Scene() {
         <>
           <div
             dir="rtl"
-            className="font-persian pointer-events-none fixed inset-x-0 top-0 z-30 px-3
-                       pt-[max(0.75rem,env(safe-area-inset-top))]"
+            className="font-persian pointer-events-none fixed inset-x-0 top-0 z-30
+                       px-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:px-6 md:pt-5"
           >
-            <div className="pointer-events-none mx-auto max-w-[560px]">
-              <StoreTopBar
-                onOpenMenu={() => setSidebarOpen(true)}
-                productName={focusTarget ? null : focusedName}
-                productId={focusedId}
-              />
+            {/* Full-bleed: the bar's controls must hug the real screen corners,
+                not a centred column */}
+            <StoreTopBar
+              onOpenMenu={() => setSidebarOpen(true)}
+              productName={focusTarget ? null : focusedName}
+              productId={focusedId}
+            >
+              {loadingPhase === 'ready' && <GyroToggle onGyroChange={setGyroEnabled} />}
+            </StoreTopBar>
+
+            {/* The drill-down stays a readable column, anchored to the RTL
+                start edge under the menu button */}
+            <div className="md:max-w-[420px]">
               <CategoryBar
                 catalog={catalog}
                 onSelect={handleCatalogSelect}
@@ -523,11 +529,6 @@ export default function Scene() {
       {/* Background audio */}
       <AudioPlayer />
 
-      {/* Graphics quality — same tiers/persistence as /car */}
-      <StoreQualityButton />
-
-      {/* Gyroscope controls */}
-      {loadingPhase === 'ready' && <GyroToggle onGyroChange={setGyroEnabled} />}
 
       {/* Bottom-left logo */}
       <div style={{
