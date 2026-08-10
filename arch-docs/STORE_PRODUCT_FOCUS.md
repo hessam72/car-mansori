@@ -203,6 +203,7 @@ Cases 2 and 3 log a `[ProductFocusCamera]` warning listing the names actually pr
 - **No allocation inside `useFrame`.** Scratch vectors/quaternions live at module scope, matching `Joystick.tsx` and `POVCamera.tsx`.
 - **`Object3D.lookAt` is not camera semantics.** For a non-camera object three swaps eye/target, so its **+Z** faces the target. The aim scratch is a `THREE.Camera` for exactly this reason — a plain `Object3D` lands the camera facing away from the product.
 - **`bg-*` utilities don't work on `.glass` elements.** `glass` sets the `background` shorthand, which resets `background-color`. Tints need their own layer (see the active pill in `CategoryBar.tsx`).
+- **Moving the joystick zone requires `manager.reposition()`.** nipplejs caches the stick's centre as a *page coordinate* at creation and measures every touch against it. It only refreshes on its zone `ResizeObserver` (**size** changes) or a window resize, so shifting the zone with `bottom` — which is how `liftPx` clears the drawer — slips past it, and a stale centre reports full deflection from a finger that never moved. `dynamicPage: true` also fixes it but re-measures on every move event; `reposition()` is the cheap one. Call it after the slide finishes, not just when the value changes.
 
 ---
 

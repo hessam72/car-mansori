@@ -71,6 +71,9 @@ export function useJoystickControls(playerVelocity: React.RefObject<THREE.Vector
   return { updateMovement, joystickInput }
 }
 
+/** Shared by the CSS transition and the reposition timeout that follows it */
+const LIFT_TRANSITION_MS = 320
+
 // Virtual joystick component for mobile
 export function VirtualJoystick({
   joystickInput,
@@ -81,13 +84,14 @@ export function VirtualJoystick({
   joystickInput: React.RefObject<{ x: number; y: number }>
   onActivity?: () => void
   hidden?: boolean
-  /** Raises the zone so the stick clears the product sheet. Must be `bottom`,
-   *  not a transform — nipplejs measures the zone rect live on touch. */
+  /** Raises the zone so the stick clears the product sheet. Any change here
+   *  must be followed by manager.reposition() — see the effect below. */
   liftPx?: number
 }) {
   const zoneRef = useRef<HTMLDivElement>(null)
   const isTouchActiveRef = useRef(false)
   const lastActivityRef = useRef(0)
+  const managerRef = useRef<ReturnType<typeof nipplejs.create> | null>(null)
 
   useEffect(() => {
     if (!zoneRef.current) return
@@ -99,6 +103,7 @@ export function VirtualJoystick({
       color: '#2a2a2a',
       size: 120,
     })
+    managerRef.current = manager
 
     manager.on('start', () => {
       isTouchActiveRef.current = true
@@ -138,6 +143,7 @@ export function VirtualJoystick({
     })
 
     return () => {
+      managerRef.current = null
       // Wait for touch to end before destroying
       if (isTouchActiveRef.current) {
         manager.on('end', () => manager.destroy())
@@ -147,6 +153,25 @@ export function VirtualJoystick({
     }
   }, [joystickInput, onActivity])
 
+  // nipplejs caches the stick's centre as a *page coordinate* at creation, and
+  // measures every touch against it — a stale centre 168px away reports full
+  // deflection from a finger that never moved. It only refreshes that cache on
+  // its zone ResizeObserver (size changes) or a window resize, so lifting the
+  // zone with `bottom` slips past it entirely. reposition() is nipplejs's own
+  // remedy, and the light one: `dynamicPage: true` fixes it too but re-measures
+  // on every move event, which is a forced layout read per pointermove.
+  //
+  // Twice: once now for changes that don't animate (the `display` toggle), and
+  // once after the slide settles, since an immediate call would measure the
+  // start of the transition rather than its end.
+  useEffect(() => {
+    const manager = managerRef.current
+    if (!manager) return
+    manager.reposition()
+    const id = setTimeout(() => managerRef.current?.reposition(), LIFT_TRANSITION_MS + 60)
+    return () => clearTimeout(id)
+  }, [liftPx, hidden])
+
   return (
     <div
       ref={zoneRef}
@@ -155,7 +180,7 @@ export function VirtualJoystick({
         touchAction: 'none',
         display: hidden ? 'none' : 'block',
         bottom: liftPx,
-        transition: 'bottom 320ms var(--ease-cinematic)'
+        transition: `bottom ${LIFT_TRANSITION_MS}ms var(--ease-cinematic)`
       }}
     >
       <style jsx>{`
