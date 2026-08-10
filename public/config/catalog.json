@@ -40,6 +40,15 @@
 
   "items": [
     {
+      "id": "l-velvettest",
+      "name": "مبل ال ewewewew",
+      "price": 62000000,
+      "mainCategory": "sofa",
+      "subCategory": "l-shape",
+      "sceneObject": "test",
+            "focus": { "azimuthDeg": -45, "elevationDeg": 15, "distance": 4 }
+
+    }, {
       "id": "l-velvet",
       "name": "مبل ال مخملی",
       "price": 62000000,
@@ -62,7 +71,7 @@
       "mainCategory": "sofa",
       "subCategory": "sectional",
       "sceneObject": "modern-sofa",
-      "focus": { "azimuthDeg": 180 }
+      "focus": { "azimuthDeg": 0, "elevationDeg": 15, "distance": 6 }
     },
     {
       "id": "single-nordic",
