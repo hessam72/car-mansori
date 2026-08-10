@@ -20,7 +20,7 @@ import { SunLight } from './SunLight'
 import { LampLights } from './LampLights'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import ProductInteraction, { type ProductData } from './ProductInteraction'
-import ProductBillboard3D from './ProductBillboard3D'
+import ProductDrawer from './ProductDrawer'
 import ARProductViewer from './ARProductViewer'
 import { FurnitureColorPicker } from './FurnitureColorPicker'
 import { FurnitureColorApplier } from './FurnitureColorApplier'
@@ -262,25 +262,6 @@ export default function Scene() {
           />
           <ParticleReveal isTransitioning={loadingPhase === 'transitioning'} />
 
-          {/* Shader warmup - pre-compile billboard materials off-screen during transition */}
-          {loadingPhase === 'transitioning' && (
-            <group position={[1000, 1000, 1000]}>
-              <ProductBillboard3D
-                product={{
-                  id: 'warmup',
-                  name: 'Shader Warmup',
-                  dimensions: 'warmup',
-                  material: 'warmup',
-                  weight: 'warmup',
-                  category: 'warmup',
-                  type: 'warmup',
-                  billboardPosition: [0, 0, 0]
-                }}
-                onClose={() => {}}
-                onViewAR={() => {}}
-              />
-            </group>
-          )}
 
           {/* Physics system - only after transition ready */}
           {loadingPhase === 'ready' && (
@@ -314,17 +295,6 @@ export default function Scene() {
             />
           )}
 
-          {/* Product billboard - 3D popup */}
-          {loadingPhase === 'ready' && (
-            <ProductBillboard3D
-              product={selectedProduct}
-              onClose={() => {
-                setSelectedProduct(null)
-                setSelectedObjectPosition(null)
-              }}
-              onViewAR={() => setShowAR(true)}
-            />
-          )}
 
           {/* Furniture color picker - 3D floating circles */}
           {loadingPhase === 'ready' &&
@@ -367,6 +337,16 @@ export default function Scene() {
         </Physics>
       </Canvas>
       </div>
+
+      {/* Product Drawer - 2D bottom sheet */}
+      <ProductDrawer
+        product={selectedProduct}
+        onClose={() => {
+          setSelectedProduct(null)
+          setSelectedObjectPosition(null)
+        }}
+        onViewAR={() => setShowAR(true)}
+      />
 
       {/* AR Product Viewer - outside Canvas */}
       {showAR && selectedProduct?.glbPath && (
