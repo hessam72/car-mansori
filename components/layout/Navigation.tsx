@@ -75,7 +75,7 @@ export default function Navigation() {
       <motion.nav
         dir="rtl"
         className="fixed top-0 left-0 right-0 z-50 bg-transparent"
-        style={{ opacity: navOpacity }}
+        style={{ opacity: navOpacity}}
       >
         <div className="container-luxury flex items-center justify-center h-16 md:h-24">
           {/* Logo — top left */}
