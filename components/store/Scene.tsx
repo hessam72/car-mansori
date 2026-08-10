@@ -135,6 +135,23 @@ function PhysicsManager({
 
 type LoadingPhase = 'loading' | 'transitioning' | 'ready'
 
+/**
+ * One flight, two entry points. A menu pick carries the catalogue entry (its
+ * name and price override the room's product); a direct tap carries the product
+ * and the mesh it actually hit. Everything after take-off is identical, so both
+ * go through the same value rather than two near-duplicate paths.
+ */
+type PendingFocus = {
+  /** products.json key — the resolver's primary name */
+  sceneObject: string
+  /** product id — the resolver's second name, since the room may use it */
+  id?: string
+  fallbackPoint?: [number, number, number]
+  item?: CatalogItem
+  product?: ProductData
+  object?: THREE.Object3D | null
+}
+
 export default function Scene() {
   const { config, loading, error } = useStoreConfig()
   const { settings } = useQuality()
@@ -154,7 +171,7 @@ export default function Scene() {
   const [products, setProducts] = useState<Record<string, ProductData>>({})
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [focusTarget, setFocusTarget] = useState<string | null>(null)
-  const [pendingItem, setPendingItem] = useState<CatalogItem | null>(null)
+  const [pendingFocus, setPendingFocus] = useState<PendingFocus | null>(null)
   const [focusedName, setFocusedName] = useState<string | null>(null)
   const [focusedId, setFocusedId] = useState<string | null>(null)
 
@@ -227,6 +244,19 @@ export default function Scene() {
       .catch((err) => console.error('Failed to load catalog:', err))
   }, [])
 
+  /** Take off — shared by menu picks and direct taps */
+  const beginFocus = useCallback(
+    (pending: PendingFocus) => {
+      setSelectedProduct(null)
+      setFocusedName(null)
+      setFocusedId(null)
+      setPendingFocus(pending)
+      setFocusTarget(pending.sceneObject)
+      wake()
+    },
+    [wake]
+  )
+
   /** Menu pick → fly the camera to the product's mesh */
   const handleCatalogSelect = useCallback(
     (item: CatalogItem) => {
@@ -238,27 +268,32 @@ export default function Scene() {
         )
         return
       }
-      setSelectedProduct(null)
-      setFocusedName(null)
-      setFocusedId(null)
-      setPendingItem(item)
-      setFocusTarget(item.sceneObject)
-      wake()
+      const base = products[item.sceneObject]
+      beginFocus({
+        sceneObject: item.sceneObject,
+        id: base.id,
+        fallbackPoint: base.billboardPosition,
+        item
+      })
     },
-    [products, wake]
+    [products, beginFocus]
   )
 
   /** Open the drawer and show the name chip. Shared by the landed and the
    *  couldn't-fly paths so a failed flight is never a dead end. */
   const revealProduct = useCallback(
-    (item: CatalogItem) => {
-      const resolved = resolveCatalogItem(item, products)
+    (pending: PendingFocus) => {
+      const resolved = pending.item
+        ? resolveCatalogItem(pending.item, products)
+        : pending.product
       if (!resolved) return
-      selectFurniture(item.sceneObject, null)
+
+      selectFurniture(pending.sceneObject, pending.object ?? null)
       initializeColor()
       setSelectedProduct(resolved)
-      setFocusedName(item.name)
-      setFocusedId(item.id)
+      setFocusedName(pending.item?.name ?? resolved.name)
+      // Likes are per catalogue entry; a direct tap has no catalogue identity
+      setFocusedId(pending.item?.id ?? null)
     },
     [products, selectFurniture, initializeColor]
   )
@@ -266,23 +301,18 @@ export default function Scene() {
   /** Flight landed */
   const handleFocusArrive = useCallback(() => {
     setFocusTarget(null)
-    const item = pendingItem
-    setPendingItem(null)
-    if (item) revealProduct(item)
-  }, [pendingItem, revealProduct])
+    const pending = pendingFocus
+    setPendingFocus(null)
+    if (pending) revealProduct(pending)
+  }, [pendingFocus, revealProduct])
 
   /** No flight was possible — reveal the product where the player stands */
   const handleFocusMiss = useCallback(() => {
     setFocusTarget(null)
-    const item = pendingItem
-    setPendingItem(null)
-    if (item) revealProduct(item)
-  }, [pendingItem, revealProduct])
-
-  // The room may be authored on the product id rather than the products.json
-  // key, and carries an authored position either way — both are extra ways for
-  // the flight to find its target
-  const focusBase = pendingItem ? products[pendingItem.sceneObject] : undefined
+    const pending = pendingFocus
+    setPendingFocus(null)
+    if (pending) revealProduct(pending)
+  }, [pendingFocus, revealProduct])
 
   const closeProduct = useCallback(() => {
     setSelectedProduct(null)
@@ -403,8 +433,8 @@ export default function Scene() {
               playerStart={config.camera?.playerStart ?? [0, 2, 5]}
               cameraHeight={config.camera?.cameraHeight}
               focusTarget={focusTarget}
-              focusId={focusBase?.id}
-              focusFallbackPoint={focusBase?.billboardPosition}
+              focusId={pendingFocus?.id}
+              focusFallbackPoint={pendingFocus?.fallbackPoint}
               onFocusArrive={handleFocusArrive}
               onFocusMiss={handleFocusMiss}
             />
@@ -414,23 +444,17 @@ export default function Scene() {
           {loadingPhase === 'ready' && (
             <ProductInteraction
               onProductClick={(product, position, clickedObject, productKey) => {
-                console.log('[Scene] Product clicked:', product)
-                console.log('[Scene] Product key (scene object name):', productKey)
-                console.log('[Scene] Clicked object:', clickedObject?.name)
-                setSelectedProduct(product)
+                if (!product) return
                 setSelectedObjectPosition(position || null)
-                // Already standing in front of it — no flight, just the chip
-                setFocusedName(product?.name ?? null)
-                setFocusedId(null)
-                if (product && product.colors && product.colors.length > 0) {
-                  // Use productKey (e.g., "modern-sofa") instead of product.id (e.g., "modern-sofa-01")
-                  const furnitureId = productKey || product.id
-                  console.log('[Scene] Selecting furniture - Key/ID:', furnitureId, 'Will use original color')
-                  // Don't pass default color - FurnitureColorApplier will set original color as default
-                  selectFurniture(furnitureId, clickedObject || null)
-                  console.log('[Scene] Initializing color')
-                  initializeColor()
-                }
+                // Same flight as a menu pick: tapping a sofa you're standing
+                // behind should still bring you round to its front
+                beginFocus({
+                  sceneObject: productKey || product.id,
+                  id: product.id,
+                  fallbackPoint: product.billboardPosition,
+                  product,
+                  object: clickedObject || null
+                })
               }}
             />
           )}
