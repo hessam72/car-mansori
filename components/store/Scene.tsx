@@ -342,8 +342,11 @@ export default function Scene() {
     const dx = playerStart[0] - lookAtEnd[0]
     const dz = playerStart[2] - lookAtEnd[2]
     const distance = Math.sqrt(dx * dx + dz * dz)
-    const heightOffset = playerStart[1] - lookAtEnd[1]
     const azimuthDeg = Math.atan2(dx, dz) * (180 / Math.PI)
+
+    // Calculate height offset relative to current camera position
+    const eyeY = r3fRef.current?.camera.position.y ?? playerStart[1]
+    const heightOffset = playerStart[1] - eyeY
 
     beginFocus({
       sceneObject: '__HOME__',
@@ -626,7 +629,7 @@ export default function Scene() {
       {/* Bottom-left logo */}
       <div style={{
     left:' 1rem',
-    maxWidth: '12rem',
+    maxWidth: '8rem',
     height: 'auto',
     bottom: '1rem',
 
