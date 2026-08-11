@@ -51,12 +51,16 @@ export default function CategoryBar({ catalog, onSelect, collapsed }: CategoryBa
             <button
               key={cat.id}
               onClick={() => pickMain(cat.id)}
+                 style={{
+                      backdropFilter: 'blur(30px)',
+                      fontWeight: ' bold',
+                      // color: ' #fff',
+                    }}
               className={`glass specular relative shrink-0 rounded-full px-4 py-2 text-[12px]
-                          transition-colors duration-200 ${
-                            active
-                              ? 'glass-gold text-[var(--gold-primary)]'
-                              : 'text-[var(--text-primary)] hover:text-[var(--gold-primary)]'
-                          }`}
+                          transition-colors duration-200 ${active
+                  ? 'glass-gold text-[var(--gold-primary)]'
+                  : 'text-[var(--text-primary)] hover:text-[var(--gold-primary)]'
+                }`}
             >
               {/* The tint has to be its own layer: `glass` sets the
                   `background` shorthand, so a bg-* utility on this element
@@ -92,13 +96,17 @@ export default function CategoryBar({ catalog, onSelect, collapsed }: CategoryBa
                 return (
                   <button
                     key={sub.id}
+                    style={{
+                      backdropFilter: 'blur(30px)',
+                      fontWeight: ' bold',
+                      // color: ' #fff',
+                    }}
                     onClick={() => setSubId((cur) => (cur === sub.id ? null : sub.id))}
                     className={`glass-flat shrink-0 rounded-full px-3 py-1.5 text-[11px]
-                                transition-colors duration-200 ${
-                                  active
-                                    ? 'glass-gold text-[var(--gold-primary)]'
-                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                                }`}
+                                transition-colors duration-200 ${active
+                        ? 'glass-gold text-[var(--gold-primary)]'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
                   >
                     {sub.label}
                   </button>
@@ -125,6 +133,11 @@ export default function CategoryBar({ catalog, onSelect, collapsed }: CategoryBa
                   {items.map((item) => (
                     <li key={item.id}>
                       <button
+                        style={{
+                          backdropFilter: 'blur(30px)',
+                          fontWeight: ' bold',
+                          color: ' #fff',
+                        }}
                         onClick={() => onSelect(item)}
                         className="glass-flat specular flex w-full items-center justify-between gap-3
                                    rounded-xl px-3.5 py-2.5 text-right transition-colors duration-200
