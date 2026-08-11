@@ -95,6 +95,11 @@ export function GyroToggle({ onGyroChange }: GyroToggleProps) {
   return (
     <button
       onClick={toggleGyro}
+      style={{
+            position: 'absolute' ,
+    right: '3.5rem' ,
+    top: '.15rem' ,
+      }}
       aria-pressed={isGyroEnabled}
       // Positioning belongs to StoreTopBar, which lays this out beside the
       // like/cart controls — the toggle used to float in the corner the

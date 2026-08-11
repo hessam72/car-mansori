@@ -101,7 +101,7 @@ export function VirtualJoystick({
       mode: 'static',
       position: { left: '80px', bottom: '80px' },
       color: '#2a2a2a',
-      size: 120,
+      size: 100,
     })
     managerRef.current = manager
 
