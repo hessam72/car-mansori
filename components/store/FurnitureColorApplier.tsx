@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { useFurnitureConfig } from '@/stores/furnitureConfigStore'
+import { findSceneObject, describeSceneNames } from '@/lib/store/sceneObject'
 import * as THREE from 'three'
 
 interface PaintTarget {
@@ -33,27 +34,25 @@ export function FurnitureColorApplier() {
       return
     }
 
-    // Find the object by name in the scene - search for exact match OR parent containing the name
-    let furnitureObject: THREE.Object3D | undefined
-    const searchName = selectedFurnitureId.toLowerCase()
-
+    // Shared tolerant resolver: the room is authored on names that don't always
+    // equal the products.json key, and an exact match here used to fail
+    // silently — leaving the furniture unpainted with no way to tell why
     console.log(`[FurnitureColorApplier] Searching for object with name: "${selectedFurnitureId}"`)
 
-    scene.traverse((child) => {
-      const childName = child.name.toLowerCase()
-      if (childName === searchName) {
-        if (!furnitureObject) {
-          furnitureObject = child
-          console.log(`[FurnitureColorApplier] Found object: "${child.name}" (type: ${child.type})`)
-        }
-      }
-    })
+    const furnitureObject = findSceneObject(scene, [selectedFurnitureId])
 
     if (!furnitureObject) {
-      console.log(`[FurnitureColorApplier] Furniture object "${selectedFurnitureId}" not found in scene`)
+      console.warn(
+        `[FurnitureColorApplier] Furniture object "${selectedFurnitureId}" not found in scene. Scene names:`,
+        describeSceneNames(scene)
+      )
       paintTargetsRef.current = []
       return
     }
+
+    console.log(
+      `[FurnitureColorApplier] Found object: "${furnitureObject.name}" (type: ${furnitureObject.type})`
+    )
 
     const targets: PaintTarget[] = []
     let meshCount = 0

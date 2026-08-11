@@ -96,10 +96,13 @@ export function GyroToggle({ onGyroChange }: GyroToggleProps) {
     <button
       onClick={toggleGyro}
       aria-pressed={isGyroEnabled}
-      className={`fixed top-4 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border bg-black/40 backdrop-blur-md transition-colors duration-200 ${
+      // Positioning belongs to StoreTopBar, which lays this out beside the
+      // like/cart controls — the toggle used to float in the corner the
+      // hamburger now occupies
+      className={`glass specular pointer-events-auto grid h-10 w-10 place-items-center rounded-full transition-colors duration-200 active:scale-95 ${
         isGyroEnabled
-          ? 'border-[#d4af37]/50 text-[#d4af37]'
-          : 'border-white/10 text-white/70 hover:border-white/30 hover:text-white'
+          ? 'text-[var(--gold-primary)]'
+          : 'text-[var(--text-primary)] hover:text-[var(--gold-primary)]'
       }`}
       aria-label={isGyroEnabled ? 'Disable gyroscope controls' : 'Enable gyroscope controls'}
     >
