@@ -74,5 +74,16 @@ export function itemsInSubCategory(catalog: Catalog, mainId: string, subId: stri
   return catalog.items.filter((i) => i.mainCategory === mainId && i.subCategory === subId)
 }
 
+/**
+ * Reverse lookup: find catalog item by sceneObject key.
+ * Used when user clicks 3D object to get matching catalog metadata.
+ */
+export function findCatalogItemBySceneObject(
+  catalog: Catalog,
+  sceneObjectKey: string
+): CatalogItem | null {
+  return catalog.items.find(i => i.sceneObject === sceneObjectKey) ?? null
+}
+
 /** Persian price, shared with the product drawer */
 export const faPrice = (n: number) => `${new Intl.NumberFormat('fa-IR').format(n)} تومان`

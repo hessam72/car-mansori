@@ -28,6 +28,7 @@ import StoreSidebar from './StoreSidebar'
 import CategoryBar from './CategoryBar'
 import {
   resolveCatalogItem,
+  findCatalogItemBySceneObject,
   type Catalog,
   type CatalogItem,
   type FocusOverride
@@ -485,12 +486,18 @@ export default function Scene() {
               onProductClick={(product, position, clickedObject, productKey) => {
                 if (!product) return
                 setSelectedObjectPosition(position || null)
+                // Lookup catalog item to unify behavior with category selection
+                const catalogItem = catalog
+                  ? findCatalogItemBySceneObject(catalog, productKey || product.id)
+                  : null
                 // Same flight as a menu pick: tapping a sofa you're standing
                 // behind should still bring you round to its front
                 beginFocus({
                   sceneObject: productKey || product.id,
                   id: product.id,
                   fallbackPoint: product.billboardPosition,
+                  focus: catalogItem?.focus,
+                  item: catalogItem ?? undefined,
                   product,
                   object: clickedObject || null
                 })
