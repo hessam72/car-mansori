@@ -220,6 +220,7 @@ export default function Scene() {
   const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(null)
   const [selectedObjectPosition, setSelectedObjectPosition] = useState<[number, number, number] | null>(null)
   const [showAR, setShowAR] = useState(false)
+  const [arProduct, setArProduct] = useState<ProductData | null>(null)
   const [gyroEnabled, setGyroEnabled] = useState(false)
   const [galleryError, setGalleryError] = useState<string | null>(null)
   const [modelsKey, setModelsKey] = useState(0)
@@ -583,19 +584,26 @@ export default function Scene() {
             key={focusedId ?? selectedProduct.id}
             product={selectedProduct}
             onClose={closeProduct}
-            onViewAR={() => setShowAR(true)}
+            onViewAR={() => {
+              setArProduct(selectedProduct)
+              setShowAR(true)
+              setSelectedProduct(null)
+            }}
             onAddToCart={() => addToCart(focusedId ?? selectedProduct.id)}
           />
         )}
       </AnimatePresence>
 
       {/* AR Product Viewer - outside Canvas */}
-      {showAR && selectedProduct?.glbPath && (
+      {showAR && arProduct?.glbPath && (
         <ARProductViewer
-          glbPath={selectedProduct.glbPath}
-          usdzPath={selectedProduct.usdzPath || ''}
-          productName={selectedProduct.name}
-          onClose={() => setShowAR(false)}
+          glbPath={arProduct.glbPath}
+          usdzPath={arProduct.usdzPath || ''}
+          productName={arProduct.name}
+          onClose={() => {
+            setShowAR(false)
+            setArProduct(null)
+          }}
         />
       )}
 
