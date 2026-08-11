@@ -1,5 +1,5 @@
 'use client'
-import { Canvas, useLoader } from '@react-three/fiber'
+import { Canvas, useLoader, useFrame } from '@react-three/fiber'
 import type { RootState } from '@react-three/fiber'
 import { Environment } from '@react-three/drei'
 import * as THREE from 'three'
@@ -77,7 +77,11 @@ function PhysicsManager({
   focusOverride,
   absolutePose,
   onFocusArrive,
-  onFocusMiss
+  onFocusMiss,
+  selectedProduct,
+  playerStartPosRef,
+  movementThreshold,
+  onCloseProduct
 }: {
   onJoystickInputReady: (ref: React.RefObject<{ x: number; y: number }>) => void
   gyroEnabled: boolean
@@ -93,6 +97,10 @@ function PhysicsManager({
   }
   onFocusArrive: () => void
   onFocusMiss: () => void
+  selectedProduct: ProductData | null
+  playerStartPosRef: React.MutableRefObject<{ x: number; z: number } | null>
+  movementThreshold: number
+  onCloseProduct: () => void
 }) {
   const physics = usePhysics()
   // Both per-frame camera writers stand down while a flight owns the camera
@@ -103,6 +111,33 @@ function PhysicsManager({
   useEffect(() => {
     onJoystickInputReady(joystickInput)
   }, [joystickInput, onJoystickInputReady])
+
+  // Capture player position when drawer opens (after flight completes)
+  useEffect(() => {
+    if (!selectedProduct || focusTarget || !physics.rigidBodyRef.current) {
+      return
+    }
+    // Flight completed, drawer is open - capture start position
+    const pos = physics.rigidBodyRef.current.translation()
+    playerStartPosRef.current = { x: pos.x, z: pos.z }
+  }, [selectedProduct, focusTarget, physics.rigidBodyRef, playerStartPosRef])
+
+  // Monitor movement and auto-close drawer if threshold exceeded
+  useFrame(() => {
+    if (!selectedProduct || !playerStartPosRef.current || !physics.rigidBodyRef.current) {
+      return
+    }
+
+    const currentPos = physics.rigidBodyRef.current.translation()
+    const dx = currentPos.x - playerStartPosRef.current.x
+    const dz = currentPos.z - playerStartPosRef.current.z
+    const distance = Math.sqrt(dx * dx + dz * dz)
+
+    if (distance > movementThreshold) {
+      playerStartPosRef.current = null
+      onCloseProduct()
+    }
+  })
 
   // Landing hand-off: teleport the body under the camera, then let the look
   // easing adopt the landed orientation. Order matters — resyncing before the
@@ -211,6 +246,10 @@ export default function Scene() {
   // Demand-loop idle state: physics pauses while parked
   const [idle, setIdle] = useState(false)
   const r3fRef = useRef<RootState | null>(null)
+
+  // Auto-close drawer when player moves beyond threshold
+  const playerStartPosRef = useRef<{ x: number; z: number } | null>(null)
+  const MOVEMENT_THRESHOLD = 2.5
 
   // DOM-side wake: stamp activity and kick one frame; the governor keeps
   // the loop alive from there
@@ -343,6 +382,7 @@ export default function Scene() {
     setSelectedObjectPosition(null)
     setFocusedName(null)
     setFocusedId(null)
+    playerStartPosRef.current = null
   }, [])
 
   const resetCameraAndView = useCallback(() => {
@@ -477,6 +517,10 @@ export default function Scene() {
               absolutePose={pendingFocus?.absolutePose}
               onFocusArrive={handleFocusArrive}
               onFocusMiss={handleFocusMiss}
+              selectedProduct={selectedProduct}
+              playerStartPosRef={playerStartPosRef}
+              movementThreshold={MOVEMENT_THRESHOLD}
+              onCloseProduct={closeProduct}
             />
           )}
 
