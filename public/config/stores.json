@@ -9,6 +9,7 @@
           10
         ],
         "cameraHeight": 0.7,
+        "homeAzimuth": 180,
         "transitionTarget": [
           0,
           3,

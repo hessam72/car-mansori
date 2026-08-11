@@ -333,6 +333,21 @@ export default function Scene() {
     setFocusedId(null)
   }, [])
 
+  const resetCameraAndView = useCallback(() => {
+    closeProduct()
+    // Use ProductFocusCamera's smooth flight to return home
+    const homeAzimuth = config?.camera?.homeAzimuth ?? 180
+    beginFocus({
+      sceneObject: '__HOME__',
+      fallbackPoint: config?.camera?.playerStart ?? [0, 2, 5],
+      focus: {
+        azimuthDeg: homeAzimuth,
+        distance: 0.1, // Very small distance so camera lands at playerStart
+        height: 0
+      }
+    })
+  }, [closeProduct, beginFocus, config])
+
   if (loading) return <LoadingScreen />
   if (error) return <ErrorScreen message={error} />
   if (!config) return <ErrorScreen message="No store config found" />
@@ -588,7 +603,11 @@ export default function Scene() {
             </div>
           </div>
 
-          <StoreSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <StoreSidebar
+            open={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+            onResetCamera={resetCameraAndView}
+          />
         </>
       )}
 
