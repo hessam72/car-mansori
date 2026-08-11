@@ -122,6 +122,7 @@ function PhysicsManager({
         targetId={focusId}
         fallbackPoint={focusFallbackPoint}
         focus={focusOverride}
+        playerBody={physics.rigidBodyRef}
         onArrive={handleArrive}
         onMiss={onFocusMiss}
       />

@@ -2,6 +2,8 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
+import { useRapier } from '@react-three/rapier'
+import type { RapierRigidBody } from '@react-three/rapier'
 import { markStoreActivity } from './activityGovernor'
 import { findSceneObject, describeSceneNames } from '@/lib/store/sceneObject'
 import type { FocusOverride } from '@/lib/store/catalog'
@@ -17,6 +19,8 @@ const _axis = new THREE.Vector3()
 const _quat = new THREE.Quaternion()
 const _roomBox = new THREE.Box3()
 const _roomCenter = new THREE.Vector3()
+const _travel = new THREE.Vector3()
+const _rayDir = new THREE.Vector3()
 // Must be a Camera, not a bare Object3D: Object3D.lookAt swaps eye/target for
 // non-cameras, so a plain object ends up with +Z — not -Z — facing the target,
 // i.e. the camera would land looking away from the product.
@@ -109,21 +113,29 @@ export interface FocusPose {
  * a single GLB with no navmesh to test against.
  */
 /**
- * Places the camera `distance` along `bearing` from `center`, `height` above it.
+ * Places the camera `distance` along `bearing` from `center`, at `eyeY`.
  *
  * `bearing` is deliberately not derived from the player: it used to be, and a
  * player already standing a standoff-distance away produced a landing point
  * equal to where they stood — the camera only rotated, and if they were behind
  * the product it settled behind it.
+ *
+ * `eyeY` is the player's *current* eye height, not something derived from the
+ * product. The flight is a walk, not a levitation: the moment control returns,
+ * usePlayerPhysics forces the camera to bodyY + cameraHeight anyway, so any
+ * other Y is both a discontinuity at hand-off and — via the inverse teleport in
+ * handleArrive — a way to bury the player's capsule in the floor. A low table is
+ * framed by tilting down toward its centre, not by crouching the camera.
  */
 function poseAround(
   center: THREE.Vector3,
   bearing: THREE.Vector3,
   distance: number,
-  height: number
+  eyeY: number,
+  heightOffset: number
 ): FocusPose {
   const position = center.clone().addScaledVector(bearing, distance)
-  position.y = center.y + height
+  position.y = eyeY + heightOffset
 
   // Orientation via a scratch camera rather than camera.lookAt, so the result
   // is a quaternion we can slerp toward instead of a look-at point we'd have
@@ -133,6 +145,24 @@ function poseAround(
   _aim.lookAt(center)
 
   return { position, quaternion: _aim.quaternion.clone() }
+}
+
+/** Capsule radius (Scene.tsx CapsuleCollider args) plus a little breathing room */
+const CLEARANCE = 0.35 + 0.1
+/** Never clamp the approach shorter than this — better slightly close than stuck */
+const MIN_APPROACH = 0.6
+
+/**
+ * How far along a walk the player can actually get before hitting something.
+ *
+ * `travel` is the straight-line distance to the proposed landing point and
+ * `hitToi` the distance to the first obstruction (Infinity for a clear path).
+ * Stops short by the capsule's own radius so the body lands beside the
+ * obstacle rather than inside it.
+ */
+export function clampTravel(travel: number, hitToi: number) {
+  if (!Number.isFinite(hitToi) || hitToi >= travel) return travel
+  return Math.max(hitToi - CLEARANCE, Math.min(MIN_APPROACH, travel))
 }
 
 /** Explicit bearing from an authored azimuth, written into `out`. */
@@ -148,8 +178,9 @@ function bearingFromDegrees(azimuthDeg: number, out: THREE.Vector3) {
 export function poseForObject(
   obj: THREE.Object3D,
   roomCenter: THREE.Vector3,
+  eyeY: number,
   override?: FocusOverride
-): FocusPose & { bearing: THREE.Vector3 } {
+): FocusPose & { bearing: THREE.Vector3; center: THREE.Vector3; distance: number } {
   _box.setFromObject(obj)
   _box.getCenter(_center)
   _box.getSize(_size)
@@ -159,14 +190,12 @@ export function poseForObject(
       ? bearingFromDegrees(override.azimuthDeg, _dir)
       : frontBearing(obj, _center, roomCenter, _dir)
 
-  const pose = poseAround(
-    _center,
-    bearing,
-    override?.distance ?? THREE.MathUtils.clamp(Math.max(_size.x, _size.z) * 1.1 + 1.2, 1.8, 6),
-    override?.height ?? Math.max(_size.y * 0.25, 0.35)
-  )
+  const distance =
+    override?.distance ?? THREE.MathUtils.clamp(Math.max(_size.x, _size.z) * 1.1 + 1.2, 1.8, 6)
 
-  return { ...pose, bearing: bearing.clone() }
+  const pose = poseAround(_center, bearing, distance, eyeY, override?.height ?? 0)
+
+  return { ...pose, bearing: bearing.clone(), center: _center.clone(), distance }
 }
 
 /**
@@ -177,8 +206,9 @@ export function poseForObject(
 export function poseForPoint(
   point: [number, number, number],
   roomCenter: THREE.Vector3,
+  eyeY: number,
   override?: FocusOverride
-): FocusPose & { bearing: THREE.Vector3 } {
+): FocusPose & { bearing: THREE.Vector3; center: THREE.Vector3; distance: number } {
   _center.set(point[0], point[1], point[2])
 
   let bearing: THREE.Vector3
@@ -190,14 +220,10 @@ export function poseForPoint(
     bearing.normalize()
   }
 
-  const pose = poseAround(
-    _center,
-    bearing,
-    override?.distance ?? 2.6,
-    override?.height ?? 0.35
-  )
+  const distance = override?.distance ?? 2.6
+  const pose = poseAround(_center, bearing, distance, eyeY, override?.height ?? 0)
 
-  return { ...pose, bearing: bearing.clone() }
+  return { ...pose, bearing: bearing.clone(), center: _center.clone(), distance }
 }
 
 interface ProductFocusCameraProps {
@@ -209,6 +235,8 @@ interface ProductFocusCameraProps {
   fallbackPoint?: [number, number, number]
   /** Per-item override of the automatic pose */
   focus?: FocusOverride
+  /** The player's own body, excluded from the obstruction cast it sits inside */
+  playerBody?: React.RefObject<RapierRigidBody>
   /** Called once the flight lands, with the final pose */
   onArrive: (pose: FocusPose) => void
   /** Called when no flight is possible — the caller should reveal the product
@@ -232,10 +260,12 @@ export function ProductFocusCamera({
   targetId,
   fallbackPoint,
   focus,
+  playerBody,
   onArrive,
   onMiss
 }: ProductFocusCameraProps) {
   const { scene, camera, invalidate } = useThree()
+  const { world, rapier } = useRapier()
 
   const startPos = useRef(new THREE.Vector3())
   const startQuat = useRef(new THREE.Quaternion())
@@ -258,9 +288,15 @@ export function ProductFocusCamera({
 
     const target = findSceneObject(scene, [targetName, targetId])
 
-    let pose: (FocusPose & { bearing: THREE.Vector3 }) | null = null
+    // The player's current eye height — the flight stays level rather than
+    // dropping to whatever height the product's bounding box implies
+    const eyeY = camera.position.y
+
+    let pose:
+      | (FocusPose & { bearing: THREE.Vector3; center: THREE.Vector3; distance: number })
+      | null = null
     if (target) {
-      pose = poseForObject(target, room, focus)
+      pose = poseForObject(target, room, eyeY, focus)
     } else if (fallbackPoint) {
       // The room may be authored on names we can't match. products.json still
       // says where the product stands, so fly there rather than doing nothing.
@@ -269,7 +305,7 @@ export function ProductFocusCamera({
           'falling back to billboardPosition. Scene names:',
         describeSceneNames(scene)
       )
-      pose = poseForPoint(fallbackPoint, room, focus)
+      pose = poseForPoint(fallbackPoint, room, eyeY, focus)
     } else {
       console.warn(
         `[ProductFocusCamera] No object matched "${targetName}"/"${targetId ?? '—'}" ` +
@@ -284,11 +320,50 @@ export function ProductFocusCamera({
       return
     }
 
-    // If a product ends up framed from its back, copy this number, add 180,
+    // The whole room is one fixed trimesh collider (ModelLoader), and a trimesh
+    // has no inside: a capsule teleported within its shell is pinned by contacts
+    // every step — look still works, walking silently does not. So only land
+    // somewhere the player could have walked to in a straight line.
+    //
+    // Cast *from the player*, not from the product: the origin is known-free
+    // space, which sidesteps hitting the product's own surface from within.
+    const travel = _travel.subVectors(pose.position, camera.position)
+    const travelLen = travel.length()
+    let clamped = travelLen
+
+    if (travelLen > 1e-3) {
+      _rayDir.copy(travel).divideScalar(travelLen)
+      const hit = world.castRay(
+        new rapier.Ray(camera.position, _rayDir),
+        travelLen,
+        true,
+        undefined,
+        undefined,
+        undefined,
+        playerBody?.current ?? undefined
+      )
+      clamped = clampTravel(travelLen, hit ? hit.timeOfImpact : Infinity)
+      if (clamped < travelLen) {
+        pose.position.copy(camera.position).addScaledVector(_rayDir, clamped)
+        // Re-aim from the shortened spot so it still faces the product
+        _aim.position.copy(pose.position)
+        _aim.up.set(0, 1, 0)
+        _aim.lookAt(pose.center)
+        pose.quaternion.copy(_aim.quaternion)
+      }
+    }
+
+    // If a product ends up framed from its back, copy this bearing, add 180,
     // and set it as `focus.azimuthDeg` on that item in catalog.json
     console.log(
-      `[ProductFocusCamera] "${targetName}" bearing ${bearingToDegrees(pose.bearing).toFixed(1)}°` +
-        `${focus?.azimuthDeg !== undefined ? ' (authored)' : ''}`
+      `[ProductFocusCamera] "${targetName}" -> "${target?.name ?? 'billboardPosition'}" ` +
+        `bearing ${bearingToDegrees(pose.bearing).toFixed(1)}°` +
+        `${focus?.azimuthDeg !== undefined ? ' (authored)' : ''} ` +
+        `standoff ${pose.distance.toFixed(2)} ` +
+        (clamped < travelLen
+          ? `travel ${travelLen.toFixed(2)} -> CLAMPED ${clamped.toFixed(2)} (something in the way) `
+          : `travel ${travelLen.toFixed(2)} `) +
+        `landing [${pose.position.toArray().map((n) => n.toFixed(2)).join(', ')}]`
     )
 
     startPos.current.copy(camera.position)
@@ -298,7 +373,19 @@ export function ProductFocusCamera({
 
     markStoreActivity()
     invalidate()
-  }, [targetName, targetId, fallbackPoint, focus, scene, camera, invalidate, onMiss])
+  }, [
+    targetName,
+    targetId,
+    fallbackPoint,
+    focus,
+    scene,
+    camera,
+    invalidate,
+    onMiss,
+    world,
+    rapier,
+    playerBody
+  ])
 
   useFrame(() => {
     const end = endPose.current

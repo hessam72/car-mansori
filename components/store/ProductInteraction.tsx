@@ -105,8 +105,12 @@ export default function ProductInteraction({ onProductClick }: ProductInteractio
             rootObject = rootObject.parent
           }
 
-          console.log('[ProductInteraction] Calling onProductClick with ID:', foundProduct.id)
-          onProductClick(foundProduct, position, rootObject, foundProduct.id)
+          // The products.json *key*, not the id. The camera flight resolves the
+          // room object from this, and passing the id made a tap resolve a
+          // different object than the same product picked from the menu —
+          // different bounding box, different landing spot.
+          console.log('[ProductInteraction] Calling onProductClick with key:', matchedKey)
+          onProductClick(foundProduct, position, rootObject, matchedKey)
         }
       }
     }
