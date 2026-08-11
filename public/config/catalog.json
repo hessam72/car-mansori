@@ -4,65 +4,88 @@
       "id": "sofa",
       "label": "مبلمان",
       "subCategories": [
-        { "id": "l-shape", "label": "مبل ال" },
-        { "id": "sectional", "label": "مبل سگمنتال" },
-        { "id": "single", "label": "مبل تک‌نفره" }
+        {
+          "id": "l-shape",
+          "label": "مبل ال"
+        },
+        {
+          "id": "sectional",
+          "label": "مبل سگمنتال"
+        },
+        {
+          "id": "single",
+          "label": "مبل تک‌نفره"
+        }
       ]
     },
     {
       "id": "chair",
       "label": "صندلی",
       "subCategories": [
-        { "id": "dining", "label": "صندلی غذاخوری" },
-        { "id": "office", "label": "صندلی اداری" },
-        { "id": "accent", "label": "صندلی راحتی" }
+        {
+          "id": "dining",
+          "label": "صندلی غذاخوری"
+        },
+        {
+          "id": "office",
+          "label": "صندلی اداری"
+        },
+        {
+          "id": "accent",
+          "label": "صندلی راحتی"
+        }
       ]
     },
     {
       "id": "table",
       "label": "میز",
       "subCategories": [
-        { "id": "coffee", "label": "میز جلومبلی" },
-        { "id": "dining-table", "label": "میز غذاخوری" },
-        { "id": "side", "label": "میز عسلی" }
+        {
+          "id": "coffee",
+          "label": "میز جلومبلی"
+        },
+        {
+          "id": "dining-table",
+          "label": "میز غذاخوری"
+        },
+        {
+          "id": "side",
+          "label": "میز عسلی"
+        }
       ]
     },
     {
       "id": "storage",
       "label": "کمد و بوفه",
       "subCategories": [
-        { "id": "buffet", "label": "بوفه" },
-        { "id": "wardrobe", "label": "کمد دیواری" },
-        { "id": "bookshelf", "label": "قفسه کتاب" }
+        {
+          "id": "buffet",
+          "label": "بوفه"
+        },
+        {
+          "id": "wardrobe",
+          "label": "کمد دیواری"
+        },
+        {
+          "id": "bookshelf",
+          "label": "قفسه کتاب"
+        }
       ]
     }
   ],
-
   "items": [
     {
       "id": "l-velvettest",
-      "name": "مبل ال ewewewew",
+      "name": "مبل ال ",
       "price": 62000000,
       "mainCategory": "sofa",
       "subCategory": "l-shape",
       "sceneObject": "test",
-            "focus": { "azimuthDeg": -45, "elevationDeg": 15, "distance": 4 }
-
-    }, {
-      "id": "l-velvet",
-      "name": "مبل ال مخملی",
-      "price": 62000000,
-      "mainCategory": "sofa",
-      "subCategory": "l-shape",
-      "sceneObject": "modern-sofa"
-    },
-    {
-      "id": "l-compact",
-      "name": "مبل ال جمع‌وجور",
-      "price": 48500000,
-      "mainCategory": "sofa",
-      "subCategory": "l-shape",
-      "sceneObject": "modern-sofa"
+      "focus": {
+        "azimuthDeg": -45,
+        "elevationDeg": 15,
+        "distance": 4
+      }
     },
     {
       "id": "seg-classic",
@@ -71,106 +94,25 @@
       "mainCategory": "sofa",
       "subCategory": "sectional",
       "sceneObject": "modern-sofa",
-      "focus": { "azimuthDeg": 0, "elevationDeg": 15, "distance": 6 }
+      "focus": {
+        "azimuthDeg": 0,
+        "elevationDeg": 15,
+        "distance": 6
+      }
     },
+   
+   
+   
     {
-      "id": "single-nordic",
-      "name": "مبل تک‌نفره نوردیک",
-      "price": 18900000,
-      "mainCategory": "sofa",
-      "subCategory": "single",
-      "sceneObject": "modern-sofa"
-    },
-
-    {
-      "id": "dining-nordic",
-      "name": "صندلی غذاخوری نوردیک",
-      "price": 7200000,
-      "mainCategory": "chair",
-      "subCategory": "dining",
-      "sceneObject": "dining-chair"
-    },
-    {
-      "id": "dining-leather",
-      "name": "صندلی غذاخوری چرمی",
-      "price": 9400000,
-      "mainCategory": "chair",
-      "subCategory": "dining",
-      "sceneObject": "dining-chair"
-    },
-    {
-      "id": "office-ergo",
-      "name": "صندلی اداری ارگونومیک",
-      "price": 12500000,
-      "mainCategory": "chair",
-      "subCategory": "office",
-      "sceneObject": "dining-chair"
-    },
-    {
-      "id": "accent-wing",
-      "name": "صندلی راحتی بالدار",
-      "price": 15800000,
+      "id": "accent-comfy",
+      "name": "صندلی راحتی آکسانت",
+      "price": 9800000,
       "mainCategory": "chair",
       "subCategory": "accent",
-      "sceneObject": "dining-chair"
-    },
-
-    {
-      "id": "coffee-minimal",
-      "name": "میز جلومبلی مینیمال",
-      "price": 15900000,
-      "mainCategory": "table",
-      "subCategory": "coffee",
       "sceneObject": "coffee-table"
-    },
-    {
-      "id": "coffee-glass",
-      "name": "میز جلومبلی شیشه‌ای",
-      "price": 19300000,
-      "mainCategory": "table",
-      "subCategory": "coffee",
-      "sceneObject": "coffee-table"
-    },
-    {
-      "id": "dining-oak",
-      "name": "میز غذاخوری بلوط",
-      "price": 34000000,
-      "mainCategory": "table",
-      "subCategory": "dining-table",
-      "sceneObject": "coffee-table"
-    },
-    {
-      "id": "side-marble",
-      "name": "میز عسلی مرمری",
-      "price": 8600000,
-      "mainCategory": "table",
-      "subCategory": "side",
-      "sceneObject": "coffee-table"
-    },
-
-    {
-      "id": "buffet-walnut",
-      "name": "بوفه گردویی",
-      "price": 41000000,
-      "mainCategory": "storage",
-      "subCategory": "buffet",
-      "sceneObject": "coffee-table"
-    },
-    {
-      "id": "wardrobe-slide",
-      "name": "کمد دیواری ریلی",
-      "price": 55000000,
-      "mainCategory": "storage",
-      "subCategory": "wardrobe",
-      "sceneObject": "coffee-table"
-    },
-    {
-      "id": "bookshelf-open",
-      "name": "قفسه کتاب باز",
-      "price": 13700000,
-      "mainCategory": "storage",
-      "subCategory": "bookshelf",
-      "sceneObject": "coffee-table"
+    
     }
+   
+   
   ]
 }
