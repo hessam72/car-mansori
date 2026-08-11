@@ -54,10 +54,39 @@ export default function ProductInteraction({ onProductClick }: ProductInteractio
   }, [])
 
   useEffect(() => {
-    const handleClick = (event: MouseEvent) => {
+    const downPos: { x: number; y: number } | null = { x: 0, y: 0 }
+    const CLICK_THRESHOLD = 10 // pixels - higher tolerance for distant products
+
+    const handlePointerDown = (e: PointerEvent) => {
+      downPos.x = e.clientX
+      downPos.y = e.clientY
+    }
+
+    const handlePointerUp = (e: PointerEvent) => {
+      e.preventDefault()
+
+      // Check if it's a drag or a click
+      if (downPos) {
+        const dx = e.clientX - downPos.x
+        const dy = e.clientY - downPos.y
+        const dist = Math.hypot(dx, dy)
+
+        if (dist > CLICK_THRESHOLD) {
+          return // It's a drag, not a click
+        }
+      }
+
+      // Get canvas rect for proper coordinate mapping
+      const rect = gl.domElement.getBoundingClientRect()
+
       // Normalize pointer coordinates
-      pointer.current.x = (event.clientX / window.innerWidth) * 2 - 1
-      pointer.current.y = -(event.clientY / window.innerHeight) * 2 + 1
+      pointer.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+      pointer.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+
+      // Configure raycaster for better hit detection at distance
+      raycaster.current.params.Mesh = { threshold: 0.1 }
+      raycaster.current.params.Line = { threshold: 0.1 }
+      raycaster.current.params.Points = { threshold: 0.1 }
 
       // Update raycaster
       raycaster.current.setFromCamera(pointer.current, camera)
@@ -115,8 +144,14 @@ export default function ProductInteraction({ onProductClick }: ProductInteractio
       }
     }
 
-    gl.domElement.addEventListener('click', handleClick)
-    return () => gl.domElement.removeEventListener('click', handleClick)
+    const canvas = gl.domElement
+    canvas.addEventListener('pointerdown', handlePointerDown, { passive: false })
+    canvas.addEventListener('pointerup', handlePointerUp, { passive: false })
+
+    return () => {
+      canvas.removeEventListener('pointerdown', handlePointerDown)
+      canvas.removeEventListener('pointerup', handlePointerUp)
+    }
   }, [camera, scene, gl, products, onProductClick])
 
   return null
