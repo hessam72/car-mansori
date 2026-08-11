@@ -335,15 +335,23 @@ export default function Scene() {
 
   const resetCameraAndView = useCallback(() => {
     closeProduct()
-    // Use ProductFocusCamera's smooth flight to return home
-    const homeAzimuth = config?.camera?.homeAzimuth ?? 180
+    const playerStart = config?.camera?.playerStart ?? [0, 2, 5]
+    const lookAtEnd = config?.camera?.lookAtEnd ?? [playerStart[0], playerStart[1], playerStart[2] - 5]
+
+    // Calculate bearing direction from lookAtEnd to playerStart
+    const dx = playerStart[0] - lookAtEnd[0]
+    const dz = playerStart[2] - lookAtEnd[2]
+    const distance = Math.sqrt(dx * dx + dz * dz)
+    const heightOffset = playerStart[1] - lookAtEnd[1]
+    const azimuthDeg = Math.atan2(dx, dz) * (180 / Math.PI)
+
     beginFocus({
       sceneObject: '__HOME__',
-      fallbackPoint: config?.camera?.playerStart ?? [0, 2, 5],
+      fallbackPoint: lookAtEnd, // Camera looks AT this point
       focus: {
-        azimuthDeg: homeAzimuth,
-        distance: 0.1, // Very small distance so camera lands at playerStart
-        height: 0
+        azimuthDeg, // Calculated from playerStart direction
+        distance,
+        height: heightOffset
       }
     })
   }, [closeProduct, beginFocus, config])
