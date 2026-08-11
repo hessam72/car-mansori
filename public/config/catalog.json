@@ -93,15 +93,13 @@
       "price": 71000000,
       "mainCategory": "sofa",
       "subCategory": "sectional",
-      "sceneObject": "modern-sofa",
+      "sceneObject": "dining-chair",
       "focus": {
         "azimuthDeg": 0,
         "elevationDeg": 15,
         "distance": 6
       }
     },
-   
-   
    
     {
       "id": "accent-comfy",

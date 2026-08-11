@@ -74,6 +74,7 @@ function PhysicsManager({
   focusId,
   focusFallbackPoint,
   focusOverride,
+  absolutePose,
   onFocusArrive,
   onFocusMiss
 }: {
@@ -85,6 +86,10 @@ function PhysicsManager({
   focusId?: string
   focusFallbackPoint?: [number, number, number]
   focusOverride?: FocusOverride
+  absolutePose?: {
+    position: [number, number, number]
+    lookAt: [number, number, number]
+  }
   onFocusArrive: () => void
   onFocusMiss: () => void
 }) {
@@ -122,6 +127,7 @@ function PhysicsManager({
         targetId={focusId}
         fallbackPoint={focusFallbackPoint}
         focus={focusOverride}
+        absolutePose={absolutePose}
         playerBody={physics.rigidBodyRef}
         onArrive={handleArrive}
         onMiss={onFocusMiss}
@@ -158,6 +164,11 @@ type PendingFocus = {
   fallbackPoint?: [number, number, number]
   /** Authored pose override from catalog.json (`focus.azimuthDeg` etc.) */
   focus?: FocusOverride
+  /** Absolute target position and lookAt — bypasses relative calculations */
+  absolutePose?: {
+    position: [number, number, number]
+    lookAt: [number, number, number]
+  }
   item?: CatalogItem
   product?: ProductData
   object?: THREE.Object3D | null
@@ -338,23 +349,11 @@ export default function Scene() {
     const playerStart = config?.camera?.playerStart ?? [0, 2, 5]
     const lookAtEnd = config?.camera?.lookAtEnd ?? [playerStart[0], playerStart[1], playerStart[2] - 5]
 
-    // Calculate bearing direction from lookAtEnd to playerStart
-    const dx = playerStart[0] - lookAtEnd[0]
-    const dz = playerStart[2] - lookAtEnd[2]
-    const distance = Math.sqrt(dx * dx + dz * dz)
-    const azimuthDeg = Math.atan2(dx, dz) * (180 / Math.PI)
-
-    // Calculate height offset relative to current camera position
-    const eyeY = r3fRef.current?.camera.position.y ?? playerStart[1]
-    const heightOffset = playerStart[1] - eyeY
-
     beginFocus({
       sceneObject: '__HOME__',
-      fallbackPoint: lookAtEnd, // Camera looks AT this point
-      focus: {
-        azimuthDeg, // Calculated from playerStart direction
-        distance,
-        height: heightOffset
+      absolutePose: {
+        position: playerStart as [number, number, number],
+        lookAt: lookAtEnd as [number, number, number]
       }
     })
   }, [closeProduct, beginFocus, config])
@@ -474,6 +473,7 @@ export default function Scene() {
               focusId={pendingFocus?.id}
               focusFallbackPoint={pendingFocus?.fallbackPoint}
               focusOverride={pendingFocus?.focus}
+              absolutePose={pendingFocus?.absolutePose}
               onFocusArrive={handleFocusArrive}
               onFocusMiss={handleFocusMiss}
             />

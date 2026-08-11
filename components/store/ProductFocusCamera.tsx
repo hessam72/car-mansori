@@ -226,6 +226,33 @@ export function poseForPoint(
   return { ...pose, bearing: bearing.clone(), center: _center.clone(), distance }
 }
 
+/**
+ * Absolute camera positioning — skips relative calculations entirely.
+ * Used for camera reset to return to exact spawn point regardless of current location.
+ */
+export function poseAbsolute(
+  position: [number, number, number],
+  lookAt: [number, number, number]
+): FocusPose & { bearing: THREE.Vector3; center: THREE.Vector3; distance: number } {
+  _center.set(lookAt[0], lookAt[1], lookAt[2])
+  const pos = new THREE.Vector3(position[0], position[1], position[2])
+
+  _aim.position.copy(pos)
+  _aim.up.set(0, 1, 0)
+  _aim.lookAt(_center)
+
+  const bearing = _dir.subVectors(pos, _center).normalize()
+  const distance = pos.distanceTo(_center)
+
+  return {
+    position: pos,
+    quaternion: _aim.quaternion.clone(),
+    bearing: bearing.clone(),
+    center: _center.clone(),
+    distance
+  }
+}
+
 interface ProductFocusCameraProps {
   /** products.json key to fly to; null parks the component */
   targetName: string | null
@@ -235,6 +262,11 @@ interface ProductFocusCameraProps {
   fallbackPoint?: [number, number, number]
   /** Per-item override of the automatic pose */
   focus?: FocusOverride
+  /** Absolute target position and lookAt — bypasses relative calculations */
+  absolutePose?: {
+    position: [number, number, number]
+    lookAt: [number, number, number]
+  }
   /** The player's own body, excluded from the obstruction cast it sits inside */
   playerBody?: React.RefObject<RapierRigidBody>
   /** Called once the flight lands, with the final pose */
@@ -260,6 +292,7 @@ export function ProductFocusCamera({
   targetId,
   fallbackPoint,
   focus,
+  absolutePose,
   playerBody,
   onArrive,
   onMiss
@@ -286,8 +319,6 @@ export function ProductFocusCamera({
     }
     const room = roomCenter.current
 
-    const target = findSceneObject(scene, [targetName, targetId])
-
     // The player's current eye height — the flight stays level rather than
     // dropping to whatever height the product's bounding box implies
     const eyeY = camera.position.y
@@ -295,23 +326,31 @@ export function ProductFocusCamera({
     let pose:
       | (FocusPose & { bearing: THREE.Vector3; center: THREE.Vector3; distance: number })
       | null = null
-    if (target) {
-      pose = poseForObject(target, room, eyeY, focus)
-    } else if (fallbackPoint) {
-      // The room may be authored on names we can't match. products.json still
-      // says where the product stands, so fly there rather than doing nothing.
-      console.warn(
-        `[ProductFocusCamera] No object matched "${targetName}"/"${targetId ?? '—'}"; ` +
-          'falling back to billboardPosition. Scene names:',
-        describeSceneNames(scene)
-      )
-      pose = poseForPoint(fallbackPoint, room, eyeY, focus)
+
+    // Absolute positioning bypasses all relative calculations
+    if (absolutePose) {
+      pose = poseAbsolute(absolutePose.position, absolutePose.lookAt)
     } else {
-      console.warn(
-        `[ProductFocusCamera] No object matched "${targetName}"/"${targetId ?? '—'}" ` +
-          'and no billboardPosition to fall back to. Scene names:',
-        describeSceneNames(scene)
-      )
+      const target = findSceneObject(scene, [targetName, targetId])
+
+      if (target) {
+        pose = poseForObject(target, room, eyeY, focus)
+      } else if (fallbackPoint) {
+        // The room may be authored on names we can't match. products.json still
+        // says where the product stands, so fly there rather than doing nothing.
+        console.warn(
+          `[ProductFocusCamera] No object matched "${targetName}"/"${targetId ?? '—'}"; ` +
+            'falling back to billboardPosition. Scene names:',
+          describeSceneNames(scene)
+        )
+        pose = poseForPoint(fallbackPoint, room, eyeY, focus)
+      } else {
+        console.warn(
+          `[ProductFocusCamera] No object matched "${targetName}"/"${targetId ?? '—'}" ` +
+            'and no billboardPosition to fall back to. Scene names:',
+          describeSceneNames(scene)
+        )
+      }
     }
 
     if (!pose) {
@@ -356,14 +395,22 @@ export function ProductFocusCamera({
     // If a product ends up framed from its back, copy this bearing, add 180,
     // and set it as `focus.azimuthDeg` on that item in catalog.json
     console.log(
-      `[ProductFocusCamera] "${targetName}" -> "${target?.name ?? 'billboardPosition'}" ` +
-        `bearing ${bearingToDegrees(pose.bearing).toFixed(1)}°` +
-        `${focus?.azimuthDeg !== undefined ? ' (authored)' : ''} ` +
-        `standoff ${pose.distance.toFixed(2)} ` +
-        (clamped < travelLen
-          ? `travel ${travelLen.toFixed(2)} -> CLAMPED ${clamped.toFixed(2)} (something in the way) `
-          : `travel ${travelLen.toFixed(2)} `) +
-        `landing [${pose.position.toArray().map((n) => n.toFixed(2)).join(', ')}]`
+      absolutePose
+        ? `[ProductFocusCamera] ABSOLUTE -> ` +
+          `target [${absolutePose.position.map((n) => n.toFixed(2)).join(', ')}] ` +
+          `lookAt [${absolutePose.lookAt.map((n) => n.toFixed(2)).join(', ')}] ` +
+          (clamped < travelLen
+            ? `travel ${travelLen.toFixed(2)} -> CLAMPED ${clamped.toFixed(2)} (something in the way) `
+            : `travel ${travelLen.toFixed(2)} `) +
+          `landing [${pose.position.toArray().map((n) => n.toFixed(2)).join(', ')}]`
+        : `[ProductFocusCamera] "${targetName}" -> "${findSceneObject(scene, [targetName, targetId])?.name ?? 'billboardPosition'}" ` +
+          `bearing ${bearingToDegrees(pose.bearing).toFixed(1)}°` +
+          `${focus?.azimuthDeg !== undefined ? ' (authored)' : ''} ` +
+          `standoff ${pose.distance.toFixed(2)} ` +
+          (clamped < travelLen
+            ? `travel ${travelLen.toFixed(2)} -> CLAMPED ${clamped.toFixed(2)} (something in the way) `
+            : `travel ${travelLen.toFixed(2)} `) +
+          `landing [${pose.position.toArray().map((n) => n.toFixed(2)).join(', ')}]`
     )
 
     startPos.current.copy(camera.position)
@@ -378,6 +425,7 @@ export function ProductFocusCamera({
     targetId,
     fallbackPoint,
     focus,
+    absolutePose,
     scene,
     camera,
     invalidate,
