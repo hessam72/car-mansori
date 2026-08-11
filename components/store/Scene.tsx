@@ -312,7 +312,7 @@ export default function Scene() {
         : pending.product
       if (!resolved) return
 
-      selectFurniture(pending.sceneObject, pending.object ?? null)
+      selectFurniture(pending.id || pending.sceneObject, pending.object ?? null)
       initializeColor()
       setSelectedProduct(resolved)
       setFocusedName(pending.item?.name ?? resolved.name)
