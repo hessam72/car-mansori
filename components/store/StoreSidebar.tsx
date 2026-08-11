@@ -80,6 +80,9 @@ export default function StoreSidebar({ open, onClose, returnFocusTo, onResetCame
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
+            style={{
+              backdropFilter:'blur(20px)'
+            }}
             transition={{ type: 'spring', damping: 34, stiffness: 320, mass: 0.8 }}
             className="glass font-persian fixed inset-y-0 right-0 z-[71] flex w-[78%] max-w-[320px]
                        flex-col rounded-l-[24px] px-5
