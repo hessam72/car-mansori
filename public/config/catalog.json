@@ -1,116 +1,117 @@
 {
   "categories": [
     {
-      "id": "sofa",
-      "label": "مبلمان",
+      "id": "suv",
+      "label": "SUV",
       "subCategories": [
         {
-          "id": "l-shape",
-          "label": "مبل ال"
+          "id": "performance-suv",
+          "label": "Performance SUV"
         },
         {
-          "id": "sectional",
-          "label": "مبل سگمنتال"
+          "id": "off-road",
+          "label": "Off-Road"
         },
         {
-          "id": "single",
-          "label": "مبل تک‌نفره"
+          "id": "luxury-suv",
+          "label": "Luxury SUV"
         }
       ]
     },
     {
-      "id": "chair",
-      "label": "صندلی",
+      "id": "sports",
+      "label": "Sports",
       "subCategories": [
         {
-          "id": "dining",
-          "label": "صندلی غذاخوری"
+          "id": "coupe",
+          "label": "Coupe"
         },
         {
-          "id": "office",
-          "label": "صندلی اداری"
+          "id": "convertible",
+          "label": "Convertible"
         },
         {
-          "id": "accent",
-          "label": "صندلی راحتی"
+          "id": "track",
+          "label": "Track"
         }
       ]
     },
     {
-      "id": "table",
-      "label": "میز",
+      "id": "supercar",
+      "label": "Supercar",
       "subCategories": [
         {
-          "id": "coffee",
-          "label": "میز جلومبلی"
+          "id": "mid-engine",
+          "label": "Mid-Engine"
         },
         {
-          "id": "dining-table",
-          "label": "میز غذاخوری"
+          "id": "grand-tourer",
+          "label": "Grand Tourer"
         },
         {
-          "id": "side",
-          "label": "میز عسلی"
+          "id": "hypercar",
+          "label": "Hypercar"
         }
       ]
     },
     {
-      "id": "storage",
-      "label": "کمد و بوفه",
+      "id": "sedan",
+      "label": "Sedan",
       "subCategories": [
         {
-          "id": "buffet",
-          "label": "بوفه"
+          "id": "executive",
+          "label": "Executive"
         },
         {
-          "id": "wardrobe",
-          "label": "کمد دیواری"
+          "id": "sport-sedan",
+          "label": "Sport Sedan"
         },
         {
-          "id": "bookshelf",
-          "label": "قفسه کتاب"
+          "id": "electric",
+          "label": "Electric"
         }
       ]
     }
   ],
   "items": [
     {
-      "id": "l-velvettest",
-      "name": "مبل ال ",
-      "price": 62000000,
-      "mainCategory": "sofa",
-      "subCategory": "l-shape",
-      "sceneObject": "test",
+      "id": "amg-g63",
+      "name": "Mercedes-AMG G 63",
+      "price": 186000,
+      "mainCategory": "suv",
+      "subCategory": "performance-suv",
+      "sceneObject": "g-class",
       "focus": {
         "azimuthDeg": -45,
-        "elevationDeg": 15,
-        "distance": 4
+        "height": 1.4,
+        "distance": 8
       }
     },
     {
-      "id": "seg-classic",
-      "name": "مبل سگمنتال کلاسیک",
-      "price": 71000000,
-      "mainCategory": "sofa",
-      "subCategory": "sectional",
-      "sceneObject": "dining-chair",
+      "id": "porsche-turbo-s",
+      "name": "Porsche 911 Turbo S",
+      "price": 232000,
+      "mainCategory": "sports",
+      "subCategory": "coupe",
+      "sceneObject": "porsche-911",
       "focus": {
         "azimuthDeg": 0,
-        "elevationDeg": 15,
-        "distance": 6
+        "height": 1.1,
+        "distance": 7
       }
     },
-   
     {
-      "id": "accent-comfy",
-      "name": "صندلی راحتی آکسانت",
-      "price": 9800000,
-      "mainCategory": "chair",
-      "subCategory": "accent",
-      "sceneObject": "coffee-table"
-    
+      "id": "ferrari-296-gtb",
+      "name": "Ferrari 296 GTB",
+      "price": 342000,
+      "mainCategory": "supercar",
+      "subCategory": "mid-engine",
+      "sceneObject": "ferrari-296",
+      "focus": {
+        "azimuthDeg": 35,
+        "height": 1,
+        "distance": 7
+      }
     }
-   
-   
   ]
 }

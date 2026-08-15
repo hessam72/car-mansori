@@ -190,12 +190,10 @@ export const AR_PAGE = {
   desktopNotice:
     "واقعیت افزوده روی رایانه در دسترس نیست. این صفحه را با گوشی موبایل باز کنید.",
   arButton: "مشاهده در واقعیت افزوده",
+  /** Keyed by public/config/products.json slug — every key becomes an /ar tab */
   productNames: {
-    "modern-sofa": "مبل راحتی مدرن",
-    "dining-chair": "صندلی ناهارخوری نوردیک",
-    "coffee-table": "میز جلومبلی مینیمال",
-    bookshelf: "کتابخانه صنعتی",
-    armchair: "مبل تک‌نفره",
-    "side-table": "میز کناری",
+    "g-class": "Mercedes-AMG G 63",
+    "porsche-911": "Porsche 911 Turbo S",
+    "ferrari-296": "Ferrari 296 GTB",
   } as Record<string, string>,
 } as const;

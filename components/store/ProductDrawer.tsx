@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { motion, PanInfo } from 'framer-motion'
 import { X, ChevronDown, ShoppingBag } from 'lucide-react'
 import { useFurnitureConfig } from '@/stores/furnitureConfigStore'
-import { faPrice } from '@/lib/store/catalog'
+import { formatPrice } from '@/lib/store/catalog'
 import type { ProductData } from './ProductInteraction'
 
 interface ProductDrawerProps {
@@ -14,15 +14,60 @@ interface ProductDrawerProps {
   onAddToCart?: () => void
 }
 
-type Tab = 'details' | 'fabric' | 'dimensions'
+type Tab = 'overview' | 'performance' | 'specs'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'details', label: 'جزییات' },
-  { id: 'fabric', label: 'جنس پارچه' },
-  { id: 'dimensions', label: 'ابعاد' }
+  { id: 'overview', label: 'Overview' },
+  { id: 'performance', label: 'Performance' },
+  { id: 'specs', label: 'Specs' }
 ]
 
 const SPRING = { type: 'spring' as const, damping: 34, stiffness: 320, mass: 0.8 }
+
+interface Spec {
+  label: string
+  value?: string
+}
+
+/** Rows per spec tab. Blank fields are dropped so a sparse car never leaves gaps. */
+const SPEC_ROWS: Record<Exclude<Tab, 'overview'>, (p: ProductData) => Spec[]> = {
+  performance: (p) => [
+    { label: 'Engine', value: p.engine },
+    { label: 'Power', value: p.horsepower },
+    { label: 'Torque', value: p.torque },
+    { label: '0–100 km/h', value: p.acceleration },
+    { label: 'Top Speed', value: p.topSpeed },
+    { label: 'Drivetrain', value: p.drivetrain },
+    { label: 'Transmission', value: p.transmission }
+  ],
+  specs: (p) => [
+    { label: 'Dimensions', value: p.dimensions },
+    { label: 'Weight', value: p.weight },
+    { label: 'Seats', value: p.seats },
+    { label: 'Body Type', value: p.bodyType },
+    { label: 'Year', value: p.year },
+    { label: 'Category', value: p.category },
+    { label: 'Type', value: p.type }
+  ]
+}
+
+function SpecList({ specs }: { specs: Spec[] }) {
+  return (
+    <dl className="grid gap-px overflow-hidden rounded-xl bg-white/[0.06]">
+      {specs
+        .filter((spec) => spec.value)
+        .map((spec) => (
+          <div
+            key={spec.label}
+            className="flex items-center justify-between bg-[var(--surface-2)] px-3.5 py-2.5 text-[13px]"
+          >
+            <dt className="text-[var(--text-muted)]">{spec.label}</dt>
+            <dd className="text-[var(--text-primary)]">{spec.value}</dd>
+          </div>
+        ))}
+    </dl>
+  )
+}
 
 export default function ProductDrawer({
   product,
@@ -30,7 +75,7 @@ export default function ProductDrawer({
   onViewAR,
   onAddToCart
 }: ProductDrawerProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('details')
+  const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [expanded, setExpanded] = useState(false)
   const { setColor, currentColor } = useFurnitureConfig()
 
@@ -46,7 +91,6 @@ export default function ProductDrawer({
 
   return (
     <motion.div
-      dir="rtl"
       drag="y"
       dragConstraints={{ top: 0, bottom: 0 }}
       dragElastic={{ top: 0.04, bottom: 0.35 }}
@@ -55,7 +99,7 @@ export default function ProductDrawer({
       animate={{ y: 0 }}
       exit={{ y: '110%' }}
       transition={SPRING}
-      className="font-persian fixed bottom-0 left-0 right-0 z-[99] mx-auto flex max-w-[560px]
+      className="fixed bottom-0 left-0 right-0 z-[99] mx-auto flex max-w-[560px]
                  flex-col overflow-hidden rounded-t-[28px] border-t border-white/[0.06]
                  bg-[var(--surface-2)]/85 backdrop-blur-2xl"
       style={{ boxShadow: '0 -18px 50px -20px rgb(0 0 0 / 80%)' }}
@@ -64,13 +108,13 @@ export default function ProductDrawer({
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px
-                   bg-gradient-to-l from-transparent via-[var(--gold-line-hi)] to-transparent"
+                   bg-gradient-to-r from-transparent via-[var(--color-gold-line-hi)] to-transparent"
       />
 
       {/* Grab handle — doubles as the expand/collapse toggle */}
       <button
         onClick={() => setExpanded((v) => !v)}
-        aria-label={expanded ? 'بستن جزییات' : 'نمایش جزییات'}
+        aria-label={expanded ? 'Hide details' : 'Show details'}
         className="flex w-full cursor-grab justify-center pt-3 pb-1.5 active:cursor-grabbing"
       >
         <span className="h-1 w-10 rounded-full bg-white/25 transition-colors hover:bg-white/40" />
@@ -90,14 +134,14 @@ export default function ProductDrawer({
                          text-[var(--text-secondary)] transition-colors hover:bg-white/[0.06]
                          hover:text-[var(--gold-primary)]"
             >
-              {expanded ? 'کمتر' : 'جزییات بیشتر'}
+              {expanded ? 'Less' : 'More details'}
               <ChevronDown
                 className={`h-3.5 w-3.5 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
               />
             </button>
             <button
               onClick={onClose}
-              aria-label="بستن"
+              aria-label="Close"
               className="rounded-full p-1.5 text-[var(--text-muted)] transition-colors
                          hover:bg-white/[0.06] hover:text-[var(--text-primary)]"
             >
@@ -146,10 +190,12 @@ export default function ProductDrawer({
         >
           <div className="mt-3 border-t border-white/[0.06] pt-2">
             {/* Tabs — quiet underline strip */}
-            <div className="scrollbar-hide flex gap-4 overflow-x-auto">
+            <div role="tablist" className="scrollbar-hide flex gap-4 overflow-x-auto">
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`relative shrink-0 pb-2 pt-1 text-[13px] transition-colors ${
                     activeTab === tab.id
@@ -169,58 +215,17 @@ export default function ProductDrawer({
               ))}
             </div>
 
-            <div className="scrollbar-hide max-h-[26vh] overflow-y-auto overscroll-contain py-3 md:max-h-[38vh]">
-              {activeTab === 'details' && (
+            <div
+              role="tabpanel"
+              className="scrollbar-hide max-h-[26vh] overflow-y-auto overscroll-contain py-3 md:max-h-[38vh]"
+            >
+              {activeTab === 'overview' && (
                 <p className="text-[13px] leading-7 text-[var(--text-secondary)]">
-                  {product.detailedDescription || 'توضیحات موجود نیست'}
+                  {product.detailedDescription || 'No description available'}
                 </p>
               )}
 
-              {activeTab === 'fabric' && (
-                <div className="space-y-3">
-                  <div className="flex items-baseline gap-2 text-[13px]">
-                    <span className="text-[var(--text-muted)]">جنس اصلی:</span>
-                    <span className="text-[var(--text-primary)]">
-                      {product.fabricType || 'موجود نیست'}
-                    </span>
-                  </div>
-                  <ul className="space-y-1.5">
-                    {product.fabricMaterials?.map((material) => (
-                      <li
-                        key={material}
-                        className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)]"
-                      >
-                        <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--gold-primary)]" />
-                        {material}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {activeTab === 'dimensions' && (
-                <dl className="grid gap-px overflow-hidden rounded-xl bg-white/[0.06]">
-                  {[
-                    { label: 'ابعاد', value: product.dimensions },
-                    { label: 'جنس', value: product.material },
-                    { label: 'وزن', value: product.weight },
-                    { label: 'دسته‌بندی', value: product.category },
-                    { label: 'نوع', value: product.type },
-                    { label: 'ظرفیت نشستن', value: product.seatingCapacity },
-                    { label: 'تعداد قفسه', value: product.shelves }
-                  ]
-                    .filter((spec) => spec.value)
-                    .map((spec) => (
-                      <div
-                        key={spec.label}
-                        className="flex items-center justify-between bg-[var(--surface-2)] px-3.5 py-2.5 text-[13px]"
-                      >
-                        <dt className="text-[var(--text-muted)]">{spec.label}</dt>
-                        <dd className="text-[var(--text-primary)]">{spec.value}</dd>
-                      </div>
-                    ))}
-                </dl>
-              )}
+              {activeTab !== 'overview' && <SpecList specs={SPEC_ROWS[activeTab](product)} />}
             </div>
 
             {onViewAR && (
@@ -230,7 +235,7 @@ export default function ProductDrawer({
                            text-[13px] text-[var(--gold-primary)] transition-colors
                            hover:bg-[var(--gold-primary)]/10"
               >
-                مشاهده در واقعیت افزوده
+                View in AR
               </button>
             )}
           </div>
@@ -242,20 +247,20 @@ export default function ProductDrawer({
             {activeColorName && (
               <span className="truncate text-[11px] text-[var(--text-muted)]">{activeColorName}</span>
             )}
-            <span className="persian-number text-[17px] font-bold leading-tight text-[var(--gold-primary)]">
-              {product.price ? faPrice(product.price) : 'استعلام قیمت'}
+            <span className="text-[17px] font-bold leading-tight text-[var(--gold-primary)]">
+              {product.price ? formatPrice(product.price) : 'Price on request'}
             </span>
           </div>
 
           <button
             onClick={onAddToCart}
-            className="flex h-10 shrink-0 items-center gap-2 rounded-full bg-gradient-to-l
+            className="flex h-10 shrink-0 items-center gap-2 rounded-full bg-gradient-to-r
                        from-[var(--gold-primary)] to-[var(--gold-warm)] px-5 text-[13px]
                        font-bold text-black shadow-lg shadow-[var(--gold-primary)]/20
                        transition-transform duration-200 active:scale-[0.97]"
           >
             <ShoppingBag className="h-4 w-4" />
-            افزودن
+            Add
           </button>
         </div>
       </div>

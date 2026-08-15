@@ -1,84 +1,88 @@
 {
- 
-  "test": {
-    "id": "modern-sofa-01",
-    "category": "مبل",
-    "type": "راحتی",
-    "name": "مبل مدرن سگمنتال",
-    "glbPath": "/models/Furniture/arm_chair__furniture.glb",
-    "usdzPath": "/models/Furniture/arm_chair__furniture.usdz",
-    "dimensions": "240cm × 95cm × 80cm",
-    "material": "پارچه و چوب جامد",
-    "seatingCapacity": "۴-۵ نفر",
-    "weight": "85 kg",
-    "price": 48500000,
+  "g-class": {
+    "id": "g-class",
+    "category": "SUV",
+    "type": "Performance SUV",
+    "name": "Mercedes-AMG G 63",
+    "glbPath": "/models/car/supercars/g-class.glb",
+    "usdzPath": "/models/car/supercars/g-class.usdz",
+    "year": "2024",
+    "bodyType": "5-door SUV",
+    "dimensions": "4873mm × 1984mm × 1969mm",
+    "weight": "2560 kg",
+    "seats": "5",
+    "engine": "4.0L V8 Biturbo",
+    "horsepower": "577 hp",
+    "torque": "850 Nm",
+    "acceleration": "4.5 s (0–100 km/h)",
+    "topSpeed": "220 km/h (limited)",
+    "drivetrain": "AWD (4MATIC)",
+    "transmission": "9-speed AMG SPEEDSHIFT TCT",
+    "price": 186000,
     "colors": [
-      { "name": "خاکستری ذغالی", "hex": "#36454F" },
-      { "name": "یاسی", "hex": "#aaaaee" },
-      { "name": "آبی نفتی", "hex": "#1B2F5C" }
+      { "name": "Obsidian Black", "hex": "#0B0B0D" },
+      { "name": "Selenite Grey", "hex": "#6E7379" },
+      { "name": "Olive Magno", "hex": "#5E6350" }
     ],
-    "fabricType": "پارچه مخملی ضد لک",
-    "detailedDescription": "مبل راحتی مدرن با طراحی سگمنتال و امکان تغییر آرایش. فریم چوب جامد با رویه پارچه مخملی درجه یک، فوم با تراکم بالا برای راحتی بیشتر. مناسب برای فضاهای خانوادگی و پذیرایی.",
-    "fabricMaterials": [
-      "پارچه مخملی درجه یک",
-      "فوم سرد با تراکم ۳۵",
-      "چوب راش خشک شده",
-      "پایه‌های فلزی ضد زنگ"
-    ],
+    "detailedDescription": "The AMG G 63 keeps the boxy, ladder-frame silhouette the G-Class has carried since 1979 and puts a hand-built 4.0-litre biturbo V8 under the hood. Three locking differentials and a low-range transfer case survive intact, so the same car that runs to 100 km/h in 4.5 seconds still climbs a 100 percent gradient. Inside it is pure S-Class: Nappa leather, twin 12.3-inch displays and Burmester audio.",
     "billboardPosition": [2, 1, 0]
   },
 
-  "dining-chair": {
-    "id": "modern-sofa-02",
-    "category": "مبل",
-    "type": "راحتی",
-    "name": "صندلی غذاخوری نوردیک",
-    "glbPath": "/models/Furniture/Sofa ar-optimized.glb",
-    "usdzPath": "/models/Furniture/Sofa ar.glb.usdz",
-    "dimensions": "52cm × 58cm × 82cm",
-    "material": "چوب بلوط و چرم",
-    "seatingCapacity": "۱ نفر",
-    "weight": "6.5 kg",
-    "price": 7200000,
+  "porsche-911": {
+    "id": "porsche-911",
+    "category": "Sports",
+    "type": "Coupe",
+    "name": "Porsche 911 Turbo S",
+    "glbPath": "/models/car/supercars/purche-with-parts.glb",
+    "usdzPath": "/models/car/supercars/porsche-911.usdz",
+    "year": "2024",
+    "bodyType": "2-door Coupe",
+    "dimensions": "4535mm × 1900mm × 1303mm",
+    "weight": "1640 kg",
+    "seats": "4 (2+2)",
+    "engine": "3.7L Twin-Turbo Flat-Six",
+    "horsepower": "640 hp",
+    "torque": "800 Nm",
+    "acceleration": "2.7 s (0–100 km/h)",
+    "topSpeed": "330 km/h",
+    "drivetrain": "AWD (PTM)",
+    "transmission": "8-speed PDK",
+    "price": 232000,
     "colors": [
-      { "name": "بلوط طبیعی", "hex": "#C19A6B" },
-      { "name": "گردوی تیره", "hex": "#5C4033" },
-      { "name": "قرمز", "hex": "#781e00" }
+      { "name": "GT Silver Metallic", "hex": "#B4B7BB" },
+      { "name": "Guards Red", "hex": "#C8102E" },
+      { "name": "Gentian Blue", "hex": "#1B3A6B" }
     ],
-    "fabricType": "چرم طبیعی دست‌دوز",
-    "detailedDescription": "صندلی غذاخوری به سبک اسکاندیناوی با طراحی ارگونومیک. ساختار چوبی مقاوم از بلوط طبیعی و نشیمن چرمی دست‌دوز. مناسب برای میز غذاخوری و فضاهای کاری.",
-    "fabricMaterials": [
-      "چرم طبیعی گاو",
-      "چوب بلوط اروپایی",
-      "رنگ پایه آب",
-      "پیچ و مهره استیل"
-    ],
+    "detailedDescription": "The 911 Turbo S is the everyday supercar benchmark: variable-geometry turbochargers, rear-axle steering and active aerodynamics wrapped in a body 45mm wider than a Carrera. Launch control off the PDK gearbox delivers 2.7 seconds to 100 km/h, yet the car idles through traffic without complaint. Carbon-ceramic brakes and PDCC anti-roll control are standard.",
     "billboardPosition": [-4, 0.8, 0]
   },
 
-  "coffee-table": {
-    "id": "modern-sofa-03",
-    "category": "مبل",
-    "type": "راحتی",
-    "name":  "صندلی راحتی آکسانت",
-    "glbPath": "/models/Furniture/3DModel-optimized.glb",
-    "usdzPath": "/models/Furniture/3DModel-optimized.usdz",
-    "dimensions": "120cm × 60cm × 45cm",
-    "material": "شیشه نشکن و فلز",
-    "weight": "22 kg",
-    "price": 15900000,
+  "ferrari-296": {
+    "id": "ferrari-296",
+    "category": "Supercar",
+    "type": "Mid-Engine",
+    "name": "Ferrari 296 GTB",
+    "glbPath": "/models/car/supercars/ferrari-296.glb",
+    "usdzPath": "/models/car/supercars/ferrari-296.usdz",
+    "year": "2024",
+    "bodyType": "2-door Berlinetta",
+    "dimensions": "4565mm × 1958mm × 1187mm",
+    "weight": "1470 kg",
+    "seats": "2",
+    "engine": "3.0L V6 Turbo + Electric",
+    "horsepower": "830 hp (combined)",
+    "torque": "740 Nm",
+    "acceleration": "2.9 s (0–100 km/h)",
+    "topSpeed": "330 km/h",
+    "drivetrain": "RWD",
+    "transmission": "8-speed DCT",
+    "price": 342000,
     "colors": [
-      { "name": "شیشه شفاف", "hex": "#E8F4F8" },
-      { "name": "دودی", "hex": "#595959" },
-      { "name": "برنز", "hex": "#CD7F32" }
+      { "name": "Rosso Corsa", "hex": "#D40000" },
+      { "name": "Giallo Modena", "hex": "#F5D000" },
+      { "name": "Nero Daytona", "hex": "#16181A" }
     ],
-    "fabricType": "شیشه سکوریت ۱۲ میل",
-    "detailedDescription": "میز جلو مبلی با صفحه شیشه سکوریت ضدضربه و پایه‌های فلزی. طراحی مینیمال و مدرن با قابلیت تمیز کردن آسان. ایده‌آل برای فضاهای کوچک و بزرگ.",
-    "fabricMaterials": [
-      "شیشه سکوریت ۱۲ میلیمتر",
-      "فلز استیل ضد زنگ",
-      "پوشش نانو ضد لک",
-      "پایه‌های تنظیم ارتفاع"
-    ],
+    "detailedDescription": "The 296 GTB is the first Ferrari road car with a V6, and the first to pair one with a plug-in hybrid system. The 120-degree twin-turbo six and rear-mounted electric motor combine for 830 hp sent to the rear wheels alone. Roughly 25 km of silent electric range sits alongside a 330 km/h top speed and a 1470 kg dry weight.",
     "billboardPosition": [5, 1, -5.2]
-  }}
+  }
+}

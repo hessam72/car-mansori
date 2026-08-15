@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useThree } from '@react-three/fiber'
 import { Raycaster, Vector2, Object3D, Vector3 } from 'three'
 
-interface FurnitureColor {
+interface PaintColor {
   name: string
   hex: string
 }
@@ -14,17 +14,25 @@ export interface ProductData {
   name: string
   category?: string
   type?: string
+  /** Model year, e.g. "2024" */
+  year?: string
+  bodyType?: string
+  /** L × W × H, free text — rendered verbatim in the Specs tab */
   dimensions?: string
-  material?: string
   weight?: string
-  seatingCapacity?: string
-  shelves?: string
-  /** Toman, unformatted — the drawer renders it with Intl 'fa-IR' */
+  seats?: string
+  engine?: string
+  horsepower?: string
+  torque?: string
+  /** 0–100 km/h, e.g. "2.7 s (0–100 km/h)" */
+  acceleration?: string
+  topSpeed?: string
+  drivetrain?: string
+  transmission?: string
+  /** USD, unformatted — the drawer renders it with Intl 'en-US' */
   price?: number
-  colors?: FurnitureColor[]
-  fabricType?: string
+  colors?: PaintColor[]
   detailedDescription?: string
-  fabricMaterials?: string[]
   glbPath?: string
   usdzPath?: string
   billboardPosition: [number, number, number]

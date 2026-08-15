@@ -72,11 +72,10 @@ export default function StoreSidebar({ open, onClose, returnFocusTo, onResetCame
           />
 
           <motion.aside
-            dir="rtl"
             ref={panelRef}
             role="dialog"
             aria-modal="true"
-            aria-label="منوی فروشگاه"
+            aria-label="Showroom menu"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -84,19 +83,19 @@ export default function StoreSidebar({ open, onClose, returnFocusTo, onResetCame
               backdropFilter:'blur(20px)'
             }}
             transition={{ type: 'spring', damping: 34, stiffness: 320, mass: 0.8 }}
-            className="glass font-persian fixed inset-y-0 right-0 z-[71] flex w-[78%] max-w-[320px]
+            className="glass fixed inset-y-0 right-0 z-[71] flex w-[78%] max-w-[320px]
                        flex-col rounded-l-[24px] px-5
                        pt-[max(1rem,env(safe-area-inset-top))]
                        pb-[max(1.25rem,env(safe-area-inset-bottom))]"
           >
             <div className="flex h-11 items-center justify-between">
               <span className="text-[13px] font-bold tracking-tight text-[var(--gold-primary)]">
-                شهر امید
+                Omid Virtual City
               </span>
               <button
                 ref={closeRef}
                 onClick={onClose}
-                aria-label="بستن منو"
+                aria-label="Close menu"
                 className="grid h-9 w-9 place-items-center rounded-full text-[var(--text-muted)]
                            transition-colors hover:bg-white/[0.06] hover:text-[var(--text-primary)]"
               >
@@ -107,7 +106,7 @@ export default function StoreSidebar({ open, onClose, returnFocusTo, onResetCame
             <div className="mt-6 flex flex-1 flex-col gap-5 overflow-y-auto">
               {/* Reset camera view */}
               <section>
-                <h3 className="mb-2 text-[11px] text-[var(--text-muted)]">نمای دوربین</h3>
+                <h3 className="mb-2 text-[11px] text-[var(--text-muted)]">Camera view</h3>
                 <button
                   onClick={() => {
                     onResetCamera?.()
@@ -117,14 +116,14 @@ export default function StoreSidebar({ open, onClose, returnFocusTo, onResetCame
                              text-[13px] text-[var(--text-primary)] transition-colors
                              hover:border-[var(--color-gold-line-hi)]"
                 >
-                  <span>بازنشانی نما</span>
+                  <span>Reset view</span>
                   <RotateCcw className="h-4 w-4 text-[var(--gold-primary)]" />
                 </button>
               </section>
 
               {/* Ambient sound */}
               <section>
-                <h3 className="mb-2 text-[11px] text-[var(--text-muted)]">صدا</h3>
+                <h3 className="mb-2 text-[11px] text-[var(--text-muted)]">Sound</h3>
                 <button
                   onClick={toggleMuted}
                   aria-pressed={!muted}
@@ -132,7 +131,7 @@ export default function StoreSidebar({ open, onClose, returnFocusTo, onResetCame
                              text-[13px] text-[var(--text-primary)] transition-colors
                              hover:border-[var(--color-gold-line-hi)]"
                 >
-                  <span>{muted ? 'صدای پس‌زمینه خاموش' : 'صدای پس‌زمینه روشن'}</span>
+                  <span>{muted ? 'Ambient sound off' : 'Ambient sound on'}</span>
                   {muted ? (
                     <VolumeX className="h-4 w-4 text-[var(--text-muted)]" />
                   ) : (
@@ -143,8 +142,8 @@ export default function StoreSidebar({ open, onClose, returnFocusTo, onResetCame
 
               {/* Graphics quality — shares the persisted tier with /car */}
               <section>
-                <h3 className="mb-2 text-[11px] text-[var(--text-muted)]">کیفیت گرافیک</h3>
-                <div className="glass-flat rounded-xl p-3.5" dir="ltr">
+                <h3 className="mb-2 text-[11px] text-[var(--text-muted)]">Graphics quality</h3>
+                <div className="glass-flat rounded-xl p-3.5">
                   <QualitySelector />
                 </div>
               </section>

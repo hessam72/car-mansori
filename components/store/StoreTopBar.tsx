@@ -4,8 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, Heart, ShoppingCart } from 'lucide-react'
 import { useShop } from '@/stores/storeShopStore'
 
-const faNum = (n: number) => new Intl.NumberFormat('fa-IR').format(n)
-
 interface StoreTopBarProps {
   onOpenMenu: () => void
   /** Shown centred once a camera flight has landed; null hides the chip */
@@ -36,7 +34,7 @@ export default function StoreTopBar({
   return (
     <div className="relative flex h-10 items-center justify-between">
       {/* Right (RTL start): menu */}
-      <button onClick={onOpenMenu} aria-label="منو" className={BTN}>
+      <button onClick={onOpenMenu} aria-label="Menu" className={BTN}>
         <Menu className="h-[18px] w-[18px]" />
       </button>
 
@@ -65,7 +63,7 @@ export default function StoreTopBar({
         <button
           onClick={() => productId && toggleLike(productId)}
           disabled={!productId}
-          aria-label="پسندیدن"
+          aria-label="Like"
           aria-pressed={isLiked}
           className={`${BTN} ${!productId ? 'opacity-40' : ''}`}
         >
@@ -76,15 +74,15 @@ export default function StoreTopBar({
           />
         </button>
 
-        <button aria-label="سبد خرید" className={`${BTN} relative`}>
+        <button aria-label="Cart" className={`${BTN} relative`}>
           <ShoppingCart className="h-[18px] w-[18px]" />
           {cart.length > 0 && (
             <span
-              className="persian-number absolute -bottom-0.5 -left-0.5 grid h-[18px] min-w-[18px]
+              className="absolute -bottom-0.5 -left-0.5 grid h-[18px] min-w-[18px]
                          place-items-center rounded-full bg-[var(--gold-primary)] px-1
                          text-[10px] font-bold text-black"
             >
-              {faNum(cart.length)}
+              {cart.length}
             </span>
           )}
         </button>
