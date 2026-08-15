@@ -64,9 +64,23 @@ in it, so one set of rules works for every model.
    | hood | **rear** edge (at the windshield) | centre | top skin |
    | trunk | **front** edge (at the cabin) | centre | top skin |
 
-4. **Orient the pivot to the car frame**, so its local axes are always
-   `X = passenger side`, `Y = up`, `Z = rear`, and parent it to the model root
-   (an intermediate node with scale would otherwise skew those axes).
+4. **Build two nested nodes** parented to the model root:
+
+   ```
+   <part>__hinge    at the hinge point, rotated into the car frame  ← never animated
+     └ <part>__swing   identity at rest                             ← the animated node
+         └ part mesh (+ window, handles)
+   ```
+
+   The split matters. Collapsing them into one node means tweening a single
+   Euler component of a node whose quaternion already holds the frame rotation,
+   which **overwrites** that rotation instead of composing with it — the part
+   then sits wrong even when shut. Keeping the frame one level up means
+   `swing.rotation` starts at exactly zero and closing is a true no-op.
+
+   They hang off the model root because an intermediate GLB node with scale
+   would skew the axes away from the frame.
+
 5. **Rotate on fixed axes with fixed signs.** Because step 4 normalised the
    frame, these are constants rather than something to tune per model:
 
@@ -100,6 +114,26 @@ error.
 
 ---
 
+## Checking a model: `npm run verify:hinges`
+
+Before opening a browser, run the headless check against the GLB:
+
+```bash
+npm run verify:hinges                       # public/scene-optimized.glb
+npm run verify:hinges -- path/to/other.glb
+```
+
+It rebuilds the hinge structure from the glTF JSON and asserts two things per
+part, exiting non-zero if either fails:
+
+- **Closed is a no-op** — with the swing node at 0, the part sits exactly where
+  it started (drift should read `~1e-16`). A drift near `1.0` means the frame
+  rotation is being clobbered by the animation.
+- **Open travels the right way** — doors move outward, hood and trunk move up.
+
+It also prints the derived frame and each hinge position, and confirms the
+basis is right-handed. Parts the model lacks are reported as skipped.
+
 ## Checking a model: `?hinges=1`
 
 Open the configurator with the query flag:
@@ -116,13 +150,21 @@ visible. The console also prints the derived frame, how it was derived
 
 Read it like this:
 
+The gizmos sit on the `__hinge` node, so they show the car frame and hold still
+while the part swings.
+
 | What you see | What it means |
 |---|---|
+| Gizmos differ in orientation between parts | The frame rotation is being overwritten by the animation |
 | Green arrow points sideways or down | The frame is wrong — check the wheel empties |
 | Green up, blue toward the **front** | L/R wheel empties are swapped |
 | Frame correct, hinge on the wrong edge | Override `edge` for that part (below) |
 | Part opens the right way but too far | Override `angleDeg` |
 | No gizmo for a part | The mesh name doesn't match, or it has no geometry |
+
+Every gizmo should have **identical** orientation — green straight up, blue
+toward the rear. They are all built from the same car frame, so any difference
+between them is a bug, not a model problem.
 
 ---
 
@@ -204,3 +246,8 @@ wheel empties weren't found — check their names and casing.
 **A part doesn't move at all.** Its mesh name doesn't match, or it has no
 geometry under it. `[DoorController] Parts absent from this model:` lists what
 was skipped.
+
+**Parts look open on load, or don't return flush when closed.** The frame
+rotation and the opening rotation have ended up on the same node. Run
+`npm run verify:hinges` — the closed-state drift will read close to `1.0`
+instead of `~1e-16`.

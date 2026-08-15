@@ -10,6 +10,13 @@
       "torque": "450 Nm",
       "top_speed": "250 km/h"
     },
+    "parts": {
+      "doorAngleDeg": 70,
+      "hoodAngleDeg": 45,
+      "trunkAngleDeg": 80,
+      "durationSec": 1.2,
+      "hinges": {}
+    },
     "defaultParts": {
       "wheels": "wheel-stock",
       "spoilers": "spoiler-stock",

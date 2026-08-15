@@ -130,15 +130,22 @@ const HINGE_RULES: Record<
 
 interface Hinge {
   spec: PartSpec
-  pivot: THREE.Object3D
+  /**
+   * Sits at the hinge point, rotated to the car frame. Never animated — the
+   * frame alignment has to live one level above the tween, because writing a
+   * single Euler component on a node whose quaternion is already rotated
+   * overwrites that rotation instead of composing with it.
+   */
+  orient: THREE.Object3D
+  /** Child of `orient`, identity at rest. This is what GSAP drives. */
+  swing: THREE.Object3D
   /** Where the part's node lived before it was re-parented, for dispose() */
   originalParent: THREE.Object3D
   node: THREE.Object3D
   axis: 'x' | 'y'
   /** Signed opening angle in radians */
   openAngle: number
-  basePosition: THREE.Vector3
-  /** Slide offset in pivot-local space, sized from the part itself */
+  /** Slide offset in frame axes, sized from the part itself */
   offset: THREE.Vector3
 }
 
@@ -217,11 +224,16 @@ export class DoorController {
     return this.frame
   }
 
-  /** Pivots keyed by part, for the ?hinges=1 debug overlay */
+  /**
+   * Hinge nodes keyed by part, for the ?hinges=1 debug overlay. Exposes the
+   * frame-aligned `orient` node rather than the animated `swing`, so the gizmo
+   * shows the car frame the hinge was solved in — which is the thing you need
+   * to judge when a part opens wrongly.
+   */
   public get debugPivots(): { key: string; pivot: THREE.Object3D; node: THREE.Object3D }[] {
     return [...this.hinges.values()].map((h) => ({
       key: h.spec.key,
-      pivot: h.pivot,
+      pivot: h.orient,
       node: h.node,
     }))
   }
@@ -257,28 +269,39 @@ export class DoorController {
 
     const hingeWorld = pointInFrame(this.frame, forwardAt, rightAt, upAt)
 
-    // The pivot hangs off the model root rather than the part's own parent.
-    // Intermediate nodes in a GLB routinely carry rotation and non-uniform
-    // scale (this test model stacks three ±90° X rotations), and a scaled
-    // parent would skew the pivot's axes away from the car frame.
-    const pivot = new THREE.Object3D()
-    pivot.name = `${spec.node}__hinge`
-    scene.add(pivot)
-    pivot.position.copy(scene.worldToLocal(hingeWorld.clone()))
+    // Two nodes, not one. `orient` carries the hinge point and the rotation
+    // into the car frame; `swing` is its child, starts at identity, and is the
+    // only thing animated. Collapsing them would mean tweening one Euler
+    // component of an already-rotated node, which overwrites the frame
+    // alignment rather than composing with it — the part would then be wrong
+    // even at rest.
+    //
+    // Both hang off the model root rather than the part's own parent:
+    // intermediate GLB nodes routinely carry rotation and non-uniform scale
+    // (this test model stacks three ±90° X rotations), and a scaled parent
+    // would skew the axes away from the frame.
+    const orient = new THREE.Object3D()
+    orient.name = `${spec.node}__hinge`
+    scene.add(orient)
+    orient.position.copy(scene.worldToLocal(hingeWorld.clone()))
 
-    // Align the pivot's axes to the car: X = right, Y = up, Z = rear
+    // Align to the car: X = right, Y = up, Z = rear
     const rootWorldQuat = scene.getWorldQuaternion(new THREE.Quaternion())
-    pivot.quaternion.copy(rootWorldQuat.invert().multiply(frameQuaternion(this.frame)))
-    pivot.updateMatrixWorld(true)
+    orient.quaternion.copy(rootWorldQuat.invert().multiply(frameQuaternion(this.frame)))
+
+    const swing = new THREE.Object3D()
+    swing.name = `${spec.node}__swing`
+    orient.add(swing)
+    orient.updateMatrixWorld(true)
 
     // attach() preserves each object's world transform across the re-parent
-    pivot.attach(node)
+    swing.attach(node)
 
     if (spec.window) {
       const win = scene.getObjectByName(spec.window)
       if (win) {
         win.updateMatrixWorld(true)
-        pivot.attach(win)
+        swing.attach(win)
       }
     }
 
@@ -286,7 +309,7 @@ export class DoorController {
       const handle = scene.getObjectByName(handleName)
       if (handle) {
         handle.updateMatrixWorld(true)
-        pivot.attach(handle)
+        swing.attach(handle)
       }
     }
 
@@ -304,12 +327,12 @@ export class DoorController {
 
     return {
       spec,
-      pivot,
+      orient,
+      swing,
       originalParent,
       node,
       axis: rule.axis,
       openAngle,
-      basePosition: pivot.position.clone(),
       offset,
     }
   }
@@ -320,20 +343,19 @@ export class DoorController {
     const hinge = this.hinges.get(partKey)
     if (!hinge) return
 
-    gsap.to(hinge.pivot.rotation, {
+    // `swing` starts at identity inside the frame-aligned `orient`, so 0 is a
+    // true closed pose and the axis means what it says
+    gsap.to(hinge.swing.rotation, {
       [hinge.axis]: isOpen ? hinge.openAngle : 0,
       duration: this.duration,
       ease: 'power2.inOut',
       onUpdate: this.invalidate,
     })
 
-    const target = isOpen
-      ? hinge.basePosition.clone().add(hinge.offset)
-      : hinge.basePosition
-    gsap.to(hinge.pivot.position, {
-      x: target.x,
-      y: target.y,
-      z: target.z,
+    gsap.to(hinge.swing.position, {
+      x: isOpen ? hinge.offset.x : 0,
+      y: isOpen ? hinge.offset.y : 0,
+      z: isOpen ? hinge.offset.z : 0,
       duration: this.duration,
       ease: 'power2.inOut',
       onUpdate: this.invalidate,
@@ -381,14 +403,14 @@ export class DoorController {
     this.disposed = true
 
     for (const hinge of this.hinges.values()) {
-      gsap.killTweensOf(hinge.pivot.rotation)
-      gsap.killTweensOf(hinge.pivot.position)
+      gsap.killTweensOf(hinge.swing.rotation)
+      gsap.killTweensOf(hinge.swing.position)
 
-      // Re-home the pivot's children (part, window, handles) before removing it
-      for (const child of [...hinge.pivot.children]) {
+      // Re-home the part, window and handles before dropping the hinge nodes
+      for (const child of [...hinge.swing.children]) {
         hinge.originalParent.attach(child)
       }
-      hinge.pivot.removeFromParent()
+      hinge.orient.removeFromParent()
     }
 
     this.hinges.clear()
