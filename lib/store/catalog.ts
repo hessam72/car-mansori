@@ -49,8 +49,8 @@ export interface Catalog {
 
 /**
  * Merges a catalogue entry onto its base product. The catalogue owns the
- * commercial facts (name, price); the room owns the physical ones (colors,
- * fabric, dimensions, GLB paths).
+ * commercial facts (name, price); the room owns the physical ones (paint
+ * colors, powertrain, dimensions, GLB paths).
  */
 export function resolveCatalogItem(
   item: CatalogItem,
@@ -85,5 +85,10 @@ export function findCatalogItemBySceneObject(
   return catalog.items.find(i => i.sceneObject === sceneObjectKey) ?? null
 }
 
-/** Persian price, shared with the product drawer */
-export const faPrice = (n: number) => `${new Intl.NumberFormat('fa-IR').format(n)} تومان`
+/** USD price, shared with the product drawer */
+export const formatPrice = (n: number) =>
+  new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0
+  }).format(n)

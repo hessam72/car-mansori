@@ -53,9 +53,7 @@ export function ModelsLoadingIndicator({
     >
       <div className="flex w-72 flex-col items-center gap-5 rounded-2xl border border-white/10 bg-black/60 px-8 py-7 backdrop-blur-xl">
         <span className="text-[10px] uppercase tracking-[0.45em] text-[#d4af37]/70">Gallery</span>
-        <p className="font-[family-name:var(--font-vazir)] text-sm text-white/80" dir="rtl">
-          بارگذاری مدل‌های سه‌بعدی...
-        </p>
+        <p className="text-sm text-white/80">Loading 3D models…</p>
 
         <div className="h-px w-full overflow-hidden bg-white/10">
           <div

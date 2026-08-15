@@ -54,6 +54,7 @@ interface ViewDockProps {
 export default function ViewDock({ panelOpen, onOpenPanel }: ViewDockProps) {
   const { activePreset, setPreset, autoRotate, setAutoRotate } = useCameraStore()
   const openParts = useCarConfig((s) => s.openParts)
+  const availableParts = useCarConfig((s) => s.availableParts)
   const togglePart = useCarConfig((s) => s.togglePart)
   const openAllParts = useCarConfig((s) => s.openAllParts)
   const closeAllParts = useCarConfig((s) => s.closeAllParts)
@@ -61,9 +62,17 @@ export default function ViewDock({ panelOpen, onOpenPanel }: ViewDockProps) {
   const [doorsOpen, setDoorsOpen] = useState(false)
   const dockRef = useRef<HTMLDivElement>(null)
 
-  const anyDoorOpen = Object.values(openParts).some(Boolean)
-  const allOpen = Object.values(openParts).every(Boolean)
-  const allClosed = Object.values(openParts).every((v) => !v)
+  // Only the panels this model actually has — a coupe has no rear doors, and a
+  // button that silently does nothing reads as a broken feature. Before the
+  // model reports in, show everything rather than an empty popover.
+  const parts = Object.entries(DOOR_LABELS).filter(
+    ([partName]) => availableParts.length === 0 || availableParts.includes(partName)
+  )
+  const partStates = parts.map(([partName]) => !!openParts[partName])
+
+  const anyDoorOpen = partStates.some(Boolean)
+  const allOpen = partStates.every(Boolean)
+  const allClosed = partStates.every((v) => !v)
 
   useEffect(() => {
     if (!doorsOpen) return
@@ -95,7 +104,7 @@ export default function ViewDock({ panelOpen, onOpenPanel }: ViewDockProps) {
           <div className="absolute bottom-14 left-1/2 w-64 -translate-x-1/2 rounded-2xl border border-white/10 bg-black/75 p-4 shadow-[0_16px_48px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
             <p className="mb-3 text-[10px] uppercase tracking-[0.3em] text-white/45">Doors &amp; Body</p>
             <div className="grid grid-cols-2 gap-1.5">
-              {Object.entries(DOOR_LABELS).map(([partName, label]) => (
+              {parts.map(([partName, label]) => (
                 <button
                   key={partName}
                   onClick={() => togglePart(partName)}

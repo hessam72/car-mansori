@@ -648,8 +648,7 @@ export default function Scene() {
       {loadingPhase === 'ready' && (
         <>
           <div
-            dir="rtl"
-            className="font-persian pointer-events-none fixed inset-x-0 top-0 z-30
+            className="pointer-events-none fixed inset-x-0 top-0 z-30
                        px-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:px-6 md:pt-5"
           >
             {/* Full-bleed: the bar's controls must hug the real screen corners,
@@ -662,8 +661,8 @@ export default function Scene() {
               {loadingPhase === 'ready' && <GyroToggle onGyroChange={setGyroEnabled} />}
             </StoreTopBar>
 
-            {/* The drill-down stays a readable column, anchored to the RTL
-                start edge under the menu button */}
+            {/* The drill-down stays a readable column, anchored to the start
+                edge under the menu button */}
             <div className="md:max-w-[420px]">
               <CategoryBar
                 catalog={catalog}

@@ -26,14 +26,21 @@ import ShadowFreeze from './ShadowFreeze'
 import { useCameraStore } from '@/stores/cameraStore'
 import { useQuality } from '@/contexts/QualityContext'
 import { CarReflectiveFloor } from '../store/CarReflectiveFloor'
+import type { DoorControllerOptions } from '@/lib/DoorController'
 
 interface CarTuningSceneProps {
   modelPath: string
+  /** Per-model hinge tuning from cars.json; absent means auto-derive */
+  partsOptions?: DoorControllerOptions
   /** Base-car GLB failed to load/parse — lets the page show a styled recovery overlay */
   onBaseCarError?: (category: string, error: Error) => void
 }
 
-export default function CarTuningScene({ modelPath, onBaseCarError }: CarTuningSceneProps) {
+export default function CarTuningScene({
+  modelPath,
+  partsOptions,
+  onBaseCarError,
+}: CarTuningSceneProps) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   const initialPosition: [number, number, number] = isMobile ? [8, 3.2, 8] : [5, 2, 5]
   const { activePreset } = useCameraStore()
@@ -95,7 +102,7 @@ export default function CarTuningScene({ modelPath, onBaseCarError }: CarTuningS
         {/* Configurable Car with Part Swapping. A 404ing/corrupt base GLB is
             caught here instead of white-screening the whole page. */}
         <PartErrorBoundary category="base-car" onError={onBaseCarError}>
-          <ConfigurableCar modelPath={modelPath} />
+          <ConfigurableCar modelPath={modelPath} partsOptions={partsOptions} />
         </PartErrorBoundary>
 
         {/* Post Processing */}

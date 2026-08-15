@@ -27,7 +27,14 @@ export interface CarConfigState {
   loadingParts: Record<string, boolean>
   partLoadErrors: Record<string, string>
   openParts: Record<string, boolean>
+  /**
+   * Part keys the loaded GLB actually has hinges for. Empty until the model
+   * loads. A 2-door car has no `car_door_back_*`, so the UI hides those
+   * toggles instead of showing buttons that do nothing.
+   */
+  availableParts: string[]
   suspensionHeight: number
+  setAvailableParts: (parts: string[]) => void
   setCurrentCarId: (carId: string) => void
   selectPart: (category: string, partId: string) => void
   setPaintConfig: (config: Partial<PaintConfig>, zone?: PaintZone) => void
@@ -174,7 +181,10 @@ export const useCarConfig = create<CarConfigState>()(
         car_caput: false,
         car_trunk: false,
       },
+      availableParts: [],
       suspensionHeight: 0,
+
+      setAvailableParts: (parts) => set({ availableParts: parts }),
 
       setCurrentCarId: (carId) => set({ currentCarId: carId }),
 
@@ -247,10 +257,15 @@ export const useCarConfig = create<CarConfigState>()(
           },
         })),
 
+      // Only parts this model actually has — otherwise "open all" would mark
+      // rear doors open on a coupe and leave the toggles stuck on
       openAllParts: () =>
         set((state) => ({
           openParts: Object.fromEntries(
-            Object.keys(state.openParts).map((key) => [key, true])
+            Object.keys(state.openParts).map((key) => [
+              key,
+              state.availableParts.length === 0 || state.availableParts.includes(key),
+            ])
           ),
         })),
 

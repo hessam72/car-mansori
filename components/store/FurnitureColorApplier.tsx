@@ -78,12 +78,14 @@ export function FurnitureColorApplier() {
         meshCount++
         const childName = child.name.toLowerCase()
 
-        // ONLY check mesh name for colorable keywords
+        // ONLY check mesh name for colorable keywords. Cars need the body
+        // panels alone — the all-meshes fallback below would tint glass,
+        // tyres and trim along with the paint
         const isColorable =
-          childName.includes('fabric') ||
-          childName.includes('cushion') ||
-          childName.includes('upholstery') ||
-          childName.includes('seat')
+          childName.includes('body') ||
+          childName.includes('paint') ||
+          childName.includes('carpaint') ||
+          childName.includes('shell')
 
         // Find parent chain for debugging
         let parentChain = child.name
