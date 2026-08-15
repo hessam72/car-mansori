@@ -9,7 +9,7 @@
       "price": 62000000,
       "mainCategory": "sofa",
       "subCategory": "l-shape",
-      "sceneObject": "sample-car",
+      "sceneObject": "g80",
       "focus": {
         "azimuthDeg": -45,
         "elevationDeg": 15,
