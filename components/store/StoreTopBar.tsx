@@ -85,7 +85,7 @@ export default function StoreTopBar({
               {cart.length}
             </span>
           )}
-        </button>
+        </button> */}
       </div>
     </div>
   )

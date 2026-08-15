@@ -30,36 +30,36 @@
           -5
         ]
       },
-      "sun": {
-        "enabled": true,
-        "position": [
-          0.5,
-          29.5,
-          -22
-        ],
-        "target": [
-          0.5,
-          0.5,
-          -7.5
-        ],
-        "intensity": 6,
-        "color": "#ffe3c2",
-        "soft": {
-          "size": 20,
-          "samples": 16,
-          "focus": 0
-        },
-        "shadow": {
-          "left": 41,
-          "right": -41,
-          "top": -41,
-          "bottom": 41,
-          "near": 0.5,
-          "far": 45,
-          "bias": -0.0001,
-          "normalBias": 0.03
-        }
-      },
+  "sun": {
+    "enabled": true,
+    "position": [
+      1.5,
+      13,
+      40
+    ],
+    "target": [
+      2,
+      0.5,
+      13.5
+    ],
+    "intensity": 18,
+    "color": "#ffe3c2",
+    "soft": {
+      "size": 1,
+      "samples": 16,
+      "focus": 0
+    },
+    "shadow": {
+      "left": -30,
+      "right": 30,
+      "top": 30,
+      "bottom": -30,
+      "near": 0.5,
+      "far": 45,
+      "bias": -0.0001,
+      "normalBias": 0.03
+    }
+  },
       "lamps": {
         "enabled": true,
         "color": "#ffd6aa",
