@@ -84,10 +84,14 @@ car_caput            → Hood (bonnet)
 car_trunk            → Trunk (boot)
 ```
 
-**Pivot Point Requirements**:
-- Each door must have its pivot point at the hinge location
-- Hood pivot at front edge (opens forward/upward)
-- Trunk pivot at rear edge (opens upward)
+**Pivot points are computed, not authored.** The hinge for each part is derived
+from its geometry measured against the car's axes, which come from the four
+`Wheel_*` empties. You do not need to place object origins at the hinge line,
+apply rotations, or match a particular up-axis — see
+[CAR_HINGE_SETUP_GUIDE.md](./CAR_HINGE_SETUP_GUIDE.md).
+
+The one thing that matters: the wheel empties must be present and correctly
+sided, since `_FL`/`_FR` are what establish left from right.
 
 ---
 

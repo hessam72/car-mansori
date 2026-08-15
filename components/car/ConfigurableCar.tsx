@@ -6,7 +6,8 @@ import { useThree, useFrame } from '@react-three/fiber'
 import { useCarConfig, PaintZone, type MultiZonePaintConfig } from '@/stores/carConfigStore'
 import { DynamicPart } from './DynamicPart'
 import { PartErrorBoundary } from './PartErrorBoundary'
-import { DoorController } from '@/lib/DoorController'
+import { DoorController, type DoorControllerOptions } from '@/lib/DoorController'
+import { HingeDebug, isHingeDebugEnabled } from './HingeDebug'
 import { SuspensionController } from '@/lib/SuspensionController'
 import { useQuality } from '@/contexts/QualityContext'
 import { prepareCarObject } from '@/lib/three/prepareCarMaterial'
@@ -30,6 +31,8 @@ function findNodeByName(parent: THREE.Object3D, name: string): THREE.Object3D | 
 
 interface ConfigurableCarProps {
   modelPath: string
+  /** Per-model hinge tuning from cars.json; absent means auto-derive */
+  partsOptions?: DoorControllerOptions
   overrideSelectedParts?: Record<string, string>
   overridePaintConfig?: MultiZonePaintConfig
   overrideSuspensionHeight?: number
@@ -42,6 +45,7 @@ interface PaintTarget {
 
 export default function ConfigurableCar({
   modelPath,
+  partsOptions,
   overrideSelectedParts,
   overridePaintConfig,
   overrideSuspensionHeight,
@@ -51,10 +55,13 @@ export default function ConfigurableCar({
   const doorControllerRef = useRef<DoorController | null>(null)
   const suspensionControllerRef = useRef<SuspensionController | null>(null)
   const [wheelRefs, setWheelRefs] = useState<THREE.Object3D[]>([])
+  // Re-rendered once the controller exists, so the ?hinges=1 gizmos can mount
+  const [doorController, setDoorController] = useState<DoorController | null>(null)
 
   const storePaintConfig = useCarConfig((s) => s.paintConfig)
   const paintInitialized = useCarConfig((s) => s.paintInitialized)
   const setPartError = useCarConfig((s) => s.setPartError)
+  const setAvailableParts = useCarConfig((s) => s.setAvailableParts)
   const openParts = useCarConfig((s) => s.openParts)
   const storeSelectedParts = useCarConfig((s) => s.selectedParts)
   const storeSuspensionHeight = useCarConfig((s) => s.suspensionHeight)
@@ -251,24 +258,29 @@ export default function ConfigurableCar({
     return () => clearTimeout(t)
   }, [openParts, scheduleReflectionCapture])
 
-  // Initialize DoorController after car model loads
+  // Initialize DoorController after car model loads. The controller re-parents
+  // the door/hood/trunk nodes under its own pivots, so a model swap must tear
+  // the old one down first — otherwise the next controller would measure its
+  // hinges from panels that are already reparented and possibly mid-rotation.
   useEffect(() => {
     if (!carModel) return
 
     try {
-      const controller = new DoorController(carModel, invalidate, {
-        doorAngleDeg: 70,
-        hoodAngleDeg: 45,
-        trunkAngleDeg: 80,
-        durationSec: 1.2,
-      })
+      const controller = new DoorController(carModel, invalidate, partsOptions)
       doorControllerRef.current = controller
+      setDoorController(controller)
+      setAvailableParts(controller.availableParts)
     } catch (error) {
       console.error('[ConfigurableCar] DoorController initialization failed:', error)
     }
 
-    // Don't cleanup - keep controller alive for entire component lifecycle
-  }, [carModel])
+    return () => {
+      doorControllerRef.current?.dispose()
+      doorControllerRef.current = null
+      setDoorController(null)
+      setAvailableParts([])
+    }
+  }, [carModel, invalidate, partsOptions, setAvailableParts])
 
   // Initialize SuspensionController after group ref is ready
   useEffect(() => {
@@ -286,16 +298,7 @@ export default function ConfigurableCar({
 
   // React to openParts state changes
   useEffect(() => {
-    if (!doorControllerRef.current) return
-
-    const controller = doorControllerRef.current
-
-    controller.openLeftFrontDoor(openParts.car_door_left)
-    controller.openRightFrontDoor(openParts.car_door_right)
-    controller.openLeftBackDoor(openParts.car_door_back_left)
-    controller.openRightBackDoor(openParts.car_door_back_right)
-    controller.openHood(openParts.car_caput)
-    controller.openTrunk(openParts.car_trunk)
+    doorControllerRef.current?.applyOpenState(openParts)
   }, [openParts])
 
   // React to suspension height changes
@@ -357,6 +360,8 @@ export default function ConfigurableCar({
   return (
     <group ref={groupRef}>
       <primitive object={carModel} />
+
+      {isHingeDebugEnabled() && <HingeDebug controller={doorController} />}
 
       {/* Render dynamic parts for each category */}
       {partCategories.map((category) => (

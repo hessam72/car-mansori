@@ -14,6 +14,7 @@ import { useCarConfig, DEFAULT_PARTS } from '@/stores/carConfigStore'
 import { useComparisonStore } from '@/stores/comparisonStore'
 import { isARCapable } from '@/lib/device-utils'
 import { QualityProvider } from '@/contexts/QualityContext'
+import type { DoorControllerOptions } from '@/lib/DoorController'
 
 // Use the local DRACO decoder instead of drei's default CDN — this runs
 // before any preload in this chunk (CustomizationPanel included)
@@ -39,6 +40,8 @@ export interface Car {
     torque: string
     top_speed: string
   }
+  /** Optional hinge tuning — see arch-docs/CAR_HINGE_SETUP_GUIDE.md */
+  parts?: DoorControllerOptions
 }
 
 const STUDIO_HDR = '/hdr/main_hdr.exr'
@@ -91,7 +94,12 @@ export default function CarPageClient({ car }: { car: Car }) {
       {/* dir=ltr: the configurator UI is English inside an RTL document —
           without this, flex order and text alignment mirror incorrectly */}
       <div className="car-page relative h-screen w-screen overflow-hidden bg-[#060608]" dir="ltr">
-        <CarTuningScene key={sceneKey} modelPath={car.model_path} onBaseCarError={handleBaseCarError} />
+        <CarTuningScene
+          key={sceneKey}
+          modelPath={car.model_path}
+          partsOptions={car.parts}
+          onBaseCarError={handleBaseCarError}
+        />
 
         <TopBar
           carName={car.name}

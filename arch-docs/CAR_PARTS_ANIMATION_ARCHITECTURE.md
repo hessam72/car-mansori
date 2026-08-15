@@ -31,10 +31,11 @@ Three.js Scene (Visual Output)
 **Responsibility:** Core animation engine
 
 **Key Functions:**
-- Calculate hinge positions from mesh bounding boxes
-- Create pivot points for each movable part
-- Manage GSAP animations (rotation + position offset)
-- Track base positions for movement animations
+- Derive the car's own axes (see `lib/car/carFrame.ts`)
+- Locate each part's hinge edge by projecting its geometry onto those axes
+- Create frame-aligned pivot points for each movable part
+- Manage GSAP animations (rotation + a small outward slide on doors)
+- Tear down cleanly on model swap via `dispose()`
 
 **Supported Parts:**
 - Left/Right Front Doors
@@ -43,9 +44,16 @@ Three.js Scene (Visual Output)
 - Trunk
 
 **Animation Strategy:**
-- Y-axis rotation for doors (vertical hinge)
-- Z-axis rotation for hood/trunk (horizontal hinge)
-- Position offset for realistic sliding motion
+
+Each pivot is oriented to the car frame, so its local axes are always
+`X = passenger side`, `Y = up`, `Z = rear` no matter how the GLB is aligned:
+
+- Doors rotate about pivot-local **Y** (vertical hinge); left negative, right positive
+- Hood/trunk rotate about pivot-local **X** (horizontal hinge); hood positive, trunk negative
+- Doors additionally slide outward by a fraction of their own length
+
+Because the pivot is normalised first, these axes and signs are fixed constants
+rather than per-model tuning. See [CAR_HINGE_SETUP_GUIDE.md](./CAR_HINGE_SETUP_GUIDE.md).
 
 ### 2. State Management (stores/carConfigStore.ts)
 
@@ -160,36 +168,36 @@ togglePart('car_door_left')
 
 ### Hinge Calculation
 
-**Doors (left/right):**
-- Hinge at front edge (min Y)
-- Inner side toward center (min/max X)
-- Mid-height (center Z)
+All positions are expressed along the **car frame** (`forward` / `right` / `up`),
+never along world or node-local X/Y/Z. The part's world-space vertices are
+projected onto those axes to find its edges.
 
-**Hood:**
-- Hinge at rear edge (max Y)
-- Center width (center X)
-- Top surface (min Z)
+| Part | along the car | across | height |
+|---|---|---|---|
+| Doors (left/right) | **front** edge | part's own centre | mid-height |
+| Hood | **rear** edge (at the windshield) | centre | top skin |
+| Trunk | **front** edge (at the cabin) | centre | top skin |
 
-**Trunk:**
-- Hinge at front edge (max Y)
-- Center width (center X)
-- Center height (center Z)
+The frame comes from the four `Wheel_*` empties, falling back to a +Y-up
+bounding-box heuristic, and can be overridden per model in `cars.json`.
 
 ### Animation Parameters
 
-**Angles:**
-- Doors: 70° (configurable)
-- Hood: 45° (configurable)
-- Trunk: 80° (configurable)
+**Angles** (per-model overridable via `cars.json` → `parts`):
+- Doors: 70°
+- Hood: 45°
+- Trunk: 80°
 
 **Duration:**
 - Default: 1.2 seconds
 - Easing: power2.inOut (smooth acceleration/deceleration)
 
 **Movement Offsets:**
-- Doors: +0.11 units X (slide outward)
-- Hood: +0.18 X, +0.3 Y (lift up)
-- Trunk: -0.28 X, +0.3 Y (lift up)
+- Doors: 5% of the door's own length, outward along the car's lateral axis
+- Hood/trunk: none — with the hinge on the correct edge they rotate cleanly
+
+Offsets are relative to the part rather than absolute world units, so they read
+the same on a hatchback and a limousine.
 
 ### Mesh Attachment
 
@@ -224,12 +232,17 @@ Must exist in GLB:
 - `car_caput`
 - `car_trunk`
 
+Plus the four wheel empties `Wheel_FL` / `Wheel_FR` / `Wheel_RL` / `Wheel_RR`,
+which is how the car's axes are established.
+
 ### Model Structure
 
 Each part must be:
 - Separate mesh (not joined geometry)
-- World-space positioned correctly
-- Properly oriented (Z-up or Y-up depending on export)
+
+Orientation, up-axis and scale do **not** matter — the solver measures geometry
+against the wheel-derived frame, not node transforms. Nor do object origins need
+to sit at the hinge line.
 
 ### Optional Meshes
 
@@ -250,22 +263,18 @@ Windows/handles automatically attached if found:
 
 ### Custom Animations
 
-Override default angles/offsets in DoorController constructor:
+Prefer the `parts` block in `public/config/cars.json` — it reaches the same
+options without a code change:
 
-```
-new DoorController(scene, {
-  doorAngleDeg: 90,      // wider opening
-  hoodAngleDeg: 60,      // higher lift
-  trunkAngleDeg: 100,    // full vertical
-  durationSec: 0.8       // faster animation
-})
+```json
+"parts": { "doorAngleDeg": 90, "hoodAngleDeg": 60, "trunkAngleDeg": 100, "durationSec": 0.8 }
 ```
 
 ### Alternative Hinge Positions
 
-Modify `createHingePivot` switch cases to adjust:
-- bbox.min/max calculations (hinge edge)
-- hingeLocal X/Y/Z values (hinge point)
+Per model, set `parts.hinges.<mesh>.edge` (`"front"` / `"rear"`) or `.flip` in
+`cars.json`. Changing the defaults for every model means editing `HINGE_RULES`
+in `lib/DoorController.ts`.
 
 ## Error Handling
 
@@ -318,9 +327,11 @@ No architectural changes required.
 ## Debugging Tips
 
 **Hinge Visualization:**
-- Uncomment `addDebugHinge` in DoorController
-- Pink cubes show pivot positions
-- Verify alignment with model edges
+- Load the configurator with `?hinges=1`, e.g. `/car/sample-car?hinges=1`
+- An axes gizmo sits at each pivot (red = passenger side, green = up, blue = rear)
+  and a gold box wraps each part
+- The console prints the derived frame, how it was derived, and every hinge position
+- Reading the gizmos is covered in [CAR_HINGE_SETUP_GUIDE.md](./CAR_HINGE_SETUP_GUIDE.md)
 
 **State Inspection:**
 - Use Zustand DevTools extension
@@ -333,9 +344,11 @@ No architectural changes required.
 - Check hierarchy structure (traverse)
 
 **Animation Issues:**
-- Verify rotation axis (Y for doors, Z for hood/trunk)
-- Check sign (positive vs negative rotation)
-- Test offset vectors (position movement)
+- Axes and signs are fixed; a part opening wrongly means the *frame* or the
+  *hinge edge* is wrong, not the rotation
+- Check the `[DoorController] Car frame (...)` console line — `bounds` means the
+  wheel empties weren't found and the solver is guessing
+- Correct a stubborn model with `parts.hinges.<mesh>.edge` / `.flip` in cars.json
 
 ## Deployment Considerations
 
