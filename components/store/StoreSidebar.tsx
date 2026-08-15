@@ -16,7 +16,7 @@ interface StoreSidebarProps {
 }
 
 /**
- * Right-hand slide-in panel. Focus handling mirrors components/landing/MobileMenu.tsx
+ * Left-hand slide-in panel. Focus handling mirrors components/landing/MobileMenu.tsx
  * minus the Lenis scroll-lock — /store never scrolls.
  */
 export default function StoreSidebar({ open, onClose, returnFocusTo, onResetCamera }: StoreSidebarProps) {
@@ -76,15 +76,15 @@ export default function StoreSidebar({ open, onClose, returnFocusTo, onResetCame
             role="dialog"
             aria-modal="true"
             aria-label="Showroom menu"
-            initial={{ x: '100%' }}
+            initial={{ x: '-100%' }}
             animate={{ x: 0 }}
-            exit={{ x: '100%' }}
+            exit={{ x: '-100%' }}
             style={{
               backdropFilter:'blur(20px)'
             }}
             transition={{ type: 'spring', damping: 34, stiffness: 320, mass: 0.8 }}
-            className="glass fixed inset-y-0 right-0 z-[71] flex w-[78%] max-w-[320px]
-                       flex-col rounded-l-[24px] px-5
+            className="glass fixed inset-y-0 left-0 z-[71] flex w-[78%] max-w-[320px]
+                       flex-col rounded-r-[24px] px-5
                        pt-[max(1rem,env(safe-area-inset-top))]
                        pb-[max(1.25rem,env(safe-area-inset-bottom))]"
           >
