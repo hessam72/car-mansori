@@ -76,7 +76,7 @@ export default function StoreTopBar({
           />
         </button>
 
-        <button aria-label="سبد خرید" className={`${BTN} relative`}>
+        {/* <button aria-label="سبد خرید" className={`${BTN} relative`}>
           <ShoppingCart className="h-[18px] w-[18px]" />
           {cart.length > 0 && (
             <span
@@ -87,7 +87,7 @@ export default function StoreTopBar({
               {faNum(cart.length)}
             </span>
           )}
-        </button>
+        </button> */}
       </div>
     </div>
   )
