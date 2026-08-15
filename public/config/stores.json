@@ -76,12 +76,12 @@
         {
           "priority": 0,
           "quality": "low",
-          "url": "/store-models/wireframe.glb"
+          "url": "/store-models/wireframe-simple.glb"
         },
         {
           "priority": 1,
           "quality": "high",
-          "url": "/store-models/main.glb"
+          "url": "/store-models/main-car.glb"
         }
       ]
     }
