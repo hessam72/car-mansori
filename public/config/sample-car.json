@@ -1,0 +1,167 @@
+[
+  {
+    "_readme": [
+      "REFERENCE ONLY — nothing loads this file. It exists to be read and copied from.",
+      "cars.json is the live config; it is pulled in by explicit static imports, so this",
+      "sibling file can never be picked up by accident.",
+      "",
+      "One entry here mirrors one entry in cars.json exactly, so any block below can be",
+      "copy-pasted straight across. Keys starting with _ are annotations and are NOT read",
+      "by the code — drop them when you copy.",
+      "",
+      "Full explanation: arch-docs/CAR_HINGE_SETUP_GUIDE.md",
+      "Check a model before opening a browser: npm run verify:hinges"
+    ],
+
+    "id": "sample-car",
+    "name": "BMW M5 Competition",
+    "model_path": "/scene-optimized.glb",
+    "usdz_path": "/models/car/car.usdz",
+
+    "specs": {
+      "engine": "V6 Turbo",
+      "horsepower": 350,
+      "torque": "450 Nm",
+      "top_speed": "250 km/h"
+    },
+
+    "_parts_readme": [
+      "Everything in `parts` is OPTIONAL. Omit the whole block and the solver derives",
+      "the car's axes from the four Wheel_FL/FR/RL/RR empties and works out each hinge",
+      "on its own — that is the normal case and what the shipped cars.json does.",
+      "Reach for these only when a specific model comes out wrong."
+    ],
+    "parts": {
+      "_angles_readme": [
+        "Opening angle per part kind, in degrees. These are the defaults; raise",
+        "doorAngleDeg for a showier reveal, lower it if doors clip a neighbouring car."
+      ],
+      "doorAngleDeg": 70,
+      "hoodAngleDeg": 45,
+      "trunkAngleDeg": 80,
+
+      "_durationSec_readme": "Animation length for every part, in seconds.",
+      "durationSec": 1.2,
+
+      "_frame_readme": [
+        "!! LAST RESORT — do NOT copy this into cars.json unless you truly need it. !!",
+        "",
+        "Setting `frame` DISABLES wheel-empty detection entirely and pins the car's axes",
+        "to these world-space vectors. If you later swap in a different GLB, these stale",
+        "values silently mis-orient every hinge with no warning.",
+        "",
+        "Only use it when a model's Wheel_* empties are missing or misplaced and the GLB",
+        "cannot be re-exported. Fixing the model is always the better answer.",
+        "",
+        "forward = toward the front of the car, up = toward the roof, as [x, y, z].",
+        "The values below happen to be what detection already produces for this model.",
+        "Confirm with ?hinges=1: the console prints `Car frame (wheels|bounds|override)`."
+      ],
+      "frame": {
+        "forward": [1, 0, 0],
+        "up": [0, 1, 0]
+      },
+
+      "_hinges_readme": [
+        "Per-part overrides, keyed by the mesh name in the GLB. Valid keys:",
+        "  car_door_left, car_door_right, car_door_back_left, car_door_back_right,",
+        "  car_caput (hood), car_trunk",
+        "",
+        "Each entry accepts any combination of:",
+        "  edge     \"front\" | \"rear\"  — which end of the CAR the hinge sits on.",
+        "                               Defaults: doors front, hood rear (at the",
+        "                               windshield), trunk front (at the cabin).",
+        "  angleDeg number            — opening angle for this one part, overriding",
+        "                               the shared doorAngleDeg/hoodAngleDeg/trunkAngleDeg.",
+        "  flip     true              — reverse the opening direction.",
+        "",
+        "Each example below shows a different override so you can see them in isolation.",
+        "An empty object ({}) is the normal state — see cars.json."
+      ],
+      "hinges": {
+        "_car_door_left_readme": "angleDeg alone: this door alone swings wider than doorAngleDeg.",
+        "car_door_left": {
+          "angleDeg": 85
+        },
+
+        "_car_door_right_readme": [
+          "flip alone: use when a door swings INTO the cabin instead of outward.",
+          "First check ?hinges=1 — if the red axis points at the driver side rather than",
+          "the passenger side, the model's Wheel_FL/FR empties are swapped and fixing",
+          "those is the real fix. flip is the patch when the GLB can't be changed."
+        ],
+        "car_door_right": {
+          "flip": true
+        },
+
+        "_car_caput_readme": [
+          "edge + angleDeg: moves the hinge to the other end of the car and opens further.",
+          "A hood normally hinges at the rear (windshield end) and lifts its nose. Set",
+          "edge to \"front\" for a forward-tilting hood, as on some classic cars."
+        ],
+        "car_caput": {
+          "edge": "front",
+          "angleDeg": 60
+        },
+
+        "_car_trunk_readme": [
+          "All three together. A trunk normally hinges at its front (cabin) edge and",
+          "lifts its tail; this pins the hinge at the rear instead and reverses the",
+          "swing, which is how you would model a bottom-hinged tailgate."
+        ],
+        "car_trunk": {
+          "edge": "rear",
+          "angleDeg": 55,
+          "flip": true
+        }
+      }
+    },
+
+    "_defaultParts_readme": [
+      "Which part option each category starts on. Values must be real ids from",
+      "car-parts.json — an unknown id logs a DynamicPart warning and falls back to stock."
+    ],
+    "defaultParts": {
+      "wheels": "wheel-stock",
+      "spoilers": "spoiler-stock",
+      "hoods": "hood-stock",
+      "bumpers": "bumper-front-stock",
+      "mirrors": "mirror-stock",
+      "exhaust": "exhaust-stock",
+      "side-skirts": "skirts-none",
+      "seats": "seat-sport",
+      "steering-wheels": "steering-sport",
+      "brake-calipers": "caliper-brembo-red",
+      "headlights": "headlight-led"
+    },
+
+    "_defaultPaint_readme": [
+      "Starting paint per zone. Zones come from the `paintZone` userData on each",
+      "material in the GLB (body | trim | interior); materials without it default to body.",
+      "metalness/roughness/clearcoat are standard PBR values in the 0..1 range."
+    ],
+    "defaultPaint": {
+      "body": {
+        "color": "#1a1a1a",
+        "metalness": 0.9,
+        "roughness": 0.3,
+        "clearcoat": 1.0
+      },
+      "trim": {
+        "color": "#000000",
+        "metalness": 0.5,
+        "roughness": 0.7,
+        "clearcoat": 0.3
+      },
+      "interior": {
+        "color": "#8b6f47",
+        "metalness": 0.1,
+        "roughness": 0.9,
+        "clearcoat": 0.0
+      }
+    },
+
+    "_defaultSuspension_readme": "Ride-height offset in centimetres. 0 is stock, negative lowers, positive raises.",
+    "defaultSuspension": 0
+  }
+]

@@ -185,6 +185,11 @@ dropped to the guess. Adding the wheel empties is nearly always the better fix.
 
 ## Per-model overrides
 
+**`public/config/sample-car.json` is a fully annotated, copy-paste-ready
+example of every option below**, including a populated `hinges` block showing
+each override in isolation. Nothing loads that file — it exists purely to read
+from.
+
 Add an optional `parts` block to the car's entry in `public/config/cars.json`.
 Every field is optional; anything omitted is auto-derived.
 
