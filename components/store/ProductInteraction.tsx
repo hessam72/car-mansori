@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useThree } from '@react-three/fiber'
 import { Raycaster, Vector2, Object3D, Vector3 } from 'three'
+import type { DoorControllerOptions } from '@/lib/DoorController'
 
 interface PaintColor {
   name: string
@@ -36,6 +37,12 @@ export interface ProductData {
   glbPath?: string
   usdzPath?: string
   billboardPosition: [number, number, number]
+  /**
+   * Hinge tuning for the drawer's Parts tab; omitted means auto-derive.
+   * Same shape as cars.json — see arch-docs/CAR_HINGE_SETUP_GUIDE.md and the
+   * annotated public/config/sample-car.json.
+   */
+  parts?: DoorControllerOptions
 }
 
 interface ProductInteractionProps {

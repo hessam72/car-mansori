@@ -25,7 +25,14 @@
       { "name": "Olive Magno", "hex": "#5E6350" }
     ],
     "detailedDescription": "The AMG G 63 keeps the boxy, ladder-frame silhouette the G-Class has carried since 1979 and puts a hand-built 4.0-litre biturbo V8 under the hood. Three locking differentials and a low-range transfer case survive intact, so the same car that runs to 100 km/h in 4.5 seconds still climbs a 100 percent gradient. Inside it is pure S-Class: Nappa leather, twin 12.3-inch displays and Burmester audio.",
-    "billboardPosition": [2, 1, 0]
+    "billboardPosition": [2, 1, 0],
+    "parts": {
+      "doorStyle": "conventional",
+      "doorAngleDeg": 70,
+      "hoodAngleDeg": 45,
+      "trunkAngleDeg": 80,
+      "durationSec": 1.2
+    }
   },
 
   "porsche-911": {
@@ -54,7 +61,14 @@
       { "name": "Gentian Blue", "hex": "#1B3A6B" }
     ],
     "detailedDescription": "The 911 Turbo S is the everyday supercar benchmark: variable-geometry turbochargers, rear-axle steering and active aerodynamics wrapped in a body 45mm wider than a Carrera. Launch control off the PDK gearbox delivers 2.7 seconds to 100 km/h, yet the car idles through traffic without complaint. Carbon-ceramic brakes and PDCC anti-roll control are standard.",
-    "billboardPosition": [-4, 0.8, 0]
+    "billboardPosition": [-4, 0.8, 0],
+    "parts": {
+      "doorStyle": "conventional",
+      "doorAngleDeg": 70,
+      "hoodAngleDeg": 45,
+      "trunkAngleDeg": 80,
+      "durationSec": 1.2
+    }
   },
 
   "ferrari-296": {
@@ -83,6 +97,13 @@
       { "name": "Nero Daytona", "hex": "#16181A" }
     ],
     "detailedDescription": "The 296 GTB is the first Ferrari road car with a V6, and the first to pair one with a plug-in hybrid system. The 120-degree twin-turbo six and rear-mounted electric motor combine for 830 hp sent to the rear wheels alone. Roughly 25 km of silent electric range sits alongside a 330 km/h top speed and a 1470 kg dry weight.",
-    "billboardPosition": [5, 1, -5.2]
+    "billboardPosition": [5, 1, -5.2],
+    "parts": {
+      "doorStyle": "conventional",
+      "doorAngleDeg": 70,
+      "hoodAngleDeg": 45,
+      "trunkAngleDeg": 80,
+      "durationSec": 1.2
+    }
   }
 }

@@ -122,7 +122,12 @@ Before opening a browser, run the headless check against the GLB:
 npm run verify:hinges                                  # public/scene-optimized.glb
 npm run verify:hinges -- path/to/other.glb
 npm run verify:hinges -- --door-style=scissor          # one style in isolation
+npm run verify:hinges -- room.glb --subtree=g-class    # one car in a shared GLB
 ```
+
+`--subtree` matters for a showroom model holding several cars: they each carry
+their own `car_door_left`, and without it the script checks whichever comes
+first in the file. It scopes the search the same way the runtime does.
 
 It rebuilds the hinge structure from the glTF JSON and asserts two things per
 part, exiting non-zero if either fails. **Both door styles are checked by

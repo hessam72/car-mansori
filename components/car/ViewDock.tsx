@@ -14,6 +14,7 @@ import { IoCarSportOutline } from 'react-icons/io5'
 import { GiCarDoor } from 'react-icons/gi'
 import { useCameraStore, CAMERA_PRESETS, PresetName } from '@/stores/cameraStore'
 import { useCarConfig } from '@/stores/carConfigStore'
+import { DOOR_LABELS } from '@/lib/car/partLabels'
 
 const PRESETS: PresetName[] = ['front', 'rear', 'sideLeft', 'sideRight', 'top', 'detail', 'interior']
 
@@ -25,15 +26,6 @@ const presetIcons: Partial<Record<PresetName, React.ComponentType<{ className?: 
   top: (p) => <MdArrowUpward {...p} />,
   detail: (p) => <MdOutlineZoomIn {...p} />,
   interior: (p) => <MdAirlineSeatReclineNormal {...p} />,
-}
-
-const DOOR_LABELS: Record<string, string> = {
-  car_door_left: 'Left Door',
-  car_door_right: 'Right Door',
-  car_door_back_left: 'Left Rear',
-  car_door_back_right: 'Right Rear',
-  car_caput: 'Hood',
-  car_trunk: 'Trunk',
 }
 
 const DOCK_BTN =

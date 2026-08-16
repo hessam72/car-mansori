@@ -36,7 +36,9 @@ import {
 import { useShop } from '@/stores/storeShopStore'
 import ARProductViewer from './ARProductViewer'
 import { FurnitureColorApplier } from './FurnitureColorApplier'
+import CarPartsController from './CarPartsController'
 import { useFurnitureConfig } from '@/stores/furnitureConfigStore'
+import { useStoreParts } from '@/stores/storePartsStore'
 import { LoadingScreen } from './LoadingScreen'
 import { ModelsLoadingIndicator } from './ModelsLoadingIndicator'
 import { AudioPlayer } from './AudioPlayer'
@@ -235,6 +237,8 @@ export default function Scene() {
   const [focusedId, setFocusedId] = useState<string | null>(null)
 
   const { selectFurniture, initializeColor, currentColor, originalColor } = useFurnitureConfig()
+  const focusCar = useStoreParts((s) => s.focusCar)
+  const closeAllParts = useStoreParts((s) => s.closeAllParts)
   const addToCart = useShop((s) => s.addToCart)
 
   // Sustained-FPS ladder scale (same mechanism as /car)
@@ -353,13 +357,16 @@ export default function Scene() {
       if (!resolved) return
 
       selectFurniture(pending.id || pending.sceneObject, pending.object ?? null)
+      // Same key selectFurniture uses, so CarPartsController resolves the same
+      // object the paint does
+      focusCar(pending.id || pending.sceneObject)
       initializeColor()
       setSelectedProduct(resolved)
       setFocusedName(pending.item?.name ?? resolved.name)
       // Likes are per catalogue entry; a direct tap has no catalogue identity
       setFocusedId(pending.item?.id ?? null)
     },
-    [products, selectFurniture, initializeColor]
+    [products, selectFurniture, focusCar, initializeColor]
   )
 
   /** Flight landed */
@@ -384,7 +391,10 @@ export default function Scene() {
     setFocusedName(null)
     setFocusedId(null)
     playerStartPosRef.current = null
-  }, [])
+    // The one choke point for every dismissal — X, drag-down, reset view, and
+    // the walk-away watcher — so open panels animate shut on all of them
+    closeAllParts()
+  }, [closeAllParts])
 
   const resetCameraAndView = useCallback(() => {
     closeProduct()
@@ -554,6 +564,10 @@ export default function Scene() {
 
           {/* Furniture color applier - applies colors to scene furniture */}
           {loadingPhase === 'ready' && <FurnitureColorApplier />}
+
+          {/* Door/hood/trunk opening for the focused car, driven by the
+              drawer's Parts tab */}
+          {loadingPhase === 'ready' && <CarPartsController products={products} />}
 
           {/* Reflective Floor — resolution/off-switch follow the quality tier
               (the reflection pass re-renders the scene every drawn frame) */}

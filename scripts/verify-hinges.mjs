@@ -32,9 +32,20 @@ const modelPath = args.find((a) => !a.startsWith('--')) ?? 'public/scene-optimiz
 const styleArg = args.find((a) => a.startsWith('--door-style='))
 const styles = styleArg ? [styleArg.split('=')[1]] : ['conventional', 'scissor']
 
-const USAGE = 'Usage: node scripts/verify-hinges.mjs [path/to/model.glb] [--door-style=conventional|scissor]'
+// A showroom GLB holds several cars, each with its own car_door_left etc. The
+// runtime scopes DoorController to one car's subtree; this does the same, so
+// the check reads the car you meant rather than whichever node comes first.
+const subtreeArg = args.find((a) => a.startsWith('--subtree='))
+const subtreeName = subtreeArg ? subtreeArg.split('=').slice(1).join('=') : null
 
-const unknownFlag = args.find((a) => a.startsWith('--') && !a.startsWith('--door-style='))
+const USAGE =
+  'Usage: node scripts/verify-hinges.mjs [path/to/model.glb] ' +
+  '[--door-style=conventional|scissor] [--subtree=<node name>]'
+
+const KNOWN_FLAGS = ['--door-style=', '--subtree=']
+const unknownFlag = args.find(
+  (a) => a.startsWith('--') && !KNOWN_FLAGS.some((f) => a.startsWith(f))
+)
 if (unknownFlag) {
   console.error(`Unknown option: ${unknownFlag}`)
   console.error(USAGE)
@@ -89,13 +100,41 @@ function buildWorldMatrices(index, parentMatrix) {
   for (const child of node.children ?? []) buildWorldMatrices(child, world)
 }
 
-const rootIndex = gltf.scenes[gltf.scene ?? 0].nodes[0]
-buildWorldMatrices(rootIndex, new THREE.Matrix4())
+// Every root, not just the first — a room GLB is rarely a single tree
+for (const root of gltf.scenes[gltf.scene ?? 0].nodes) {
+  buildWorldMatrices(root, new THREE.Matrix4())
+}
 
+/** Node indices in the subtree rooted at `index`, inclusive */
+function descendants(index, out = []) {
+  out.push(index)
+  for (const child of NODES[index].children ?? []) descendants(child, out)
+  return out
+}
+
+let searchScope = NODES.map((_, i) => i)
+
+if (subtreeName) {
+  const rootOfSubtree = searchScope.find(
+    (i) => NODES[i].name?.toLowerCase() === subtreeName.toLowerCase()
+  )
+  if (rootOfSubtree === undefined) {
+    console.error(`No node named "${subtreeName}" in ${modelPath}`)
+    const named = NODES.filter((n) => n.name).slice(0, 40).map((n) => n.name)
+    console.error(`Named nodes: ${named.join(', ')}`)
+    process.exit(1)
+  }
+  searchScope = descendants(rootOfSubtree)
+  console.log(`subtree: ${NODES[rootOfSubtree].name} (${searchScope.length} nodes)`)
+}
+
+// Later entries would otherwise win; keeping the first match mirrors
+// Object3D.getObjectByName, which returns the first hit in traversal order
 const indexByName = new Map()
-NODES.forEach((n, i) => {
-  if (n.name) indexByName.set(n.name.toLowerCase(), i)
-})
+for (const i of searchScope) {
+  const name = NODES[i].name?.toLowerCase()
+  if (name && !indexByName.has(name)) indexByName.set(name, i)
+}
 const nodeIndex = (name) => indexByName.get(name.toLowerCase())
 const worldPosition = (name) =>
   new THREE.Vector3().setFromMatrixPosition(worldOf.get(nodeIndex(name)))

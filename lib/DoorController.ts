@@ -130,6 +130,15 @@ const PART_SPECS: PartSpec[] = [
   },
 ]
 
+/**
+ * Every part key the controller can drive, in authoring order.
+ *
+ * `PART_SPECS` is the single source of truth for these names, so anything that
+ * needs the full list — seeding an all-closed state, labelling toggles — should
+ * read it from here rather than re-typing the six strings.
+ */
+export const PART_KEYS: string[] = PART_SPECS.map((s) => s.key)
+
 interface HingeRule {
   edge: 'front' | 'rear'
   axis: 'x' | 'y'
