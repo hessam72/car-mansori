@@ -2,7 +2,9 @@
 /**
  * Checks the door/hood/trunk hinge solver against a real GLB, headlessly.
  *
- *   node scripts/verify-hinges.mjs [path/to/model.glb]
+ *   node scripts/verify-hinges.mjs [path/to/model.glb] [--door-style=scissor]
+ *
+ * Both door styles are checked by default, so a regression in either is caught.
  *
  * It rebuilds the scene graph straight from the glTF JSON — POSITION accessors
  * carry exact min/max, so no DRACO decode is needed — then reproduces the same
@@ -15,7 +17,8 @@
  *      tweening a single Euler component then overwrites the frame alignment
  *      rather than composing with it.
  *
- *   2. OPEN GOES THE RIGHT WAY. Doors swing outward, hood and trunk lift.
+ *   2. OPEN GOES THE RIGHT WAY. Conventional doors swing outward, scissor
+ *      doors lift vertically without drifting sideways, hood and trunk lift.
  *
  * Run it whenever a new car GLB lands. Exits non-zero on failure.
  */
@@ -23,11 +26,42 @@ import * as THREE from 'three'
 import fs from 'node:fs'
 import path from 'node:path'
 
-const modelPath = process.argv[2] ?? 'public/scene-optimized.glb'
+const args = process.argv.slice(2)
+const modelPath = args.find((a) => !a.startsWith('--')) ?? 'public/scene-optimized.glb'
+
+const styleArg = args.find((a) => a.startsWith('--door-style='))
+const styles = styleArg ? [styleArg.split('=')[1]] : ['conventional', 'scissor']
+
+// A showroom GLB holds several cars, each with its own car_door_left etc. The
+// runtime scopes DoorController to one car's subtree; this does the same, so
+// the check reads the car you meant rather than whichever node comes first.
+const subtreeArg = args.find((a) => a.startsWith('--subtree='))
+const subtreeName = subtreeArg ? subtreeArg.split('=').slice(1).join('=') : null
+
+const USAGE =
+  'Usage: node scripts/verify-hinges.mjs [path/to/model.glb] ' +
+  '[--door-style=conventional|scissor] [--subtree=<node name>]'
+
+const KNOWN_FLAGS = ['--door-style=', '--subtree=']
+const unknownFlag = args.find(
+  (a) => a.startsWith('--') && !KNOWN_FLAGS.some((f) => a.startsWith(f))
+)
+if (unknownFlag) {
+  console.error(`Unknown option: ${unknownFlag}`)
+  console.error(USAGE)
+  process.exit(1)
+}
+
+const invalidStyle = styles.find((s) => s !== 'conventional' && s !== 'scissor')
+if (invalidStyle) {
+  console.error(`Unknown door style "${invalidStyle}" (expected conventional or scissor)`)
+  console.error(USAGE)
+  process.exit(1)
+}
 
 if (!fs.existsSync(modelPath)) {
   console.error(`No such model: ${modelPath}`)
-  console.error('Usage: node scripts/verify-hinges.mjs [path/to/model.glb]')
+  console.error(USAGE)
   process.exit(1)
 }
 
@@ -66,13 +100,41 @@ function buildWorldMatrices(index, parentMatrix) {
   for (const child of node.children ?? []) buildWorldMatrices(child, world)
 }
 
-const rootIndex = gltf.scenes[gltf.scene ?? 0].nodes[0]
-buildWorldMatrices(rootIndex, new THREE.Matrix4())
+// Every root, not just the first — a room GLB is rarely a single tree
+for (const root of gltf.scenes[gltf.scene ?? 0].nodes) {
+  buildWorldMatrices(root, new THREE.Matrix4())
+}
 
+/** Node indices in the subtree rooted at `index`, inclusive */
+function descendants(index, out = []) {
+  out.push(index)
+  for (const child of NODES[index].children ?? []) descendants(child, out)
+  return out
+}
+
+let searchScope = NODES.map((_, i) => i)
+
+if (subtreeName) {
+  const rootOfSubtree = searchScope.find(
+    (i) => NODES[i].name?.toLowerCase() === subtreeName.toLowerCase()
+  )
+  if (rootOfSubtree === undefined) {
+    console.error(`No node named "${subtreeName}" in ${modelPath}`)
+    const named = NODES.filter((n) => n.name).slice(0, 40).map((n) => n.name)
+    console.error(`Named nodes: ${named.join(', ')}`)
+    process.exit(1)
+  }
+  searchScope = descendants(rootOfSubtree)
+  console.log(`subtree: ${NODES[rootOfSubtree].name} (${searchScope.length} nodes)`)
+}
+
+// Later entries would otherwise win; keeping the first match mirrors
+// Object3D.getObjectByName, which returns the first hit in traversal order
 const indexByName = new Map()
-NODES.forEach((n, i) => {
-  if (n.name) indexByName.set(n.name.toLowerCase(), i)
-})
+for (const i of searchScope) {
+  const name = NODES[i].name?.toLowerCase()
+  if (name && !indexByName.has(name)) indexByName.set(name, i)
+}
 const nodeIndex = (name) => indexByName.get(name.toLowerCase())
 const worldPosition = (name) =>
   new THREE.Vector3().setFromMatrixPosition(worldOf.get(nodeIndex(name)))
@@ -154,114 +216,169 @@ function extentInFrame(index) {
 }
 
 // ------------------------------------------------------------- hinge rules
-// Mirrors HINGE_RULES in lib/DoorController.ts
+// Mirrors HINGE_RULES / SCISSOR_DOOR_RULE in lib/DoorController.ts
 
-const RULES = {
-  car_door_left: { edge: 'front', axis: 'y', sign: -1, upEdge: 'center', angle: 70, kind: 'door' },
-  car_door_right: { edge: 'front', axis: 'y', sign: 1, upEdge: 'center', angle: 70, kind: 'door' },
-  car_door_back_left: { edge: 'front', axis: 'y', sign: -1, upEdge: 'center', angle: 70, kind: 'door' },
-  car_door_back_right: { edge: 'front', axis: 'y', sign: 1, upEdge: 'center', angle: 70, kind: 'door' },
-  car_caput: { edge: 'rear', axis: 'x', sign: 1, upEdge: 'top', angle: 45, kind: 'lid' },
-  car_trunk: { edge: 'front', axis: 'x', sign: -1, upEdge: 'top', angle: 80, kind: 'lid' },
+const LID_RULES = {
+  car_caput: { edge: 'rear', axis: 'x', sign: 1, heightFraction: 1, angle: 45, kind: 'lid' },
+  car_trunk: { edge: 'front', axis: 'x', sign: -1, heightFraction: 1, angle: 80, kind: 'lid' },
+}
+
+const DOOR_NAMES = [
+  'car_door_left',
+  'car_door_right',
+  'car_door_back_left',
+  'car_door_back_right',
+]
+
+const isLeftDoor = (name) => name.endsWith('_left')
+
+function doorRule(name, style) {
+  // Scissor rotates about the lateral axis, so the motion stays in the
+  // vertical/longitudinal plane and both sides share one rule
+  if (style === 'scissor') {
+    return { edge: 'front', axis: 'x', sign: -1, heightFraction: 0.25, angle: 70, kind: 'door' }
+  }
+  return {
+    edge: 'front',
+    axis: 'y',
+    sign: isLeftDoor(name) ? -1 : 1,
+    heightFraction: 0.5,
+    angle: 70,
+    kind: 'door',
+  }
+}
+
+function rulesForStyle(style) {
+  const rules = {}
+  for (const name of DOOR_NAMES) rules[name] = doorRule(name, style)
+  return { ...rules, ...LID_RULES }
 }
 
 const frameQuat = new THREE.Quaternion().setFromRotationMatrix(
   new THREE.Matrix4().makeBasis(frame.right, frame.up, frame.forward.clone().negate())
 )
 
-let failures = 0
 const EPSILON = 1e-6
+// A scissor door should stay in the vertical plane; anything more than this
+// fraction of its vertical travel means the axis is canted or mis-signed
+const LATERAL_TOLERANCE = 0.05
 
-console.log('\nPARTS')
+/** Runs every assertion for one door style. Returns the failure count. */
+function checkStyle(style) {
+  let failures = 0
+  console.log(`\n${'='.repeat(64)}\nDOOR STYLE: ${style}\n${'='.repeat(64)}`)
 
-for (const [name, rule] of Object.entries(RULES)) {
-  const index = nodeIndex(name)
-  if (index === undefined) {
-    console.log(`\n  ${name}: absent from this model (skipped)`)
-    continue
+  for (const [name, rule] of Object.entries(rulesForStyle(style))) {
+    const index = nodeIndex(name)
+    if (index === undefined) {
+      console.log(`\n  ${name}: absent from this model (skipped)`)
+      continue
+    }
+
+    const e = extentInFrame(index)
+    if (!e) {
+      console.log(`\n  ${name}: no geometry (skipped)`)
+      continue
+    }
+
+    const forwardAt = rule.edge === 'front' ? e.maxForward : e.minForward
+    const rightAt = (e.minRight + e.maxRight) / 2
+    const upAt = e.minUp + (e.maxUp - e.minUp) * rule.heightFraction
+
+    const hinge = new THREE.Vector3()
+      .addScaledVector(frame.forward, forwardAt)
+      .addScaledVector(frame.right, rightAt)
+      .addScaledVector(frame.up, upAt)
+
+    // The runtime structure: orient (hinge point + frame rotation) > swing > part
+    const orientWorld = new THREE.Matrix4().compose(hinge, frameQuat, new THREE.Vector3(1, 1, 1))
+    const partWorldBefore = worldOf.get(index)
+    // attach() preserves world transform, so the part's matrix relative to swing
+    const partInSwing = orientWorld.clone().invert().multiply(partWorldBefore)
+
+    const swingAt = (radians) => {
+      const euler = new THREE.Euler()
+      euler[rule.axis] = radians
+      const swingLocal = new THREE.Matrix4().makeRotationFromEuler(euler)
+      return orientWorld.clone().multiply(swingLocal).multiply(partInSwing)
+    }
+
+    // --- assertion 1: closed is a no-op ---
+    const closed = swingAt(0)
+    let closedDrift = 0
+    for (let i = 0; i < 16; i++) {
+      closedDrift = Math.max(closedDrift, Math.abs(closed.elements[i] - partWorldBefore.elements[i]))
+    }
+    const closedOk = closedDrift < EPSILON
+
+    // --- assertion 2: opening travels the right way ---
+    const farForward = rule.edge === 'front' ? e.minForward : e.maxForward
+    const freeEnd = new THREE.Vector3()
+      .addScaledVector(frame.forward, farForward)
+      .addScaledVector(frame.right, rightAt)
+      .addScaledVector(frame.up, upAt)
+
+    const toLocal = swingAt(0).clone().invert()
+    const localFreeEnd = freeEnd.clone().applyMatrix4(toLocal)
+    const openedFreeEnd = localFreeEnd
+      .clone()
+      .applyMatrix4(swingAt(rule.sign * THREE.MathUtils.degToRad(rule.angle)))
+
+    const delta = openedFreeEnd.clone().sub(freeEnd)
+    const dRight = delta.dot(frame.right)
+    const dUp = delta.dot(frame.up)
+
+    const onRightSide = rightAt > 0
+    const isScissorDoor = rule.kind === 'door' && style === 'scissor'
+
+    let openOk
+    let expectation
+    if (isScissorDoor) {
+      // Straight up, and it must NOT drift sideways — that is what separates
+      // scissor from a butterfly door and catches a canted or mis-signed axis
+      openOk = dUp > 0 && Math.abs(dRight) <= LATERAL_TOLERANCE * Math.abs(dUp)
+      expectation = openOk
+        ? 'lifts vertically OK'
+        : dUp <= 0
+          ? 'FAILED — sinks instead of lifting'
+          : 'FAILED — drifts sideways, axis is not lateral'
+    } else if (rule.kind === 'door') {
+      openOk = onRightSide ? dRight > 0 : dRight < 0
+      expectation = openOk ? 'swings outward OK' : 'FAILED — swings into the car'
+    } else {
+      openOk = dUp > 0
+      expectation = openOk ? 'lifts up OK' : 'FAILED — moves downward'
+    }
+
+    if (!closedOk) failures++
+    if (!openOk) failures++
+
+    const sideLabel = rule.kind === 'door' ? (onRightSide ? 'right side' : 'left side') : 'centre'
+    console.log(
+      `\n  ${name}  (${sideLabel}, hinge on ${rule.edge} edge at ${(rule.heightFraction * 100).toFixed(0)}% height)`
+    )
+    console.log(
+      `    extent  forward[${e.minForward.toFixed(2)}, ${e.maxForward.toFixed(2)}]` +
+        `  right[${e.minRight.toFixed(2)}, ${e.maxRight.toFixed(2)}]` +
+        `  up[${e.minUp.toFixed(2)}, ${e.maxUp.toFixed(2)}]`
+    )
+    console.log(`    hinge   ${fmt(hinge)}`)
+    console.log(
+      `    closed  drift ${closedDrift.toExponential(1)}  ${closedOk ? 'OK' : 'FAILED — part moves when shut'}`
+    )
+    console.log(
+      `    open    right ${dRight >= 0 ? '+' : ''}${dRight.toFixed(2)}  up ${dUp >= 0 ? '+' : ''}${dUp.toFixed(2)}  ${expectation}`
+    )
   }
 
-  const e = extentInFrame(index)
-  if (!e) {
-    console.log(`\n  ${name}: no geometry (skipped)`)
-    continue
-  }
-
-  const forwardAt = rule.edge === 'front' ? e.maxForward : e.minForward
-  const rightAt = (e.minRight + e.maxRight) / 2
-  const upAt = rule.upEdge === 'top' ? e.maxUp : (e.minUp + e.maxUp) / 2
-
-  const hinge = new THREE.Vector3()
-    .addScaledVector(frame.forward, forwardAt)
-    .addScaledVector(frame.right, rightAt)
-    .addScaledVector(frame.up, upAt)
-
-  // The runtime structure: orient (hinge point + frame rotation) > swing > part
-  const orientWorld = new THREE.Matrix4().compose(hinge, frameQuat, new THREE.Vector3(1, 1, 1))
-  const partWorldBefore = worldOf.get(index)
-  // attach() preserves world transform, so the part's matrix relative to swing
-  const partInSwing = orientWorld.clone().invert().multiply(partWorldBefore)
-
-  const swingAt = (radians) => {
-    const euler = new THREE.Euler()
-    euler[rule.axis] = radians
-    const swingLocal = new THREE.Matrix4().makeRotationFromEuler(euler)
-    return orientWorld.clone().multiply(swingLocal).multiply(partInSwing)
-  }
-
-  // --- assertion 1: closed is a no-op ---
-  const closed = swingAt(0)
-  let closedDrift = 0
-  for (let i = 0; i < 16; i++) {
-    closedDrift = Math.max(closedDrift, Math.abs(closed.elements[i] - partWorldBefore.elements[i]))
-  }
-  const closedOk = closedDrift < EPSILON
-
-  // --- assertion 2: opening travels the right way ---
-  const farForward = rule.edge === 'front' ? e.minForward : e.maxForward
-  const freeEnd = new THREE.Vector3()
-    .addScaledVector(frame.forward, farForward)
-    .addScaledVector(frame.right, rightAt)
-    .addScaledVector(frame.up, upAt)
-
-  const toLocal = swingAt(0).clone().invert()
-  const localFreeEnd = freeEnd.clone().applyMatrix4(toLocal)
-  const openedFreeEnd = localFreeEnd
-    .clone()
-    .applyMatrix4(swingAt(rule.sign * THREE.MathUtils.degToRad(rule.angle)))
-
-  const delta = openedFreeEnd.clone().sub(freeEnd)
-  const dRight = delta.dot(frame.right)
-  const dUp = delta.dot(frame.up)
-
-  const onRightSide = rightAt > 0
-  const openOk = rule.kind === 'door' ? (onRightSide ? dRight > 0 : dRight < 0) : dUp > 0
-
-  if (!closedOk) failures++
-  if (!openOk) failures++
-
-  const sideLabel = rule.kind === 'door' ? (onRightSide ? 'right side' : 'left side') : 'centre'
-  console.log(`\n  ${name}  (${sideLabel}, hinge on ${rule.edge} edge)`)
-  console.log(
-    `    extent  forward[${e.minForward.toFixed(2)}, ${e.maxForward.toFixed(2)}]` +
-      `  right[${e.minRight.toFixed(2)}, ${e.maxRight.toFixed(2)}]` +
-      `  up[${e.minUp.toFixed(2)}, ${e.maxUp.toFixed(2)}]`
-  )
-  console.log(`    hinge   ${fmt(hinge)}`)
-  console.log(
-    `    closed  drift ${closedDrift.toExponential(1)}  ${closedOk ? 'OK' : 'FAILED — part moves when shut'}`
-  )
-  console.log(
-    `    open    right ${dRight >= 0 ? '+' : ''}${dRight.toFixed(2)}  up ${dUp >= 0 ? '+' : ''}${dUp.toFixed(2)}  ` +
-      (openOk
-        ? rule.kind === 'door' ? 'swings outward OK' : 'lifts up OK'
-        : rule.kind === 'door' ? 'FAILED — swings into the car' : 'FAILED — moves downward')
-  )
+  return failures
 }
+
+const failures = styles.reduce((total, style) => total + checkStyle(style), 0)
 
 console.log(
   failures === 0
-    ? '\nAll hinge checks passed.\n'
+    ? `\nAll hinge checks passed (${styles.join(', ')}).\n`
     : `\n${failures} hinge check(s) FAILED.\n`
 )
 process.exit(failures === 0 ? 0 : 1)

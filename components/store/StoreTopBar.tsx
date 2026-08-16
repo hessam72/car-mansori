@@ -74,7 +74,7 @@ export default function StoreTopBar({
           />
         </button>
 
-        <button aria-label="Cart" className={`${BTN} relative`}>
+        {/* <button aria-label="Cart" className={`${BTN} relative`}>
           <ShoppingCart className="h-[18px] w-[18px]" />
           {cart.length > 0 && (
             <span

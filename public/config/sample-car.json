@@ -32,6 +32,26 @@
       "Reach for these only when a specific model comes out wrong."
     ],
     "parts": {
+      "_doorStyle_readme": [
+        "How the doors open. \"conventional\" (default) or \"scissor\".",
+        "",
+        "  conventional — hinged at the door's front edge at mid-height, swings",
+        "                 outward about the car's up axis, mirrored left/right.",
+        "  scissor      — the Lamborghini motion. Hinged LOW at the front edge,",
+        "                 the door lifts straight up about the car's lateral",
+        "                 axis. Both sides share one rule: the motion stays in",
+        "                 the vertical plane, so there is no left/right to",
+        "                 mirror. A slight forward+outward slide is blended in,",
+        "                 matching the real four-bar linkage.",
+        "",
+        "Both styles use doorAngleDeg below — 70 is realistic for either, and 90",
+        "gives a near-vertical scissor door.",
+        "",
+        "Butterfly and gullwing are not implemented; they need a canted or",
+        "roof-mounted hinge axis rather than one of the frame's cardinal axes."
+      ],
+      "doorStyle": "conventional",
+
       "_angles_readme": [
         "Opening angle per part kind, in degrees. These are the defaults; raise",
         "doorAngleDeg for a showier reveal, lower it if doors clip a neighbouring car."
@@ -74,14 +94,29 @@
         "  angleDeg number            — opening angle for this one part, overriding",
         "                               the shared doorAngleDeg/hoodAngleDeg/trunkAngleDeg.",
         "  flip     true              — reverse the opening direction.",
+        "  style    \"conventional\" | \"scissor\"  — door motion for this one door,",
+        "                               overriding the car-wide doorStyle. Ignored",
+        "                               on the hood and trunk.",
+        "  heightFraction 0..1        — where the hinge sits up the part's height,",
+        "                               0 = bottom edge, 1 = top. Defaults: 0.5 for",
+        "                               a conventional door, 0.25 for scissor, 1 for",
+        "                               a hood or trunk. This is the value most",
+        "                               worth nudging if a scissor door's arc looks",
+        "                               too wide or too tight.",
         "",
         "Each example below shows a different override so you can see them in isolation.",
         "An empty object ({}) is the normal state — see cars.json."
       ],
       "hinges": {
-        "_car_door_left_readme": "angleDeg alone: this door alone swings wider than doorAngleDeg.",
+        "_car_door_left_readme": [
+          "angleDeg + style: this door alone opens scissor-style and lifts higher",
+          "than doorAngleDeg. Mixing styles across a car is unusual on a real",
+          "vehicle — normally you set doorStyle once above and leave these out."
+        ],
         "car_door_left": {
-          "angleDeg": 85
+          "style": "scissor",
+          "angleDeg": 85,
+          "heightFraction": 0.25
         },
 
         "_car_door_right_readme": [

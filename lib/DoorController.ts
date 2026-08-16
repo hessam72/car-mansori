@@ -29,6 +29,21 @@ import {
 
 export type PartKind = 'door-left' | 'door-right' | 'hood' | 'trunk'
 
+/**
+ * How the doors open.
+ *
+ * `conventional` swings outward about the car's up axis, mirrored per side.
+ * `scissor` is the Lamborghini motion: hinged low at the door's front edge, the
+ * door lifts straight up about the car's lateral axis. Mechanically it is a lid
+ * hinged at its front that raises its tail, which is why it shares the trunk's
+ * rotation shape and needs no left/right mirroring — the motion stays in the
+ * vertical/longitudinal plane, so the lateral travel is exactly zero.
+ *
+ * Butterfly and gullwing are not implemented; both need a canted or relocated
+ * hinge axis rather than one of the frame's cardinal axes.
+ */
+export type DoorStyle = 'conventional' | 'scissor'
+
 /** Per-part override from cars.json, for a model the heuristics read wrongly */
 export interface HingeOverride {
   /** Which end of the car the hinge sits on. Defaults per part kind. */
@@ -37,9 +52,18 @@ export interface HingeOverride {
   angleDeg?: number
   /** Reverse the opening direction */
   flip?: boolean
+  /** Door motion for this one door, overriding the car-wide `doorStyle` */
+  style?: DoorStyle
+  /**
+   * Where the hinge sits up the part's height: 0 = bottom edge, 1 = top.
+   * Defaults to 0.5 for a conventional door, 0.25 for scissor, 1 for a lid.
+   */
+  heightFraction?: number
 }
 
 export interface DoorControllerOptions {
+  /** Door motion for the whole car. Defaults to `conventional`. */
+  doorStyle?: DoorStyle
   doorAngleDeg?: number
   hoodAngleDeg?: number
   trunkAngleDeg?: number
@@ -107,6 +131,23 @@ const PART_SPECS: PartSpec[] = [
 ]
 
 /**
+ * Every part key the controller can drive, in authoring order.
+ *
+ * `PART_SPECS` is the single source of truth for these names, so anything that
+ * needs the full list — seeding an all-closed state, labelling toggles — should
+ * read it from here rather than re-typing the six strings.
+ */
+export const PART_KEYS: string[] = PART_SPECS.map((s) => s.key)
+
+interface HingeRule {
+  edge: 'front' | 'rear'
+  axis: 'x' | 'y'
+  sign: 1 | -1
+  /** Hinge height up the part: 0 = bottom edge, 1 = top edge */
+  heightFraction: number
+}
+
+/**
  * Which end of the car each part hinges on, and which way it swings.
  *
  * `sign` is applied to the opening angle about `axis` in the pivot's frame-
@@ -116,16 +157,34 @@ const PART_SPECS: PartSpec[] = [
  *  - a hood extends forward (−Z) from its rear hinge and its free end must
  *    rise (+Y), which needs a positive rotation about X.
  */
-const HINGE_RULES: Record<
-  PartKind,
-  { edge: 'front' | 'rear'; axis: 'x' | 'y'; sign: 1 | -1; upEdge: 'center' | 'top' }
-> = {
-  'door-left': { edge: 'front', axis: 'y', sign: -1, upEdge: 'center' },
-  'door-right': { edge: 'front', axis: 'y', sign: 1, upEdge: 'center' },
+const HINGE_RULES: Record<PartKind, HingeRule> = {
+  'door-left': { edge: 'front', axis: 'y', sign: -1, heightFraction: 0.5 },
+  'door-right': { edge: 'front', axis: 'y', sign: 1, heightFraction: 0.5 },
   // Hood hinges at the windshield end and lifts its nose
-  hood: { edge: 'rear', axis: 'x', sign: 1, upEdge: 'top' },
+  hood: { edge: 'rear', axis: 'x', sign: 1, heightFraction: 1 },
   // Trunk hinges at the cabin end and lifts its tail
-  trunk: { edge: 'front', axis: 'x', sign: -1, upEdge: 'top' },
+  trunk: { edge: 'front', axis: 'x', sign: -1, heightFraction: 1 },
+}
+
+/**
+ * Scissor replaces the door rules above. Both sides share one rule: rotating
+ * about the lateral axis keeps the motion in the vertical/longitudinal plane,
+ * so there is no left/right handedness to mirror.
+ *
+ * The hinge sits low — a real scissor pivot is around the top of the front
+ * wheel arch, not on the sill. Hinging at the very bottom edge would sweep an
+ * unnaturally wide arc.
+ */
+const SCISSOR_DOOR_RULE: HingeRule = {
+  edge: 'front',
+  axis: 'x',
+  sign: -1,
+  heightFraction: 0.25,
+}
+
+function ruleFor(kind: PartKind, style: DoorStyle): HingeRule {
+  const isDoor = kind === 'door-left' || kind === 'door-right'
+  return isDoor && style === 'scissor' ? SCISSOR_DOOR_RULE : HINGE_RULES[kind]
 }
 
 interface Hinge {
@@ -154,6 +213,7 @@ export class DoorController {
   private frame: CarFrame
   private invalidate: () => void
   private duration: number
+  private doorStyle: DoorStyle
   private disposed = false
 
   constructor(
@@ -164,6 +224,7 @@ export class DoorController {
     this.invalidate = invalidate
 
     const {
+      doorStyle = 'conventional',
       doorAngleDeg = 70,
       hoodAngleDeg = 45,
       trunkAngleDeg = 80,
@@ -173,11 +234,13 @@ export class DoorController {
     } = options
 
     this.duration = durationSec
+    this.doorStyle = doorStyle
 
     // Every measurement below reads world positions
     scene.updateMatrixWorld(true)
 
     this.frame = deriveCarFrame(scene, frameOverride)
+    console.log('[DoorController] Door style:', doorStyle)
     console.log('[DoorController] Car frame (%s):', this.frame.source, {
       forward: this.frame.forward.toArray().map((n) => +n.toFixed(3)),
       right: this.frame.right.toArray().map((n) => +n.toFixed(3)),
@@ -257,15 +320,21 @@ export class DoorController {
       return null
     }
 
-    const rule = HINGE_RULES[spec.kind]
+    const style = override?.style ?? this.doorStyle
+    const rule = ruleFor(spec.kind, style)
     const edge = override?.edge ?? rule.edge
+    const heightFraction = override?.heightFraction ?? rule.heightFraction
 
     // Hinge sits on one end of the part along the car's length, at the part's
-    // own lateral centre, and either mid-height (doors) or on the top skin
+    // own lateral centre, and at `heightFraction` up its height — mid for a
+    // conventional door, low for scissor, the top skin for a hood or trunk
     const forwardAt = edge === 'front' ? extent.maxForward : extent.minForward
     const rightAt = (extent.minRight + extent.maxRight) / 2
-    const upAt =
-      rule.upEdge === 'top' ? extent.maxUp : (extent.minUp + extent.maxUp) / 2
+    const upAt = THREE.MathUtils.lerp(
+      extent.minUp,
+      extent.maxUp,
+      THREE.MathUtils.clamp(heightFraction, 0, 1)
+    )
 
     const hingeWorld = pointInFrame(this.frame, forwardAt, rightAt, upAt)
 
@@ -313,14 +382,26 @@ export class DoorController {
       }
     }
 
-    // Real doors ease outward off their hinge as they swing. Scaled from the
-    // part itself so it reads the same on a hatchback and a limousine, where
-    // the old fixed 0.11 world units did not. Hood and trunk pivot cleanly now
-    // that the hinge is on the right edge, so they need no translation at all.
+    // Doors ease off their hinge as they move — a fixed pivot alone looks
+    // mechanical. Scaled from the part itself so it reads the same on a
+    // hatchback and a limousine, where the old fixed 0.11 world units did not.
+    // Hood and trunk pivot cleanly now that the hinge is on the right edge, so
+    // they need no translation.
+    //
+    // Offsets are in pivot space: X = right, Y = up, Z = rear.
     const partLength = Math.abs(extent.maxForward - extent.minForward)
     const offset = new THREE.Vector3()
-    if (spec.kind === 'door-left') offset.setX(-0.05 * partLength)
-    else if (spec.kind === 'door-right') offset.setX(0.05 * partLength)
+    const outward = spec.kind === 'door-left' ? -1 : 1
+
+    if (spec.kind === 'door-left' || spec.kind === 'door-right') {
+      if (style === 'scissor') {
+        // A real scissor mechanism is a four-bar linkage, not a plain hinge:
+        // the door pushes forward and slightly clear of the fender as it rises
+        offset.set(outward * 0.04 * partLength, 0, -0.06 * partLength)
+      } else {
+        offset.setX(outward * 0.05 * partLength)
+      }
+    }
 
     const sign = override?.flip ? -rule.sign : rule.sign
     const openAngle = sign * THREE.MathUtils.degToRad(override?.angleDeg ?? angleDeg)

@@ -75,6 +75,18 @@
   ],
   "items": [
     {
+      "id": "saamg-g63",
+      "name": "Mercedes-AMG G 63",
+      "price": 186000,
+      "mainCategory": "suv",
+      "subCategory": "performance-suv",
+      "sceneObject": "classic_car",
+      "focus": {
+        "azimuthDeg": -45,
+        "height": 1.4,
+        "distance": 3
+      }
+    }, {
       "id": "amg-g63",
       "name": "Mercedes-AMG G 63",
       "price": 186000,

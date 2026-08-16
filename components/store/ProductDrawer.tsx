@@ -4,7 +4,9 @@ import { useState } from 'react'
 import { motion, PanInfo } from 'framer-motion'
 import { X, ChevronDown, ShoppingBag } from 'lucide-react'
 import { useFurnitureConfig } from '@/stores/furnitureConfigStore'
+import { useStoreParts } from '@/stores/storePartsStore'
 import { formatPrice } from '@/lib/store/catalog'
+import { DOOR_LABELS } from '@/lib/car/partLabels'
 import type { ProductData } from './ProductInteraction'
 
 interface ProductDrawerProps {
@@ -14,12 +16,13 @@ interface ProductDrawerProps {
   onAddToCart?: () => void
 }
 
-type Tab = 'overview' | 'performance' | 'specs'
+type Tab = 'overview' | 'performance' | 'specs' | 'parts'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'performance', label: 'Performance' },
-  { id: 'specs', label: 'Specs' }
+  { id: 'specs', label: 'Specs' },
+  { id: 'parts', label: 'Parts' }
 ]
 
 const SPRING = { type: 'spring' as const, damping: 34, stiffness: 320, mass: 0.8 }
@@ -29,8 +32,10 @@ interface Spec {
   value?: string
 }
 
+type SpecTab = 'performance' | 'specs'
+
 /** Rows per spec tab. Blank fields are dropped so a sparse car never leaves gaps. */
-const SPEC_ROWS: Record<Exclude<Tab, 'overview'>, (p: ProductData) => Spec[]> = {
+const SPEC_ROWS: Record<SpecTab, (p: ProductData) => Spec[]> = {
   performance: (p) => [
     { label: 'Engine', value: p.engine },
     { label: 'Power', value: p.horsepower },
@@ -51,6 +56,8 @@ const SPEC_ROWS: Record<Exclude<Tab, 'overview'>, (p: ProductData) => Spec[]> = 
   ]
 }
 
+const isSpecTab = (tab: Tab): tab is SpecTab => tab === 'performance' || tab === 'specs'
+
 function SpecList({ specs }: { specs: Spec[] }) {
   return (
     <dl className="grid gap-px overflow-hidden rounded-xl bg-white/[0.06]">
@@ -66,6 +73,80 @@ function SpecList({ specs }: { specs: Spec[] }) {
           </div>
         ))}
     </dl>
+  )
+}
+
+/**
+ * Door/hood/trunk toggles for the focused car.
+ *
+ * Reads the same store CarPartsController drives, so this stays a dumb view —
+ * the 3D side and this panel never talk directly. Only panels the GLB actually
+ * has are listed; `availableParts` comes from DoorController.
+ */
+function PartsPanel() {
+  const openParts = useStoreParts((s) => s.openParts)
+  const availableParts = useStoreParts((s) => s.availableParts)
+  const togglePart = useStoreParts((s) => s.togglePart)
+  const openAllParts = useStoreParts((s) => s.openAllParts)
+  const closeAllParts = useStoreParts((s) => s.closeAllParts)
+
+  const parts = Object.entries(DOOR_LABELS).filter(([key]) => availableParts.includes(key))
+
+  if (parts.length === 0) {
+    return (
+      <p className="text-[13px] leading-7 text-[var(--text-muted)]">
+        No openable panels on this model.
+      </p>
+    )
+  }
+
+  const states = parts.map(([key]) => !!openParts[key])
+  const allOpen = states.every(Boolean)
+  const allShut = states.every((open) => !open)
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-1.5">
+        {parts.map(([key, label]) => {
+          const open = !!openParts[key]
+          return (
+            <button
+              key={key}
+              onClick={() => togglePart(key)}
+              aria-pressed={open}
+              className={`rounded-lg border px-3 py-2 text-[12px] font-medium transition-colors ${
+                open
+                  ? 'border-[var(--gold-primary)]/60 bg-[var(--gold-primary)]/10 text-[var(--gold-primary)]'
+                  : 'border-white/10 bg-white/[0.04] text-[var(--text-secondary)] hover:border-white/25 hover:text-[var(--text-primary)]'
+              }`}
+            >
+              {label}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="flex items-center justify-between">
+        <button
+          onClick={openAllParts}
+          disabled={allOpen}
+          className="text-[11px] font-medium uppercase tracking-[0.15em] text-[var(--text-muted)]
+                     transition-colors hover:text-[var(--gold-primary)] disabled:pointer-events-none
+                     disabled:opacity-40"
+        >
+          Open All
+        </button>
+        <button
+          onClick={closeAllParts}
+          disabled={allShut}
+          className="text-[11px] font-medium uppercase tracking-[0.15em] text-[var(--text-muted)]
+                     transition-colors hover:text-[var(--gold-primary)] disabled:pointer-events-none
+                     disabled:opacity-40"
+        >
+          Close All
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -225,7 +306,9 @@ export default function ProductDrawer({
                 </p>
               )}
 
-              {activeTab !== 'overview' && <SpecList specs={SPEC_ROWS[activeTab](product)} />}
+              {isSpecTab(activeTab) && <SpecList specs={SPEC_ROWS[activeTab](product)} />}
+
+              {activeTab === 'parts' && <PartsPanel />}
             </div>
 
             {onViewAR && (

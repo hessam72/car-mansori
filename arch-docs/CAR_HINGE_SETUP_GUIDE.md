@@ -119,17 +119,25 @@ error.
 Before opening a browser, run the headless check against the GLB:
 
 ```bash
-npm run verify:hinges                       # public/scene-optimized.glb
+npm run verify:hinges                                  # public/scene-optimized.glb
 npm run verify:hinges -- path/to/other.glb
+npm run verify:hinges -- --door-style=scissor          # one style in isolation
+npm run verify:hinges -- room.glb --subtree=g-class    # one car in a shared GLB
 ```
 
+`--subtree` matters for a showroom model holding several cars: they each carry
+their own `car_door_left`, and without it the script checks whichever comes
+first in the file. It scopes the search the same way the runtime does.
+
 It rebuilds the hinge structure from the glTF JSON and asserts two things per
-part, exiting non-zero if either fails:
+part, exiting non-zero if either fails. **Both door styles are checked by
+default**, so a regression in either is caught:
 
 - **Closed is a no-op** — with the swing node at 0, the part sits exactly where
   it started (drift should read `~1e-16`). A drift near `1.0` means the frame
   rotation is being clobbered by the animation.
-- **Open travels the right way** — doors move outward, hood and trunk move up.
+- **Open travels the right way** — conventional doors move outward, scissor
+  doors move up with a lateral component of ~0, hood and trunk move up.
 
 It also prints the derived frame and each hinge position, and confirms the
 basis is right-handed. Parts the model lacks are reported as skipped.
@@ -218,16 +226,60 @@ Every field is optional; anything omitted is auto-derived.
 
 | Field | Effect |
 |---|---|
+| `doorStyle` | `"conventional"` (default) or `"scissor"` — see below |
 | `doorAngleDeg` / `hoodAngleDeg` / `trunkAngleDeg` | Opening angle per part kind |
 | `durationSec` | Animation length |
 | `frame.forward` / `frame.up` | World-space axes, overriding detection entirely |
 | `hinges.<mesh>.edge` | `"front"` or `"rear"` — which end of the car the hinge sits on |
 | `hinges.<mesh>.angleDeg` | Angle for this one part |
 | `hinges.<mesh>.flip` | Reverse the opening direction |
+| `hinges.<mesh>.style` | Door motion for one door, overriding `doorStyle` |
+| `hinges.<mesh>.heightFraction` | `0`–`1`, where the hinge sits up the part's height |
 
 `frame` is a blunt instrument — reach for it only when the wheel empties can't
 be added to the model. Fixing the GLB is the durable fix; an override has to be
 maintained for every car that shares the problem.
+
+---
+
+## Door styles
+
+Set `parts.doorStyle` on the car. **The GLB needs no changes** — the same
+`car_door_left` / `car_door_right` meshes drive both motions; only the hinge
+placement and rotation axis differ.
+
+| | `conventional` | `scissor` |
+|---|---|---|
+| Seen on | most cars | Countach, Diablo, Aventador |
+| Hinge along the car | front edge | front edge |
+| Hinge height | 50% (mid-door) | 25% (low) |
+| Rotation axis | `up` | `lateral` |
+| Sign | −left / +right (mirrored) | −, **same both sides** |
+| Slide | outward, 5% of door length | forward 6% + outward 4% |
+
+Scissor is mechanically a lid hinged at its front that raises its tail — the
+same rotation shape as the trunk. Because the motion stays in the
+vertical/longitudinal plane, its lateral travel is exactly zero and there is no
+handedness to mirror; both doors share one rule.
+
+The hinge sits at 25% of the door's height rather than on the sill: a real
+scissor pivot is around the top of the front wheel arch, and hinging at the very
+bottom edge sweeps an unnaturally wide arc. If the arc looks off on a particular
+model, `hinges.<mesh>.heightFraction` is the value to nudge.
+
+Both styles read `doorAngleDeg`. 70° is realistic for either; 90° gives a
+near-vertical scissor door.
+
+```json
+"parts": { "doorStyle": "scissor", "doorAngleDeg": 70 }
+```
+
+**Butterfly** (McLaren, Enzo, i8) and **gullwing** (300SL, SLS) are not
+implemented. Butterfly needs an axis canted between lateral and fore-aft;
+gullwing hinges on the roof along the fore-aft axis. Both need an arbitrary
+axis vector rather than one of the frame's cardinal axes, so they would mean
+replacing the `'x' | 'y'` axis field with a `Vector3` and animating the swing
+node's quaternion instead of one Euler component.
 
 ---
 
@@ -256,3 +308,7 @@ was skipped.
 rotation and the opening rotation have ended up on the same node. Run
 `npm run verify:hinges` — the closed-state drift will read close to `1.0`
 instead of `~1e-16`.
+
+**Scissor doors sweep too wide, or clip the front fender.** Raise or lower
+`hinges.<mesh>.heightFraction` from its 0.25 default. Higher pulls the pivot up
+the door and tightens the arc; lower drops it toward the sill and widens it.

@@ -48,9 +48,11 @@ Three.js Scene (Visual Output)
 Each pivot is oriented to the car frame, so its local axes are always
 `X = passenger side`, `Y = up`, `Z = rear` no matter how the GLB is aligned:
 
-- Doors rotate about pivot-local **Y** (vertical hinge); left negative, right positive
+- Conventional doors rotate about pivot-local **Y** (vertical hinge); left negative, right positive
+- Scissor doors rotate about pivot-local **X**, negative on both sides, hinged lower — set via `parts.doorStyle`
 - Hood/trunk rotate about pivot-local **X** (horizontal hinge); hood positive, trunk negative
-- Doors additionally slide outward by a fraction of their own length
+- Doors additionally slide by a fraction of their own length: outward for
+  conventional, forward and outward for scissor
 
 Because the pivot is normalised first, these axes and signs are fixed constants
 rather than per-model tuning. See [CAR_HINGE_SETUP_GUIDE.md](./CAR_HINGE_SETUP_GUIDE.md).
@@ -174,7 +176,8 @@ projected onto those axes to find its edges.
 
 | Part | along the car | across | height |
 |---|---|---|---|
-| Doors (left/right) | **front** edge | part's own centre | mid-height |
+| Doors, conventional | **front** edge | part's own centre | 50% (mid-door) |
+| Doors, scissor | **front** edge | part's own centre | 25% (low) |
 | Hood | **rear** edge (at the windshield) | centre | top skin |
 | Trunk | **front** edge (at the cabin) | centre | top skin |
 
@@ -275,6 +278,44 @@ options without a code change:
 Per model, set `parts.hinges.<mesh>.edge` (`"front"` / `"rear"`) or `.flip` in
 `cars.json`. Changing the defaults for every model means editing `HINGE_RULES`
 in `lib/DoorController.ts`.
+
+## Reusing the controller outside /car
+
+`DoorController` takes any `THREE.Object3D` as its root and scopes both its part
+lookup and its wheel search to that object. Pointing it at a subtree is
+therefore all that is needed to drive one car inside a larger scene — which is
+how `/store` opens panels on a showroom GLB holding several cars
+(`components/store/CarPartsController.tsx`).
+
+Four rules for a host other than `ConfigurableCar`:
+
+1. **Pass the car, not the scene.** Node names repeat across cars in a shared
+   GLB, and `getObjectByName` returns the first hit. Resolve the car first —
+   `findSceneObject()` in `lib/store/sceneObject.ts` is the tolerant matcher the
+   store already uses for its camera flight and paint.
+2. **Feed it a complete `openParts` record.** `applyOpenState` only touches the
+   keys it is handed, so a sparse record silently fails to close the parts it
+   omits. Seed from `PART_KEYS`, exported by `lib/DoorController.ts`.
+3. **Don't dispose to close.** `dispose()` re-homes panels with
+   `Object3D.attach()`, which preserves world transform, so tearing a controller
+   down mid-swing strands that panel open with nothing left to close it. Closing
+   is a state change that animates out; keep the controller alive and dispose
+   only when the scene goes away.
+4. **Wrap `invalidate` where a demand loop has an idle governor.** `/store`
+   parks its loop 1.5 s after the last input, and a click on DOM chrome outside
+   the canvas never reaches its wake handler — so pass
+   `() => { markStoreActivity(); invalidate() }` rather than `invalidate`
+   alone, or a long animation can stall part-way with physics paused.
+
+Verifying a multi-car GLB:
+
+```bash
+npm run verify:hinges -- public/store-models/main-car.glb --subtree=g-class
+```
+
+`--subtree` scopes the node search the same way the runtime does. Without it the
+script resolves `car_door_left` from the file root and checks whichever car
+happens to come first.
 
 ## Error Handling
 
