@@ -1,5 +1,42 @@
 {
-  "g-class": {
+  "classic_car": {
+    "id": "classic_car",
+    "category": "SUV",
+    "type": "Performance SUV",
+    "name": "Mercedes-AMG G 63",
+    "glbPath": "/models/car/supercars/g-class.glb",
+    "usdzPath": "/models/car/supercars/g-class.usdz",
+    "year": "2024",
+    "bodyType": "5-door SUV",
+    "dimensions": "4873mm × 1984mm × 1969mm",
+    "weight": "2560 kg",
+    "seats": "5",
+    "engine": "4.0L V8 Biturbo",
+    "horsepower": "577 hp",
+    "torque": "850 Nm",
+    "acceleration": "4.5 s (0–100 km/h)",
+    "topSpeed": "220 km/h (limited)",
+    "drivetrain": "AWD (4MATIC)",
+    "transmission": "9-speed AMG SPEEDSHIFT TCT",
+    "price": 186000,
+    "colors": [
+      { "name": "Obsidian Black", "hex": "#0B0B0D" },
+      { "name": "Selenite Grey", "hex": "#6E7379" },
+      { "name": "Olive Magno", "hex": "#5E6350" }
+    ],
+    "detailedDescription": "The AMG G 63 keeps the boxy, ladder-frame silhouette the G-Class has carried since 1979 and puts a hand-built 4.0-litre biturbo V8 under the hood. Three locking differentials and a low-range transfer case survive intact, so the same car that runs to 100 km/h in 4.5 seconds still climbs a 100 percent gradient. Inside it is pure S-Class: Nappa leather, twin 12.3-inch displays and Burmester audio.",
+    "billboardPosition": [2, 1, 0],
+    "parts": {
+      "doorStyle": "conventional",
+      "doorAngleDeg": 70,
+      "hoodAngleDeg": 45,
+      "trunkAngleDeg": 80,
+      "durationSec": 1.2
+    }
+  },
+
+
+ "g-class": {
     "id": "g-class",
     "category": "SUV",
     "type": "Performance SUV",
