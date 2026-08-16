@@ -16,15 +16,6 @@
       "price": 0,
       "thumbnail": "/images/parts/wheels/stock.jpeg",
       "attachNodes": ["Wheel_FL", "Wheel_FR", "Wheel_RL", "Wheel_RR"]
-    }, 
-    {
-      "id": "wheel-stock2",
-      "name": "Stock Wheels2",
-      "category": "wheels",
-      "model_path": "/models/parts/wheels/scene (9).glb",
-      "price": 1400,
-      "thumbnail": "/images/parts/wheels/stock.jpeg",
-      "attachNodes": ["Wheel_FL", "Wheel_FR", "Wheel_RL", "Wheel_RR"]
     }
   ],
   "spoilers": [
@@ -168,24 +159,7 @@
       "thumbnail": "/images/parts/calipers/stock.jpeg",
       "attachNodes": ["Caliper_FL", "Caliper_FR", "Caliper_RL", "Caliper_RR"]
     },
-    {
-      "id": "caliper-brembo-red",
-      "name": "Brembo Red",
-      "category": "brake-calipers",
-      "model_path": "/models/parts/calipers/brembo-red.glb",
-      "price": 3500,
-      "thumbnail": "/images/parts/calipers/brembo-red.jpeg",
-      "attachNodes": ["Caliper_FL", "Caliper_FR", "Caliper_RL", "Caliper_RR"]
-    },
-    {
-      "id": "caliper-brembo-yellow",
-      "name": "Brembo Yellow",
-      "category": "brake-calipers",
-      "model_path": "/models/parts/calipers/brembo-yellow.glb",
-      "price": 3500,
-      "thumbnail": "/images/parts/calipers/brembo-yellow.jpeg",
-      "attachNodes": ["Caliper_FL", "Caliper_FR", "Caliper_RL", "Caliper_RR"]
-    },
+   
     {
       "id": "caliper-ap-racing",
       "name": "AP Racing Carbon Ceramic",
@@ -214,15 +188,7 @@
       "price": 1200,
       "thumbnail": "/images/parts/headlights/led.jpeg",
       "attachNodes": ["Headlight_L", "Headlight_R"]
-    },
-    {
-      "id": "headlight-xenon",
-      "name": "Bi-Xenon Performance",
-      "category": "headlights",
-      "model_path": "/models/parts/headlights/xenon.glb",
-      "price": 900,
-      "thumbnail": "/images/parts/headlights/xenon.jpeg",
-      "attachNodes": ["Headlight_L", "Headlight_R"]
     }
+   
   ]
 }

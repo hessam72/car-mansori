@@ -2,7 +2,7 @@
   {
     "id": "sample-car",
     "name": "BMW M5 Competition",
-    "model_path": "/models/car/supernatural-car-w-parts.glb",
+    "model_path": "/models/car/supercars/purche-with-parts.glb",
     "usdz_path": "/models/car/car.usdz",
     "specs": {
       "engine": "V6 Turbo",
@@ -11,7 +11,7 @@
       "top_speed": "250 km/h"
     },
     "parts": {
-      "doorStyle": "conventional",
+      "doorStyle": "scissor" ,
       "doorAngleDeg": 70,
       "hoodAngleDeg": 45,
       "trunkAngleDeg": 80,
