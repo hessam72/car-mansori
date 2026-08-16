@@ -11,6 +11,7 @@
       "top_speed": "250 km/h"
     },
     "parts": {
+      "doorStyle": "conventional",
       "doorAngleDeg": 70,
       "hoodAngleDeg": 45,
       "trunkAngleDeg": 80,

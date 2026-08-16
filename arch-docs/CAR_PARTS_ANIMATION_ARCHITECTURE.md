@@ -48,9 +48,11 @@ Three.js Scene (Visual Output)
 Each pivot is oriented to the car frame, so its local axes are always
 `X = passenger side`, `Y = up`, `Z = rear` no matter how the GLB is aligned:
 
-- Doors rotate about pivot-local **Y** (vertical hinge); left negative, right positive
+- Conventional doors rotate about pivot-local **Y** (vertical hinge); left negative, right positive
+- Scissor doors rotate about pivot-local **X**, negative on both sides, hinged lower — set via `parts.doorStyle`
 - Hood/trunk rotate about pivot-local **X** (horizontal hinge); hood positive, trunk negative
-- Doors additionally slide outward by a fraction of their own length
+- Doors additionally slide by a fraction of their own length: outward for
+  conventional, forward and outward for scissor
 
 Because the pivot is normalised first, these axes and signs are fixed constants
 rather than per-model tuning. See [CAR_HINGE_SETUP_GUIDE.md](./CAR_HINGE_SETUP_GUIDE.md).
@@ -174,7 +176,8 @@ projected onto those axes to find its edges.
 
 | Part | along the car | across | height |
 |---|---|---|---|
-| Doors (left/right) | **front** edge | part's own centre | mid-height |
+| Doors, conventional | **front** edge | part's own centre | 50% (mid-door) |
+| Doors, scissor | **front** edge | part's own centre | 25% (low) |
 | Hood | **rear** edge (at the windshield) | centre | top skin |
 | Trunk | **front** edge (at the cabin) | centre | top skin |
 
