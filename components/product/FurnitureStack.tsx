@@ -10,6 +10,7 @@ import { usePresentation } from '@/stores/presentationStore'
 import { useQuality } from '@/contexts/QualityContext'
 import { PartErrorBoundary } from '@/components/car/PartErrorBoundary'
 import { findCoverVariant, type PresentationConfig, type PresentationZone } from '@/lib/product/presentation'
+import type { ExportSources } from '@/lib/three/exportConfigured'
 import CoverLayer from './CoverLayer'
 import type { WipeDirection } from '@/hooks/useClipWipe'
 
@@ -32,6 +33,9 @@ interface FurnitureStackProps {
   config: PresentationConfig
   controls: React.MutableRefObject<StackControls>
   framing: React.MutableRefObject<StackFraming | null>
+  /** Filled in with the raw cached GLTFs so the AR export can rebuild the piece
+   *  from the sources rather than from this live, half-animated subtree. */
+  sources?: React.MutableRefObject<ExportSources>
 }
 
 const TILT_LIMIT = 0.28 // ~16°
@@ -56,10 +60,31 @@ function useLayer(path: string, zone: PresentationZone, match?: string) {
   useZonePaint(targets)
   useEffect(() => () => disposeTargets(targets), [targets])
 
-  return { scene, targets }
+  return { scene, targets, source: gltf.scene }
 }
 
-export default function FurnitureStack({ config, controls, framing }: FurnitureStackProps) {
+/**
+ * Registers the active cover's source scene without rendering it.
+ *
+ * The mounted CoverLayer only exists at layer step 2, but AR must export the
+ * finished piece from any step — so the variant is resolved here instead.
+ * It reads the same drei cache CoverLayer does, so this costs no extra fetch.
+ */
+function CoverSource({
+  path,
+  sources,
+}: {
+  path: string
+  sources: React.MutableRefObject<ExportSources>
+}) {
+  const { scene } = useGLTF(path)
+  useEffect(() => {
+    sources.current.cover = scene
+  }, [scene, sources])
+  return null
+}
+
+export default function FurnitureStack({ config, controls, framing, sources }: FurnitureStackProps) {
   const invalidate = useThree((s) => s.invalidate)
 
   const layerStep = usePresentation((s) => s.layerStep)
@@ -102,6 +127,13 @@ export default function FurnitureStack({ config, controls, framing }: FurnitureS
       baseSize: size,
     }
   }, [frame.scene, soft.scene, config.room.floorY, config.layers.frame.path])
+
+  useEffect(() => {
+    if (!sources) return
+    sources.current.frame = frame.source
+    sources.current.soft = soft.source
+    sources.current.centerOffset = centerOffset
+  }, [sources, frame.source, soft.source, centerOffset])
 
   // Publish the bounds the camera should frame. Exploding raises the top layer
   // by two gaps, so the rig has to re-frame or the fanned stack runs off-screen.
@@ -203,6 +235,14 @@ export default function FurnitureStack({ config, controls, framing }: FurnitureS
             </Suspense>
             {exploded && <LayerLabel text={config.layers.cover.label} />}
           </group>
+
+          {sources && variant && (
+            <Suspense fallback={null}>
+              <PartErrorBoundary category="cover-source">
+                <CoverSource path={variant.path} sources={sources} />
+              </PartErrorBoundary>
+            </Suspense>
+          )}
         </group>
       </group>
     </group>

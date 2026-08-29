@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useEnvironment, useGLTF } from '@react-three/drei'
 import { QualityProvider } from '@/contexts/QualityContext'
@@ -9,8 +9,15 @@ import { usePresentation, type ZonePaintConfig } from '@/stores/presentationStor
 import { useShop } from '@/stores/storeShopStore'
 import { findCatalogItemBySceneObject } from '@/lib/store/catalog'
 import catalog from '@/public/config/catalog.json'
-import { isARCapable } from '@/lib/device-utils'
+import { isARCapable, supportsBlobAR } from '@/lib/device-utils'
 import {
+  emptyExportSources,
+  exportConfiguredGLB,
+  exportSignature,
+  type ExportSources,
+} from '@/lib/three/exportConfigured'
+import {
+  findCoverVariant,
   requiredAssets,
   type PresentationConfig,
   type ResolvedPresentation,
@@ -63,6 +70,12 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
   const { key, product, config } = presentation
   const [showAR, setShowAR] = useState(false)
   const [arSupported, setArSupported] = useState(false)
+  /** False only on Android without WebXR, where Scene Viewer is the sole AR
+   *  path and it refuses blob URLs — there AR falls back to the static asset. */
+  const [liveARPossible, setLiveARPossible] = useState(true)
+  const [arBuilding, setArBuilding] = useState(false)
+  const [arError, setArError] = useState(false)
+  const [arUrl, setArUrl] = useState<string | null>(null)
   const [probeKey, setProbeKey] = useState(0)
   /** A GLB that exists but fails to parse never reaches the probe — the error
    *  boundaries in the scene report it here so it still gets a way out. */
@@ -80,9 +93,75 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
     return item?.id ?? null
   }, [key])
 
+  /** Written by FurnitureStack with the raw cached GLTFs — the AR export lives
+   *  out here, outside the Canvas, and has no other way to reach them. */
+  const sources = useRef<ExportSources>(emptyExportSources())
+  /** The last built model, keyed by the config that produced it. Re-opening AR
+   *  without touching a swatch reuses it instead of re-serialising. */
+  const arCache = useRef<{ signature: string; url: string } | null>(null)
+
   useEffect(() => {
     setArSupported(isARCapable())
+    supportsBlobAR().then(setLiveARPossible)
   }, [])
+
+  // Object URLs outlive React state, so the last one has to be released by hand.
+  useEffect(
+    () => () => {
+      if (arCache.current) URL.revokeObjectURL(arCache.current.url)
+      arCache.current = null
+    },
+    []
+  )
+
+  /**
+   * Serialise what is on screen — chosen cover variant, all three zone colours —
+   * and hand model-viewer the result. With no `ios-src` alongside it, Quick Look
+   * gets a USDZ generated from this same file, so iOS matches Android.
+   */
+  const openAR = useCallback(async () => {
+    if (!liveARPossible) {
+      setShowAR(true)
+      return
+    }
+
+    const { paint, coverId } = usePresentation.getState()
+    const signature = exportSignature(paint, coverId)
+
+    if (arCache.current?.signature === signature) {
+      setArUrl(arCache.current.url)
+      setShowAR(true)
+      return
+    }
+
+    setArBuilding(true)
+    setArError(false)
+    try {
+      const blob = await exportConfiguredGLB(
+        sources.current,
+        paint,
+        findCoverVariant(config, coverId),
+        { softMatch: config.layers.soft.zoneMatch }
+      )
+      const url = URL.createObjectURL(blob)
+      if (arCache.current) URL.revokeObjectURL(arCache.current.url)
+      arCache.current = { signature, url }
+      setArUrl(url)
+      setShowAR(true)
+
+      if (new URLSearchParams(window.location.search).has('debug')) {
+        console.log(`[AR] configured GLB ${(blob.size / 1048576).toFixed(1)} MB`)
+      }
+      if (blob.size > 40 * 1048576) {
+        console.warn('[AR] configured GLB exceeds 40MB — Quick Look may struggle')
+      }
+    } catch (error) {
+      console.error('[AR] export failed', error)
+      setArError(true)
+    } finally {
+      setArBuilding(false)
+    }
+  }, [config, liveARPossible])
 
   useEffect(() => {
     initProduct(key, defaultPaint(config), config.layers.cover.default)
@@ -123,7 +202,9 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
   return (
     <QualityProvider>
       <div className="relative h-screen w-screen overflow-hidden bg-[var(--surface-0)]">
-        {state === 'ready' && <PresentationScene config={config} onLayerError={handleLayerError} />}
+        {state === 'ready' && (
+          <PresentationScene config={config} onLayerError={handleLayerError} sources={sources} />
+        )}
 
         {state === 'checking' && (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -138,8 +219,11 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
         {state === 'ready' && (
           <ProductSheet
             presentation={presentation}
-            arAvailable={arSupported && !!product.glbPath}
-            onViewAR={() => setShowAR(true)}
+            arAvailable={arSupported && (liveARPossible || !!product.glbPath)}
+            arLive={liveARPossible}
+            arBuilding={arBuilding}
+            arError={arError}
+            onViewAR={openAR}
             onAddToCart={() => addToCart(catalogId ?? product.id)}
           />
         )}
@@ -153,10 +237,16 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
           />
         )}
 
-        {showAR && product.glbPath && (
+        {showAR && (arUrl || product.glbPath) && (
           <ARProductViewer
-            glbPath={product.glbPath}
-            usdzPath={product.usdzPath ?? ''}
+            // The configured build when we have one; `ios-src` is deliberately
+            // left off so Quick Look regenerates from it instead of the stale
+            // catalogue USDZ. WebXR first, so Android never reaches Scene
+            // Viewer with a blob it cannot fetch.
+            glbPath={arUrl ?? product.glbPath!}
+            usdzPath={arUrl ? undefined : product.usdzPath}
+            arModes={arUrl ? 'webxr quick-look scene-viewer' : undefined}
+            arScale="fixed"
             productName={product.name}
             onClose={() => setShowAR(false)}
           />

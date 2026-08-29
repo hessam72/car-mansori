@@ -6,9 +6,16 @@ import "@google/model-viewer/dist/model-viewer.min.js"
 
 interface ARProductViewerProps {
   glbPath: string
-  usdzPath: string
+  /** Omit for a runtime-generated GLB: with no `ios-src`, model-viewer builds
+   *  the USDZ from the loaded model, so Quick Look shows the live config. An
+   *  empty string would defeat that, so the attribute is dropped entirely. */
+  usdzPath?: string
   productName: string
   poster?: string
+  /** 'fixed' pins the model to its authored real-world size — right for
+   *  furniture. Defaults to 'auto' so existing callers are unchanged. */
+  arScale?: 'auto' | 'fixed'
+  arModes?: string
   onClose?: () => void
 }
 
@@ -17,6 +24,8 @@ export default function ARProductViewer({
   usdzPath,
   productName,
   poster,
+  arScale = 'auto',
+  arModes = 'webxr scene-viewer quick-look',
   onClose
 }: ARProductViewerProps) {
   const modelViewerRef = useRef<HTMLElement & ModelViewerElement>(null)
@@ -92,7 +101,7 @@ export default function ARProductViewer({
       <model-viewer
         ref={modelViewerRef}
         src={glbPath}
-        ios-src={usdzPath}
+        {...(usdzPath ? { 'ios-src': usdzPath } : {})}
         alt={productName}
         poster={poster}
         seamless-poster
@@ -101,8 +110,8 @@ export default function ARProductViewer({
 
         // AR Configuration
         ar
-        ar-modes="webxr scene-viewer quick-look"
-        ar-scale="auto"
+        ar-modes={arModes}
+        ar-scale={arScale}
         ar-placement="floor"
         xr-environment
 

@@ -8,6 +8,7 @@ import { PartErrorBoundary } from '@/components/car/PartErrorBoundary'
 import { clampDprToBudget } from '@/lib/three/dprBudget'
 import { useQuality } from '@/contexts/QualityContext'
 import type { PresentationConfig } from '@/lib/product/presentation'
+import type { ExportSources } from '@/lib/three/exportConfigured'
 import PresentationEnvironment from './PresentationEnvironment'
 import PresentationLighting from './PresentationLighting'
 import PresentationRoom from './PresentationRoom'
@@ -19,9 +20,12 @@ import PresentationDiagnostics from './PresentationDiagnostics'
 interface Props {
   config: PresentationConfig
   onLayerError?: (category: string, error: Error) => void
+  /** Owned by the page so the AR export, which lives outside the Canvas, can
+   *  reach the loaded GLTFs. Same ref-passing idiom as `controls`/`framing`. */
+  sources?: React.MutableRefObject<ExportSources>
 }
 
-export default function PresentationScene({ config, onLayerError }: Props) {
+export default function PresentationScene({ config, onLayerError, sources }: Props) {
   const { settings } = useQuality()
   const debug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug')
   const [perfScale, setPerfScale] = useState(1)
@@ -81,7 +85,7 @@ export default function PresentationScene({ config, onLayerError }: Props) {
 
         <Suspense fallback={null}>
           <PartErrorBoundary category="furniture" onError={onLayerError}>
-            <FurnitureStack config={config} controls={controls} framing={framing} />
+            <FurnitureStack config={config} controls={controls} framing={framing} sources={sources} />
           </PartErrorBoundary>
         </Suspense>
 

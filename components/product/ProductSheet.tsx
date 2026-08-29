@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, type PanInfo } from 'framer-motion'
-import { ChevronDown, ShoppingBag, Smartphone } from 'lucide-react'
+import { ChevronDown, Loader2, ShoppingBag, Smartphone } from 'lucide-react'
 import { faPrice } from '@/lib/store/catalog'
 import { SpecDetails, SpecDimensions, SpecFabric } from '@/components/store/productSpecTabs'
 import { usePresentation } from '@/stores/presentationStore'
@@ -39,9 +39,21 @@ interface Props {
   onViewAR: () => void
   onAddToCart: () => void
   arAvailable: boolean
+  /** True when AR will show the live configuration rather than the stock model. */
+  arLive?: boolean
+  arBuilding?: boolean
+  arError?: boolean
 }
 
-export default function ProductSheet({ presentation, onViewAR, onAddToCart, arAvailable }: Props) {
+export default function ProductSheet({
+  presentation,
+  onViewAR,
+  onAddToCart,
+  arAvailable,
+  arLive = false,
+  arBuilding = false,
+  arError = false,
+}: Props) {
   const { product, config } = presentation
   const [activeTab, setActiveTab] = useState<Tab>('specs')
   // Opens collapsed: the piece is the hero, details are one tap away.
@@ -231,19 +243,34 @@ export default function ProductSheet({ presentation, onViewAR, onAddToCart, arAv
               {activeTab === 'ar' && (
                 <div className="space-y-3">
                   <p className="text-[13px] leading-7 text-[var(--text-secondary)]">
-                    این نمای واقعیت افزوده، مدل پیش‌فرض محصول است و تغییرات رنگ و جنسی که
-                    هم‌اکنون انتخاب کرده‌اید را نشان نمی‌دهد.
+                    {arLive
+                      ? 'همین چیدمان — جنس رویه و هر سه رنگ انتخابی شما — در فضای واقعی اتاقتان قرار می‌گیرد. آماده‌سازی مدل چند ثانیه طول می‌کشد.'
+                      : 'مرورگر این دستگاه از نمایش مدل ساخته‌شده پشتیبانی نمی‌کند؛ مدل پیش‌فرض محصول نمایش داده می‌شود.'}
                   </p>
+                  {arError && (
+                    <p className="text-[12px] leading-6 text-red-400">
+                      ساخت مدل واقعیت افزوده ناموفق بود. دوباره تلاش کنید.
+                    </p>
+                  )}
                   <button
                     onClick={onViewAR}
-                    disabled={!arAvailable}
+                    disabled={!arAvailable || arBuilding}
                     className="flex w-full items-center justify-center gap-2 rounded-xl border
                                border-[var(--border-default)] py-2.5 text-[13px]
                                text-[var(--gold-primary)] transition-colors
                                hover:bg-[var(--gold-primary)]/10 disabled:opacity-40"
                   >
-                    <Smartphone className="h-4 w-4" />
-                    مشاهده در واقعیت افزوده
+                    {arBuilding ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        در حال آماده‌سازی مدل…
+                      </>
+                    ) : (
+                      <>
+                        <Smartphone className="h-4 w-4" />
+                        مشاهده در واقعیت افزوده
+                      </>
+                    )}
                   </button>
                 </div>
               )}
