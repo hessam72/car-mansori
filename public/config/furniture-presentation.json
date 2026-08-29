@@ -27,7 +27,7 @@
             "id": "leather",
             "name": "چرم طبیعی",
             "path": "/models/presentation/test/cover-leather.glb",
-            "thumbnail": "/images/covers/leather.jpg",
+            "thumbnail": "/images/covers/leather.png",
             "priceDelta": 4500000,
             "material": {
               "roughness": 0.45,
@@ -39,7 +39,7 @@
             "id": "velvet",
             "name": "مخمل",
             "path": "/models/presentation/test/cover-velvet.glb",
-            "thumbnail": "/images/covers/velvet.jpg",
+            "thumbnail": "/images/covers/velvet.jpeg",
             "priceDelta": 0,
             "material": {
               "roughness": 0.88,
