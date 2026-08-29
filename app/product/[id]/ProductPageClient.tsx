@@ -219,7 +219,11 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
         {state === 'ready' && (
           <ProductSheet
             presentation={presentation}
-            arAvailable={arSupported && (liveARPossible || !!product.glbPath)}
+            // Not gated on the device: the viewer is a 3D preview of the
+            // configured piece everywhere, and AR is the extra it adds when the
+            // device supports it. `arCapable` only steers the copy.
+            arAvailable={liveARPossible || !!product.glbPath}
+            arCapable={arSupported}
             arLive={liveARPossible}
             arBuilding={arBuilding}
             arError={arError}

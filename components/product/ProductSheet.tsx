@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, type PanInfo } from 'framer-motion'
-import { ChevronDown, Loader2, ShoppingBag, Smartphone } from 'lucide-react'
+import { Box, ChevronDown, Loader2, ShoppingBag, Smartphone } from 'lucide-react'
 import { faPrice } from '@/lib/store/catalog'
 import { SpecDetails, SpecDimensions, SpecFabric } from '@/components/store/productSpecTabs'
 import { usePresentation } from '@/stores/presentationStore'
@@ -39,6 +39,8 @@ interface Props {
   onViewAR: () => void
   onAddToCart: () => void
   arAvailable: boolean
+  /** Whether this device can enter AR at all — steers the copy, not the button. */
+  arCapable?: boolean
   /** True when AR will show the live configuration rather than the stock model. */
   arLive?: boolean
   arBuilding?: boolean
@@ -50,6 +52,7 @@ export default function ProductSheet({
   onViewAR,
   onAddToCart,
   arAvailable,
+  arCapable = false,
   arLive = false,
   arBuilding = false,
   arError = false,
@@ -243,9 +246,11 @@ export default function ProductSheet({
               {activeTab === 'ar' && (
                 <div className="space-y-3">
                   <p className="text-[13px] leading-7 text-[var(--text-secondary)]">
-                    {arLive
-                      ? 'همین چیدمان — جنس رویه و هر سه رنگ انتخابی شما — در فضای واقعی اتاقتان قرار می‌گیرد. آماده‌سازی مدل چند ثانیه طول می‌کشد.'
-                      : 'مرورگر این دستگاه از نمایش مدل ساخته‌شده پشتیبانی نمی‌کند؛ مدل پیش‌فرض محصول نمایش داده می‌شود.'}
+                    {!arCapable
+                      ? 'پیش‌نمایش سه‌بعدی از همین چیدمان انتخابی شما باز می‌شود. برای قرار دادن آن در فضای واقعی، صفحه را روی گوشی یا تبلت باز کنید.'
+                      : arLive
+                        ? 'همین چیدمان — جنس رویه و هر سه رنگ انتخابی شما — در فضای واقعی اتاقتان قرار می‌گیرد. آماده‌سازی مدل چند ثانیه طول می‌کشد.'
+                        : 'مرورگر این دستگاه از نمایش مدل ساخته‌شده پشتیبانی نمی‌کند؛ مدل پیش‌فرض محصول نمایش داده می‌شود.'}
                   </p>
                   {arError && (
                     <p className="text-[12px] leading-6 text-red-400">
@@ -265,10 +270,15 @@ export default function ProductSheet({
                         <Loader2 className="h-4 w-4 animate-spin" />
                         در حال آماده‌سازی مدل…
                       </>
-                    ) : (
+                    ) : arCapable ? (
                       <>
                         <Smartphone className="h-4 w-4" />
                         مشاهده در واقعیت افزوده
+                      </>
+                    ) : (
+                      <>
+                        <Box className="h-4 w-4" />
+                        پیش‌نمایش سه‌بعدی
                       </>
                     )}
                   </button>

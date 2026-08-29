@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { isARCapable, getARModeName } from '@/lib/device-utils'
+import { getARModeName } from '@/lib/device-utils'
 import "@google/model-viewer/dist/model-viewer.min.js"
 
 interface ARProductViewerProps {
@@ -34,14 +34,17 @@ export default function ARProductViewer({
   const [arSupported, setArSupported] = useState(false)
 
   useEffect(() => {
-    setArSupported(isARCapable())
-
     const mv = modelViewerRef.current
     if (!mv) return
 
+    // model-viewer resolves real AR support (WebXR / Scene Viewer / Quick Look)
+    // once the model is loaded. That is the honest signal — a UA sniff calls
+    // every desktop incapable and, worse, reads iPadOS 13+ as a Mac.
+    const syncARSupport = () => setArSupported(mv.canActivateAR)
+
     const handleLoadEvent = () => {
       setIsLoading(false)
-      console.log('✅ AR Model loaded:', productName)
+      syncARSupport()
     }
 
     const handleErrorEvent = () => {
@@ -52,10 +55,12 @@ export default function ARProductViewer({
 
     mv.addEventListener('load', handleLoadEvent)
     mv.addEventListener('error', handleErrorEvent)
+    mv.addEventListener('ar-status', syncARSupport)
 
     return () => {
       mv.removeEventListener('load', handleLoadEvent)
       mv.removeEventListener('error', handleErrorEvent)
+      mv.removeEventListener('ar-status', syncARSupport)
     }
   }, [productName])
 
