@@ -214,7 +214,9 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
           </div>
         )}
 
-        <PresentationTopBar productName={product.name} catalogId={catalogId} />
+        {/* The AR overlay owns the screen and carries its own close button —
+            the back link here would leave the page outright. */}
+        {!showAR && <PresentationTopBar productName={product.name} catalogId={catalogId} />}
 
         {state === 'ready' && (
           <ProductSheet
@@ -227,6 +229,7 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
             arLive={liveARPossible}
             arBuilding={arBuilding}
             arError={arError}
+            hidden={showAR}
             onViewAR={openAR}
             onAddToCart={() => addToCart(catalogId ?? product.id)}
           />

@@ -45,6 +45,10 @@ interface Props {
   arLive?: boolean
   arBuilding?: boolean
   arError?: boolean
+  /** Slides the sheet off-screen while the AR overlay owns the display. Kept
+   *  mounted so the open tab, the expanded state and the reported screen
+   *  coverage all survive — closing AR returns you exactly where you were. */
+  hidden?: boolean
 }
 
 export default function ProductSheet({
@@ -56,6 +60,7 @@ export default function ProductSheet({
   arLive = false,
   arBuilding = false,
   arError = false,
+  hidden = false,
 }: Props) {
   const { product, config } = presentation
   const [activeTab, setActiveTab] = useState<Tab>('specs')
@@ -118,16 +123,17 @@ export default function ProductSheet({
     <motion.div
       ref={sheetRef}
       dir="rtl"
-      drag="y"
+      drag={hidden ? false : 'y'}
       dragConstraints={{ top: 0, bottom: 0 }}
       dragElastic={{ top: 0.04, bottom: 0.25 }}
       onDragEnd={handleDragEnd}
       initial={{ y: '110%' }}
-      animate={{ y: 0 }}
+      animate={{ y: hidden ? '110%' : 0 }}
       transition={SPRING}
-      className="font-persian fixed bottom-0 left-0 right-0 z-[99] mx-auto flex max-w-[560px]
+      aria-hidden={hidden}
+      className={`font-persian fixed bottom-0 left-0 right-0 z-[99] mx-auto flex max-w-[560px]
                  flex-col overflow-hidden rounded-t-[28px] border-t border-white/[0.06]
-                 bg-[var(--surface-2)]/85 backdrop-blur-2xl"
+                 bg-[var(--surface-2)]/85 backdrop-blur-2xl ${hidden ? 'pointer-events-none' : ''}`}
       style={{ boxShadow: '0 -18px 50px -20px rgb(0 0 0 / 80%)' }}
     >
       <div

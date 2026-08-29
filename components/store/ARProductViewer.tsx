@@ -65,7 +65,9 @@ export default function ARProductViewer({
   }, [productName])
 
   return (
-    <div className="fixed inset-0 z-50 w-full h-full min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-900">
+    // Above the presentation page's top bar (z-100) and bottom sheet (z-99):
+    // a full-screen AR overlay must not have page chrome floating over it.
+    <div className="fixed inset-0 z-[200] w-full h-full min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-900">
       {/* Close button */}
       {onClose && (
         <button
