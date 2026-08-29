@@ -4,6 +4,7 @@ The feature below is already built, committed (`c830087`), and pushed to
 `furncher`. The user now wants a `.md` doc explaining what it is and how it
 works — a reference doc, not new code.
 
+
 **Plan:** write `arch-docs/PRODUCT_PRESENTATION_PAGE.md` covering:
 1. What the page is and why it exists (the Context section below, condensed)
 2. Route and file map (the file manifest below)
