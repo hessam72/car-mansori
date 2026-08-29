@@ -1,0 +1,51 @@
+'use client'
+
+import { Environment, Lightformer } from '@react-three/drei'
+import { useQuality } from '@/contexts/QualityContext'
+import type { PresentationConfig } from '@/lib/product/presentation'
+
+/**
+ * IBL for the presentation stage.
+ *
+ * frames={1} bakes the cubemap once on mount, so the Lightformer rig costs
+ * nothing per frame. With no shadow or reflection passes competing for budget,
+ * the env resolution is stepped up one tier over the showroom's.
+ */
+export default function PresentationEnvironment({ config }: { config: PresentationConfig }) {
+  const { settings } = useQuality()
+  const resolution = Math.min(settings.envResolution * 2, 2048)
+
+  return (
+    <Environment
+      files={config.room.hdr}
+      background={false}
+      resolution={resolution}
+      frames={1}
+      environmentIntensity={config.room.envIntensity ?? 1}
+    >
+      {/* Overhead softbox — the broad top light fabric needs to read */}
+      <Lightformer
+        form="rect"
+        intensity={2.5}
+        position={[0, 4, 1]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        scale={[6, 3, 1]}
+      />
+      {/* Side strip — grazing highlight that shows weave and stitching */}
+      <Lightformer
+        form="rect"
+        intensity={1.6}
+        position={[3.5, 2, 1]}
+        rotation={[0, -Math.PI / 2, 0]}
+        scale={[4, 2, 1]}
+      />
+      <Lightformer
+        form="rect"
+        intensity={0.9}
+        position={[-3.5, 2, 1]}
+        rotation={[0, Math.PI / 2, 0]}
+        scale={[4, 2, 1]}
+      />
+    </Environment>
+  )
+}

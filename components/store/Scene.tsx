@@ -233,6 +233,9 @@ export default function Scene() {
   const [pendingFocus, setPendingFocus] = useState<PendingFocus | null>(null)
   const [focusedName, setFocusedName] = useState<string | null>(null)
   const [focusedId, setFocusedId] = useState<string | null>(null)
+  /** products.json key for the focused piece — the only place it survives past
+   *  pendingFocus, and what /product/[id] is keyed on. */
+  const [focusedKey, setFocusedKey] = useState<string | null>(null)
 
   const { selectFurniture, initializeColor, currentColor, originalColor } = useFurnitureConfig()
   const addToCart = useShop((s) => s.addToCart)
@@ -313,6 +316,7 @@ export default function Scene() {
       setSelectedProduct(null)
       setFocusedName(null)
       setFocusedId(null)
+      setFocusedKey(null)
       setPendingFocus(pending)
       setFocusTarget(pending.sceneObject)
       wake()
@@ -356,6 +360,7 @@ export default function Scene() {
       initializeColor()
       setSelectedProduct(resolved)
       setFocusedName(pending.item?.name ?? resolved.name)
+      setFocusedKey(pending.sceneObject)
       // Likes are per catalogue entry; a direct tap has no catalogue identity
       setFocusedId(pending.item?.id ?? null)
     },
@@ -383,6 +388,7 @@ export default function Scene() {
     setSelectedObjectPosition(null)
     setFocusedName(null)
     setFocusedId(null)
+    setFocusedKey(null)
     playerStartPosRef.current = null
   }, [])
 
@@ -583,6 +589,7 @@ export default function Scene() {
           <ProductDrawer
             key={focusedId ?? selectedProduct.id}
             product={selectedProduct}
+            productKey={focusedKey}
             onClose={closeProduct}
             onViewAR={() => {
               setArProduct(selectedProduct)

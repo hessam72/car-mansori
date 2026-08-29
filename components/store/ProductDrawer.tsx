@@ -1,14 +1,20 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { motion, PanInfo } from 'framer-motion'
-import { X, ChevronDown, ShoppingBag } from 'lucide-react'
+import { X, ChevronDown, ShoppingBag, Sparkles } from 'lucide-react'
+import { hasPresentation } from '@/lib/product/presentation'
 import { useFurnitureConfig } from '@/stores/furnitureConfigStore'
 import { faPrice } from '@/lib/store/catalog'
 import type { ProductData } from './ProductInteraction'
+import { SpecDetails, SpecDimensions, SpecFabric } from './productSpecTabs'
 
 interface ProductDrawerProps {
   product: ProductData | null
+  /** products.json object key — the scene-object name, not product.id. Needed
+   *  to link into the dedicated presentation route. */
+  productKey?: string | null
   onClose: () => void
   onViewAR?: () => void
   onAddToCart?: () => void
@@ -26,6 +32,7 @@ const SPRING = { type: 'spring' as const, damping: 34, stiffness: 320, mass: 0.8
 
 export default function ProductDrawer({
   product,
+  productKey,
   onClose,
   onViewAR,
   onAddToCart
@@ -170,58 +177,25 @@ export default function ProductDrawer({
             </div>
 
             <div className="scrollbar-hide max-h-[26vh] overflow-y-auto overscroll-contain py-3 md:max-h-[38vh]">
-              {activeTab === 'details' && (
-                <p className="text-[13px] leading-7 text-[var(--text-secondary)]">
-                  {product.detailedDescription || 'توضیحات موجود نیست'}
-                </p>
-              )}
-
-              {activeTab === 'fabric' && (
-                <div className="space-y-3">
-                  <div className="flex items-baseline gap-2 text-[13px]">
-                    <span className="text-[var(--text-muted)]">جنس اصلی:</span>
-                    <span className="text-[var(--text-primary)]">
-                      {product.fabricType || 'موجود نیست'}
-                    </span>
-                  </div>
-                  <ul className="space-y-1.5">
-                    {product.fabricMaterials?.map((material) => (
-                      <li
-                        key={material}
-                        className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)]"
-                      >
-                        <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--gold-primary)]" />
-                        {material}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {activeTab === 'dimensions' && (
-                <dl className="grid gap-px overflow-hidden rounded-xl bg-white/[0.06]">
-                  {[
-                    { label: 'ابعاد', value: product.dimensions },
-                    { label: 'جنس', value: product.material },
-                    { label: 'وزن', value: product.weight },
-                    { label: 'دسته‌بندی', value: product.category },
-                    { label: 'نوع', value: product.type },
-                    { label: 'ظرفیت نشستن', value: product.seatingCapacity },
-                    { label: 'تعداد قفسه', value: product.shelves }
-                  ]
-                    .filter((spec) => spec.value)
-                    .map((spec) => (
-                      <div
-                        key={spec.label}
-                        className="flex items-center justify-between bg-[var(--surface-2)] px-3.5 py-2.5 text-[13px]"
-                      >
-                        <dt className="text-[var(--text-muted)]">{spec.label}</dt>
-                        <dd className="text-[var(--text-primary)]">{spec.value}</dd>
-                      </div>
-                    ))}
-                </dl>
-              )}
+              {activeTab === 'details' && <SpecDetails product={product} />}
+              {activeTab === 'fabric' && <SpecFabric product={product} />}
+              {activeTab === 'dimensions' && <SpecDimensions product={product} />}
             </div>
+
+            {hasPresentation(productKey) && (
+              <Link
+                href={`/product/${productKey}`}
+                /* Don't pull the heavy 3D chunk while the user is still browsing */
+                prefetch={false}
+                className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border
+                           border-[var(--gold-primary)]/40 py-2.5 text-[13px]
+                           text-[var(--gold-primary)] transition-colors
+                           hover:bg-[var(--gold-primary)]/10"
+              >
+                <Sparkles className="h-4 w-4" />
+                نمای ویژه محصول
+              </Link>
+            )}
 
             {onViewAR && (
               <button
