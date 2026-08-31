@@ -131,6 +131,7 @@
       "padding": 1.55,
       "minZoom": 0,
       "maxZoom": 2.5,
+      "startZoom": 0.9,
       "tiltLimitDeg": 0,
       "screenLift": -0.05
     },

@@ -226,6 +226,15 @@ export interface PresentationConfig {
     /** Dolly clamps, as multiples of the framed distance. */
     minZoom?: number
     maxZoom?: number
+    /**
+     * Where the dolly opens, as a fraction of how far back it can go — 0.9 to
+     * start at 90% of the way out. Omit to open at the framed distance.
+     *
+     * A fraction of the *achievable* limit, not of `maxZoom`: a modelled room's
+     * wall can cut the range short, and 90% of a distance the room never allows
+     * would be a different shot on every product.
+     */
+    startZoom?: number
     /** How far a vertical drag can tip the piece, ±degrees. 36 is a tenth of a
      *  full turn — enough to show the seat and the underside, short of tumbling. */
     tiltLimitDeg?: number

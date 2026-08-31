@@ -179,6 +179,23 @@ export default function PresentationGestures({ config, controls, framing, roomBo
       }
     }
 
+    // Opening zoom, on the first solve only. Expressed against how far the rig
+    // can *actually* pull back rather than against `maxZoom`, because the wall
+    // may cut that short — asking for 90% of the limit should mean 90% of the
+    // real one, not 90% of a number the room never lets you reach.
+    if (!settled.current && config.camera.startZoom !== undefined) {
+      const limit = wallLimit()
+      const base = Math.min(framedDistance.current, limit)
+      const furthest = Math.min(base * maxZoom, limit)
+      if (base > 0) {
+        zoom.current = THREE.MathUtils.clamp(
+          (furthest * config.camera.startZoom) / base,
+          minZoom,
+          maxZoom
+        )
+      }
+    }
+
     targetDistance.current = solveDistance(zoom.current)
     // First frame snaps; a later re-frame (explode, resize) eases via useFrame
     // so the pull-back reads as part of the explode animation.
