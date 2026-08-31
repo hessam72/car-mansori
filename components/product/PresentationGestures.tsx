@@ -23,9 +23,7 @@ interface Props {
   roomBounds?: React.MutableRefObject<RoomBounds | null>
 }
 
-/** Clearance kept between the camera and the wall behind it, in metres.
- *  Override with `camera.wallMargin`; a negative value lets the camera sit
- *  outside the room's bounds, which is fine for a front-open room. */
+/** Clearance kept between the camera and the wall behind it, in metres. */
 const WALL_MARGIN = 0.35
 
 /**
@@ -43,7 +41,6 @@ const WALL_MARGIN = 0.35
  * camera is furthest back.
  */
 const clampedOrigin = new THREE.Vector3()
-const scratchSphere = new THREE.Sphere()
 
 function distanceToWall(origin: THREE.Vector3, dir: THREE.Vector3, box: THREE.Box3): number {
   box.clampPoint(origin, clampedOrigin)
@@ -94,21 +91,11 @@ export default function PresentationGestures({ config, controls, framing, roomBo
   const maxZoom = config.camera.maxZoom ?? 1.8
   const tiltLimit = THREE.MathUtils.degToRad(config.camera.tiltLimitDeg ?? TILT_LIMIT_DEG)
 
-  /**
-   * How far back the wall lets the camera go. Infinity with no room.
-   *
-   * This is a *bounding box*, not the walls themselves. A room authored
-   * front-open — which is the convention on this page, there being no geometry
-   * behind the static camera — still has a front face on its box, and the clamp
-   * treats that imaginary face as a wall. That is the usual reason zooming out
-   * stops short with `maxZoom` left on the table, so it is switchable:
-   * `camera.clampToRoom: false` hands the range back to `maxZoom` entirely.
-   */
+  /** How far back the wall lets the camera go. Infinity with no room. */
   const wallLimit = () => {
     const box = roomBounds?.current?.box
-    if (!box || config.camera.clampToRoom === false) return Infinity
-    const margin = config.camera.wallMargin ?? WALL_MARGIN
-    const limit = distanceToWall(desiredTarget.current, viewDir.current, box) - margin
+    if (!box) return Infinity
+    const limit = distanceToWall(desiredTarget.current, viewDir.current, box) - WALL_MARGIN
     return limit > 0 ? limit : Infinity
   }
 
@@ -127,25 +114,6 @@ export default function PresentationGestures({ config, controls, framing, roomBo
     const limit = wallLimit()
     const base = Math.min(framedDistance.current, limit)
     return Math.min(base * zoomFactor, limit)
-  }
-
-  /**
-   * Keep the room inside the far plane as the camera backs away from it.
-   *
-   * PresentationRoom sizes `far` once, for a camera near the origin. Pull back
-   * far enough — which is the whole point of a wide `maxZoom` — and the room's
-   * far wall crosses that plane, gets clipped, and the piece is left floating
-   * in black. Only ever raises it.
-   */
-  const ensureFar = () => {
-    const box = roomBounds?.current?.box
-    if (!box) return
-    box.getBoundingSphere(scratchSphere)
-    const needed = camera.position.distanceTo(scratchSphere.center) + scratchSphere.radius + 2
-    if (needed > camera.far) {
-      camera.far = needed
-      camera.updateProjectionMatrix()
-    }
   }
 
   // Framing is the fiddliest thing on this page — `?debug=1` prints the solve.
@@ -221,7 +189,6 @@ export default function PresentationGestures({ config, controls, framing, roomBo
       camera.position.copy(target.current).addScaledVector(viewDir.current, distance.current)
       camera.lookAt(target.current)
     }
-    ensureFar()
     invalidate()
   }
 
@@ -358,7 +325,6 @@ export default function PresentationGestures({ config, controls, framing, roomBo
 
     camera.position.copy(target.current).addScaledVector(viewDir.current, distance.current)
     camera.lookAt(target.current)
-    ensureFar()
     invalidate()
   })
 

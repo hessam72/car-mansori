@@ -130,7 +130,6 @@
       "padding": 1.55,
       "minZoom": 0,
       "maxZoom": 2.5,
-      "clampToRoom": false,
       "tiltLimitDeg": 10,
       "screenLift": -0.05
     },

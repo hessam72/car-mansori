@@ -216,17 +216,6 @@ export interface PresentationConfig {
     /** How far a vertical drag can tip the piece, ±degrees. 36 is a tenth of a
      *  full turn — enough to show the seat and the underside, short of tumbling. */
     tiltLimitDeg?: number
-    /**
-     * Stop the dolly at the modelled room's bounds. On by default.
-     *
-     * It is the room's *bounding box*, not its walls — so on a front-open room
-     * the box's front face caps the zoom-out even though there is nothing
-     * there. Turn it off to hand the full range back to `maxZoom`.
-     */
-    clampToRoom?: boolean
-    /** Clearance kept from that boundary, in metres. Default 0.35; negative
-     *  values let the camera sit outside the room. */
-    wallMargin?: number
     /** Pushes the piece up-screen by this fraction of the *viewport height*,
      *  clearing the bottom sheet. Expressed against the viewport rather than
      *  the model so the same value frames a tall wardrobe and a low table
