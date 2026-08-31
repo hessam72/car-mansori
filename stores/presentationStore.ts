@@ -45,7 +45,7 @@ export interface PresentationState {
   setPaint: (partial: Partial<ZonePaint>, zone?: PresentationZone) => void
   setActiveZone: (zone: PresentationZone) => void
 
-  selectCover: (id: string) => void
+  selectCover: (id: string, surface?: Partial<ZonePaint>) => void
   commitCover: () => void
   finishWipe: () => void
 
@@ -92,16 +92,22 @@ export const usePresentation = create<PresentationState>()(
       // playing; `coverPhase` alone decides what the clip plane is doing.
       // Selecting also advances to step 1 — choosing a material *is* the
       // gesture that says "show me the finished piece".
-      selectCover: (id) => {
-        const { coverId, coverPhase, layerStep } = get()
+      selectCover: (id, surface) => {
+        const { coverId, coverPhase, layerStep, paint } = get()
         if (id === coverId && layerStep === 1 && (coverPhase === 'idle' || coverPhase === 'wipeIn')) {
           return
         }
+        // The variant's surface has to land in the paint state, not just on the
+        // cloned materials: useZonePaint damps every cover material toward
+        // `paint.cover` every frame, so a roughness that lives only on the
+        // clone is undone within ~400ms. That is what made velvet look like
+        // leather — the store still held the default variant's 0.45.
+        const next = surface ? { paint: { ...paint, cover: { ...paint.cover, ...surface } } } : {}
         if (coverPhase === 'hidden' || !coverId || layerStep === 0) {
-          set({ coverId: id, pendingCoverId: null, coverPhase: 'wipeIn', layerStep: 1 })
+          set({ ...next, coverId: id, pendingCoverId: null, coverPhase: 'wipeIn', layerStep: 1 })
           return
         }
-        set({ pendingCoverId: id, coverPhase: 'wipeOut', layerStep: 1 })
+        set({ ...next, pendingCoverId: id, coverPhase: 'wipeOut', layerStep: 1 })
       },
 
       commitCover: () => {

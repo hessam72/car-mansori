@@ -37,7 +37,7 @@
             "thumbnail": "/images/covers/velvet.jpeg",
             "priceDelta": 0,
             "material": {
-              "roughness": 0.88,
+              "roughness": 0.95,
               "metalness": 0,
               "clearcoat": 0
             }
@@ -137,7 +137,7 @@
       "far": 40,
       "padding": 1.55,
       "minZoom": 0.6,
-      "maxZoom": 1.8,
+      "maxZoom": 1.25,
       "screenLift": 0
     },
     "lighting": {

@@ -17,6 +17,7 @@ import {
   type ExportSources,
 } from '@/lib/three/exportConfigured'
 import {
+  coverSurface,
   findCoverVariant,
   isMatte,
   requiredAssets,
@@ -42,13 +43,10 @@ const ARProductViewer = dynamic(() => import('@/components/store/ARProductViewer
 /** Seeds every zone from the first swatch of its palette, so the piece opens in
  *  a real, sellable finish rather than whatever the GLB happened to ship with. */
 function defaultPaint(config: PresentationConfig): ZonePaintConfig {
-  const cover = config.layers.cover.variants.find((v) => v.id === config.layers.cover.default)
-  // Clearcoat is a gloss layer over the base colour — one of the two things
-  // that was reflecting into the upholstery. Matte drops it at the source.
-  const surface = {
-    metalness: cover?.material?.metalness ?? 0,
-    clearcoat: isMatte(config) ? 0 : cover?.material?.clearcoat ?? 0,
-  }
+  const cover = findCoverVariant(config, config.layers.cover.default)
+  // Same helper selectCover uses, so the opening finish and every later swap
+  // are described the same way.
+  const surface = coverSurface(config, cover)
   const first = (zone: 'wood' | 'cover' | 'cushion') => config.palettes[zone]?.[0]
 
   return {
@@ -58,11 +56,7 @@ function defaultPaint(config: PresentationConfig): ZonePaintConfig {
       metalness: 0,
       clearcoat: 0,
     },
-    cover: {
-      color: first('cover')?.hex ?? '#36454f',
-      roughness: cover?.material?.roughness ?? 0.6,
-      ...surface,
-    },
+    cover: { color: first('cover')?.hex ?? '#36454f', ...surface },
     cushion: {
       color: first('cushion')?.hex ?? '#e8e0d2',
       roughness: 0.8,

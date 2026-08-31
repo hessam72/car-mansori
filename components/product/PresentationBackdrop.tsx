@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useTexture } from '@react-three/drei'
+import { usePresentation } from '@/stores/presentationStore'
 import * as THREE from 'three'
 import type { PresentationConfig } from '@/lib/product/presentation'
 import type { StackFraming } from './FurnitureStack'
@@ -27,6 +28,9 @@ interface Props {
  */
 export default function PresentationBackdrop({ config, framing }: Props) {
   const size = useThree((s) => s.size)
+  // Same input the camera rig frames from, so the two cannot disagree and
+  // leave an uncovered strip when the sheet opens.
+  const sheetCoverage = usePresentation((s) => s.sheetCoverage)
   const invalidate = useThree((s) => s.invalidate)
   const meshRef = useRef<THREE.Mesh>(null)
 
@@ -65,20 +69,25 @@ export default function PresentationBackdrop({ config, framing }: Props) {
     const aspect = size.width / size.height
     const halfFov = Math.tan(THREE.MathUtils.degToRad(config.camera.fov) / 2)
 
-    // Worst case is fully zoomed out with the sheet at full height, since that
-    // is when PresentationGestures pushes the camera furthest back. Solve there
-    // once and leave it: re-fitted per dolly step the plane would be pinned to
-    // the screen and read as a sticker. `SHEET_MAX` mirrors the coverage cap in
-    // the rig so the two cannot disagree and leave an uncovered edge.
-    const SHEET_MAX = 0.62
+    // The rig's own framing solve, reproduced exactly — including the live
+    // sheet coverage. Sizing against the *cap* (0.62) instead of the current
+    // value inflated the plane by up to 2.6x, which is why the photo opened
+    // cropped into its middle third instead of fitting the screen.
+    const coverage = Math.min(sheetCoverage, 0.62)
     const radius = Math.hypot(frame.size.x, frame.size.z) / 2
     const framed =
-      Math.max(frame.size.y / (1 - SHEET_MAX) / 2 / halfFov, radius / (halfFov * aspect)) *
+      Math.max(frame.size.y / (1 - coverage) / 2 / halfFov, radius / (halfFov * aspect)) *
       (config.camera.padding ?? 1.15)
+
+    // Solved at the zoom-out extreme and then left fixed in world space, so the
+    // pinch moves it by real perspective rather than re-pinning it to the
+    // screen. The residual over-size at the opening zoom is the ratio between
+    // the two ends of the dolly — `camera.maxZoom` is the dial for it, and the
+    // further back `imageDistance` puts the plane the smaller that ratio gets.
     const far = framed * (config.camera.maxZoom ?? 1.8) + distance
 
-    // 5% of slack so rounding never shows a sliver of empty frame at the edge.
-    const height = 2 * far * halfFov * 1.05
+    // 2% of slack so rounding never shows a sliver of empty frame at the edge.
+    const height = 2 * far * halfFov * 1.02
     const width = height * aspect
     mesh.scale.set(width, height, 1)
 
@@ -110,7 +119,7 @@ export default function PresentationBackdrop({ config, framing }: Props) {
     }
 
     invalidate()
-  }, [size, config.camera, distance, offsetY, texture, viewDir, framing, invalidate])
+  }, [size, sheetCoverage, config.camera, distance, offsetY, texture, viewDir, framing, invalidate])
 
   // The stack publishes its bounds through a ref, so there is nothing to
   // subscribe to — poll the version the way PresentationGestures does, and

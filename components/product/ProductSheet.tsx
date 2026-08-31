@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, type PanInfo } from 'framer-motion'
 import { Box, ChevronDown, Loader2, ShoppingBag, Smartphone } from 'lucide-react'
 import { faPrice } from '@/lib/store/catalog'
 import { SpecDetails, SpecDimensions, SpecFabric } from '@/components/store/productSpecTabs'
 import { usePresentation } from '@/stores/presentationStore'
 import {
+  coverSurface,
   findCoverVariant,
   totalPrice,
   type PresentationZone,
@@ -82,6 +83,16 @@ export default function ProductSheet({
   const layerErrors = usePresentation((s) => s.layerErrors)
   const exploded = usePresentation((s) => s.exploded)
   const setSheetCoverage = usePresentation((s) => s.setSheetCoverage)
+
+  // Push the chosen variant's surface into the paint state as well as the id —
+  // see the note in selectCover.
+  const pickCover = useCallback(
+    (id: string) => {
+      selectCover(id, coverSurface(config, findCoverVariant(config, id)))
+    },
+    [config, selectCover]
+  )
+
 
   // Exploding is a look-at-the-piece gesture — get out of its way.
   useEffect(() => {
@@ -243,7 +254,7 @@ export default function ProductSheet({
                       variants={config.layers.cover.variants}
                       activeId={layerStep === 1 ? coverId : null}
                       errors={layerErrors}
-                      onSelect={selectCover}
+                      onSelect={pickCover}
                     />
                     <p className="text-[11px] text-[var(--text-muted)]">
                       با انتخاب جنس رویه، اسکلت چوبی پنهان می‌شود.

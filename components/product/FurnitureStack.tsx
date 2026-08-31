@@ -24,7 +24,10 @@ import type { WipeDirection } from '@/hooks/useClipWipe'
  *  would re-render the whole bottom sheet every frame. */
 export interface StackControls {
   yaw: number
-  pitch: number
+  /** Vertical drag offset in metres — the piece rises and falls with the
+   *  finger. It used to be a tilt; furniture that leans back reads as broken,
+   *  and lifting is what people actually reach for. */
+  lift: number
 }
 
 /** Measured bounds of the seated piece, published to the camera rig so it can
@@ -43,8 +46,6 @@ interface FurnitureStackProps {
    *  from the sources rather than from this live, half-animated subtree. */
   sources?: React.MutableRefObject<ExportSources>
 }
-
-const TILT_LIMIT = 0.28 // ~16°
 
 /** One GLB layer: cloned, prepared, its colourable subset tagged with a zone. */
 function useLayer(path: string, zone: PresentationZone, matte: boolean, match?: string) {
@@ -189,7 +190,7 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
     invalidate()
   }, [baseSize, exploded, gap, config.room.floorY, framing, invalidate])
 
-  const pitchRef = useRef<THREE.Group>(null)
+  const liftRef = useRef<THREE.Group>(null)
   const yawRef = useRef<THREE.Group>(null)
   const frameSlot = useRef<THREE.Group>(null)
   const softSlot = useRef<THREE.Group>(null)
@@ -215,22 +216,17 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
   const softVisible = exploded || layerStep === 0
 
   useFrame((_, delta) => {
-    const pitch = pitchRef.current
+    const lift = liftRef.current
     const yaw = yawRef.current
-    if (!pitch || !yaw) return
+    if (!lift || !yaw) return
 
     const target = controls.current
     const nextYaw = THREE.MathUtils.damp(yaw.rotation.y, target.yaw, 12, delta)
-    const nextPitch = THREE.MathUtils.damp(
-      pitch.rotation.x,
-      THREE.MathUtils.clamp(target.pitch, -TILT_LIMIT, TILT_LIMIT),
-      12,
-      delta
-    )
+    const nextLift = THREE.MathUtils.damp(lift.position.y, target.lift, 12, delta)
 
-    let moving = Math.abs(nextYaw - target.yaw) > 1e-4 || Math.abs(nextPitch - target.pitch) > 1e-4
+    let moving = Math.abs(nextYaw - target.yaw) > 1e-4 || Math.abs(nextLift - target.lift) > 1e-4
     yaw.rotation.y = nextYaw
-    pitch.rotation.x = nextPitch
+    lift.position.y = nextLift
 
     // Explode fans the layers apart along Y; the clip plane follows via each
     // layer's world matrix, so no special-casing is needed there. The soft slot
@@ -251,7 +247,7 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
   })
 
   return (
-    <group ref={pitchRef} name="furniture-stack">
+    <group ref={liftRef} name="furniture-stack">
       <group ref={yawRef}>
         <group position={centerOffset}>
           <group ref={frameSlot} visible={frameVisible}>
@@ -286,6 +282,7 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
                     key={variant.id}
                     variant={variant}
                     direction={coverDirection}
+                    matte={matte}
                     durationMs={(config.wipe?.durationMs ?? 900) / 2}
                     onWipeComplete={coverPhase === 'wipeOut' ? commitCover : finishWipe}
                   />

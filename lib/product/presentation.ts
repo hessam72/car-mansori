@@ -129,6 +129,25 @@ export function totalPrice(product: ProductData, variant: CoverVariant | null): 
   return (product.price ?? 0) + (variant?.priceDelta ?? 0)
 }
 
+/**
+ * The surface character a cover variant imposes on the `cover` zone.
+ *
+ * One source of truth: the paint store, CoverLayer and the AR export all have
+ * to agree, and they did not — the store kept the *default* variant's
+ * roughness after a swap, so useZonePaint damped velvet straight back to
+ * leather's 0.45 and the wool read as leather.
+ */
+export function coverSurface(
+  config: PresentationConfig,
+  variant: CoverVariant | null
+): { roughness: number; metalness: number; clearcoat: number } {
+  return {
+    roughness: variant?.material?.roughness ?? 0.6,
+    metalness: variant?.material?.metalness ?? 0,
+    clearcoat: isMatte(config) ? 0 : variant?.material?.clearcoat ?? 0,
+  }
+}
+
 /** Whether reflections are stripped for this product. Defaults to on. */
 export function isMatte(config: PresentationConfig): boolean {
   return config.room.matte !== false
