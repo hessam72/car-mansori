@@ -41,6 +41,9 @@ interface FurnitureStackProps {
   config: PresentationConfig
   controls: React.MutableRefObject<StackControls>
   framing: React.MutableRefObject<StackFraming | null>
+  /** `?debug=1` — draws the piece's ground plane so it can be lined up against
+   *  the floor in the backdrop photograph. */
+  debug?: boolean
   /** Filled in with the raw cached GLTFs so the AR export can rebuild the piece
    *  from the sources rather than from this live, half-animated subtree. */
   sources?: React.MutableRefObject<ExportSources>
@@ -120,7 +123,7 @@ function SoftLayer({
   return <primitive object={soft.scene} />
 }
 
-export default function FurnitureStack({ config, controls, framing, sources }: FurnitureStackProps) {
+export default function FurnitureStack({ config, controls, framing, sources, debug }: FurnitureStackProps) {
   const invalidate = useThree((s) => s.invalidate)
 
   const layerStep = usePresentation((s) => s.layerStep)
@@ -192,6 +195,9 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
   // The piece's centre — the same height the camera frames on, and the axis
   // the tilt turns about.
   const pivotY = (config.room.floorY ?? 0) + baseSize.y / 2
+  // Kept out of `framing` on purpose: the camera must not follow this, or the
+  // piece would never move on screen. See the note on room.pieceOffsetY.
+  const pieceOffsetY = config.room.pieceOffsetY ?? 0
 
   const pitchRef = useRef<THREE.Group>(null)
   const yawRef = useRef<THREE.Group>(null)
@@ -254,7 +260,7 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
     // below it. Rotating about the world origin instead would swing the piece
     // through an arc — invisible at the old 16°, but it throws it off-screen at
     // 60°, because the piece sits a metre or so above that origin.
-    <group ref={pitchRef} name="furniture-stack" position={[0, pivotY, 0]}>
+    <group ref={pitchRef} name="furniture-stack" position={[0, pivotY + pieceOffsetY, 0]}>
       <group position={[0, -pivotY, 0]}>
         <group ref={yawRef}>
           <group position={centerOffset}>
@@ -307,10 +313,23 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
                 </PartErrorBoundary>
               </Suspense>
             )}
+
+            {debug && <GroundGuide y={config.room.floorY ?? 0} radius={Math.max(baseSize.x, baseSize.z)} />}
           </group>
         </group>
       </group>
     </group>
+  )
+}
+
+/** The plane the piece is standing on, drawn flat. Line this up with the floor
+ *  in the backdrop photograph using room.pieceOffsetY / room.imageOffsetY. */
+function GroundGuide({ y, radius }: { y: number; radius: number }) {
+  return (
+    <mesh position={[0, y, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <ringGeometry args={[radius * 0.48, radius * 0.5, 64]} />
+      <meshBasicMaterial color="#00ff9c" transparent opacity={0.9} side={THREE.DoubleSide} />
+    </mesh>
   )
 }
 

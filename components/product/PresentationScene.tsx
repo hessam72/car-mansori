@@ -94,7 +94,13 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
 
         <Suspense fallback={null}>
           <PartErrorBoundary category="furniture" onError={onLayerError}>
-            <FurnitureStack config={config} controls={controls} framing={framing} sources={sources} />
+            <FurnitureStack
+              config={config}
+              controls={controls}
+              framing={framing}
+              sources={sources}
+              debug={debug}
+            />
           </PartErrorBoundary>
         </Suspense>
 

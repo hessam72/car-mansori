@@ -48,10 +48,26 @@ export interface PresentationRoom {
    *  `imageOffsetY` this is how the photographed floor is lined up with the
    *  piece; there is no way to solve that in code. */
   imageDistance?: number
+  /** Slides the backdrop photograph up/down, in metres. Raising it brings the
+   *  photographed floor line up to meet the piece without moving the piece. */
   imageOffsetY?: number
   hdr?: string
   envIntensity?: number
+  /**
+   * The world height the model is seated at. Note this will **not** visually
+   * move the piece: the camera frames on the piece's measured centre, so it
+   * follows `floorY` and the piece stays put on screen. Use `pieceOffsetY`.
+   */
   floorY?: number
+  /**
+   * Moves the piece up (positive) or down on screen, in metres.
+   *
+   * Deliberately excluded from the camera's framing, which is the whole point —
+   * this is the dial for landing the piece on the photographed floor. Push it
+   * down too far and it goes behind the bottom sheet; raising `imageOffsetY`
+   * instead brings the floor line up to the piece and keeps that clearance.
+   */
+  pieceOffsetY?: number
   /** Strip every reflection: no IBL, `envMapIntensity` 0, `clearcoat` 0.
    *  On by default — the HDR was tinting the colours the user picks. */
   matte?: boolean

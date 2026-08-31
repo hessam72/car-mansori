@@ -4,6 +4,7 @@
       "image": "/models/presentation/test/backdrop.jpeg",
       "imageDistance": 6,
       "imageOffsetY": 0,
+      "pieceOffsetY": 0,
       "floorY": 0,
       "matte": true
     },

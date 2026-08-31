@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import { usePresentation } from '@/stores/presentationStore'
 
 /**
  * `?debug=1` only.
@@ -41,10 +42,17 @@ export default function PresentationDiagnostics() {
         `[presentation] fps ${(frames.current / 2).toFixed(1)} · geometries ${gl.info.memory.geometries}` +
           ` · textures ${gl.info.memory.textures} · programs ${gl.info.programs?.length ?? 0}`
       )
+      // The two numbers for landing the piece on the photographed floor without
+      // pushing it behind the sheet: where its base sits on screen, and where
+      // the sheet's top edge is. base < sheetTop means it is clear.
+      const coverage = usePresentation.getState().sheetCoverage
+      const base = screenY(c.x, box.min.y, c.z)
+      const sheetTop = +(1 - coverage).toFixed(3)
       console.log(
         `[presentation] camera ${round(camera.position as THREE.Vector3).join('/')}` +
           ` · piece ${round(box.min).join('/')} → ${round(box.max).join('/')}` +
-          ` · screenY top ${screenY(c.x, box.max.y, c.z)} bottom ${screenY(c.x, box.min.y, c.z)}`
+          ` · screenY top ${screenY(c.x, box.max.y, c.z)} base ${base}` +
+          ` · sheetTop ${sheetTop}${base > sheetTop ? ' ⚠ base is behind the sheet' : ''}`
       )
       frames.current = 0
     }
