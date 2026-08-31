@@ -65,12 +65,29 @@ export default function PresentationRoom({
     // viewed from outside.
     clone.traverse((child) => {
       if (!(child instanceof THREE.Mesh) || !child.material) return
-      if (!doubleSide && !child.name.toLowerCase().includes('ceiling')) return
+      const name = child.name.toLowerCase()
       const materials = Array.isArray(child.material) ? child.material : [child.material]
-      materials.forEach((mat: THREE.Material) => {
-        mat.side = THREE.DoubleSide
-        mat.needsUpdate = true
-      })
+
+      if (doubleSide || name.includes('ceiling') || child.position.y > 3) {
+        materials.forEach((mat: THREE.Material) => {
+          mat.side = THREE.DoubleSide
+          mat.needsUpdate = true
+        })
+      }
+
+      // Also from ModelLoader: a mesh named *light* is a fixture, and the GLB
+      // ships it unlit — the store makes it glow rather than lighting it. A
+      // room whose only illumination is its own fixtures is otherwise a set of
+      // black rectangles where the lamps should be.
+      if (name.includes('light')) {
+        materials.forEach((mat: THREE.Material) => {
+          const std = mat as THREE.MeshStandardMaterial
+          if (!std.emissive) return
+          std.emissive = new THREE.Color('#f6ffc4')
+          std.emissiveIntensity = 2
+          std.needsUpdate = true
+        })
+      }
     })
 
     // Placement. This page used to render the room at whatever origin it was

@@ -8,9 +8,8 @@
       "imageOffsetY": 0,
       "pieceOffsetY": 0,
       "floorY": 0,
-      "matte": true,
-      "hdr": "/hdr/main_hdr.exr",
-      "envIntensity": 1
+      "lightingMode": "store",
+      "hdr": "/hdr/main_hdr.exr"
     },
     "layers": {
       "frame": {

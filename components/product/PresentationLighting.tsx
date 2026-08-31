@@ -2,7 +2,12 @@
 
 import { useMemo } from 'react'
 import * as THREE from 'three'
-import { galleryLighting, type PresentationConfig } from '@/lib/product/presentation'
+import {
+  galleryLighting,
+  lightingMode,
+  STORE_RENDER,
+  type PresentationConfig,
+} from '@/lib/product/presentation'
 
 const DEFAULTS = { key: 120, fill: 70, rim: 60, bounce: 6, ambient: 1.1, hemi: 0.8 }
 
@@ -204,6 +209,7 @@ export default function PresentationLighting({
 }) {
   const l = { ...DEFAULTS, ...config.lighting }
   const gallery = galleryLighting(config)
+  const mode = lightingMode(config)
   const trace =
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug')
 
@@ -217,6 +223,23 @@ export default function PresentationLighting({
       Math.cos(azimuth) * Math.cos(elevation)
     ).normalize()
   }, [config.camera.azimuthDeg, config.camera.elevationDeg])
+
+  // /store's whole rig, verbatim: a plain HDR environment (mounted separately)
+  // plus one overhead point light. Nothing else — no studio spots, no gallery
+  // track, no ambient. A room GLB authored against that scene is lit entirely
+  // by the environment, and adding the booth rig on top only washes it out.
+  if (mode === 'store') {
+    const p = STORE_RENDER.point
+    return (
+      <pointLight
+        position={p.position}
+        intensity={p.intensity}
+        distance={p.distance}
+        decay={p.decay}
+        color="#ffffff"
+      />
+    )
+  }
 
   return (
     <>

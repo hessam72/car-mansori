@@ -109,6 +109,34 @@ export interface PresentationRoom {
   /** Strip every reflection: no IBL, `envMapIntensity` 0, `clearcoat` 0.
    *  On by default — the HDR was tinting the colours the user picks. */
   matte?: boolean
+  /**
+   * Which lighting model the room is rendered under.
+   *
+   * `"store"` reproduces /store's setup exactly — ACES Filmic at exposure 0.3,
+   * a plain HDR environment at 0.8, and its single overhead point light — and
+   * drops the studio rig. Use it for any GLB that was authored and checked in
+   * the store scene, which is lit entirely by that environment: under the
+   * studio rig such a room has nothing to reflect and renders black.
+   *
+   * `"studio"` (the default) is this page's own booth rig, tuned for a piece of
+   * furniture against a photograph rather than a room.
+   */
+  lightingMode?: RoomLighting
+}
+
+/** @see PresentationRoom.lightingMode */
+export type RoomLighting = 'studio' | 'store'
+
+/** /store's renderer settings, reproduced verbatim from Scene.tsx's Canvas. */
+export const STORE_RENDER = {
+  exposure: 0.3,
+  envIntensity: 0.8,
+  /** The vitrine point light: `[0,10,-1.5]`, intensity 5, distance 20, decay .7 */
+  point: { position: [0, 10, -1.5] as [number, number, number], intensity: 5, distance: 20, decay: 0.7 },
+} as const
+
+export function lightingMode(config: PresentationConfig): RoomLighting {
+  return config.room.lightingMode ?? 'studio'
 }
 
 /**
@@ -259,8 +287,15 @@ export function coverSurface(
   }
 }
 
-/** Whether reflections are stripped for this product. Defaults to on. */
+/**
+ * Whether reflections are stripped for this product. Defaults to on.
+ *
+ * Except under store lighting, where the environment is the only real light in
+ * the scene: zeroing `envMapIntensity` there does not make the upholstery matte,
+ * it makes it unlit. Store mode therefore requires matte to be asked for.
+ */
 export function isMatte(config: PresentationConfig): boolean {
+  if (lightingMode(config) === 'store') return config.room.matte === true
   return config.room.matte !== false
 }
 
@@ -272,7 +307,10 @@ export function isMatte(config: PresentationConfig): boolean {
  * environment, so it needs one whether or not the furniture is matte.
  */
 export function needsEnvironment(config: PresentationConfig): boolean {
-  return !!config.room.hdr && (!isMatte(config) || roomMode(config) === 'model')
+  if (!config.room.hdr) return false
+  // Store mode *is* the environment — it has no other fill light worth the name.
+  if (lightingMode(config) === 'store') return true
+  return !isMatte(config) || roomMode(config) === 'model'
 }
 
 /**

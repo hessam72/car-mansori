@@ -2,12 +2,18 @@
 
 import { Suspense, useMemo, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { NeutralToneMapping, type Box3 } from 'three'
+import { ACESFilmicToneMapping, NeutralToneMapping, type Box3 } from 'three'
 import { PerfLadder } from '@/components/three/PerfLadder'
 import { PartErrorBoundary } from '@/components/car/PartErrorBoundary'
 import { clampDprToBudget } from '@/lib/three/dprBudget'
 import { useQuality } from '@/contexts/QualityContext'
-import { needsEnvironment, roomMode, type PresentationConfig } from '@/lib/product/presentation'
+import {
+  lightingMode,
+  needsEnvironment,
+  roomMode,
+  STORE_RENDER,
+  type PresentationConfig,
+} from '@/lib/product/presentation'
 import type { ExportSources } from '@/lib/three/exportConfigured'
 import PresentationEnvironment from './PresentationEnvironment'
 import PresentationLighting from './PresentationLighting'
@@ -30,6 +36,10 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
   const { settings } = useQuality()
   const backdrop = roomMode(config)
   const needsIBL = needsEnvironment(config)
+  // A room GLB is authored and checked under /store's renderer. Its materials
+  // only read correctly through the same tone-mapping curve and exposure, so
+  // store mode brings both across rather than re-grading the asset by hand.
+  const store = lightingMode(config) === 'store'
   const debug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug')
   const [perfScale, setPerfScale] = useState(1)
 
@@ -64,8 +74,8 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
         gl={{
           antialias: false,
           powerPreference: 'high-performance',
-          toneMapping: NeutralToneMapping,
-          toneMappingExposure: 1.0,
+          toneMapping: store ? ACESFilmicToneMapping : NeutralToneMapping,
+          toneMappingExposure: store ? STORE_RENDER.exposure : 1.0,
         }}
         camera={{
           // A placeholder only — PresentationGestures re-frames from the
