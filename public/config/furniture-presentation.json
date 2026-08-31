@@ -129,7 +129,7 @@
       "near": 0.1,
       "far": 150,
       "padding": 1.55,
-      "minZoom": 0,
+      "minZoom": 0.3,
       "maxZoom": 2.5,
       "startZoom": 0.9,
       "tiltLimitDeg": 0,
