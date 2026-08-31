@@ -41,7 +41,9 @@ export interface PresentationState {
    *  the screen the viewer can actually see. */
   sheetCoverage: number
 
-  initProduct: (key: string, paint: ZonePaintConfig, coverId: string) => void
+  /** `startStep` is which layer the page opens on — 1 (the finished piece) by
+   *  default, 0 to open on the bare frame. */
+  initProduct: (key: string, paint: ZonePaintConfig, coverId: string, startStep?: LayerStep) => void
   setPaint: (partial: Partial<ZonePaint>, zone?: PresentationZone) => void
   setActiveZone: (zone: PresentationZone) => void
 
@@ -76,8 +78,19 @@ export const usePresentation = create<PresentationState>()(
     (set, get) => ({
       ...INITIAL,
 
-      initProduct: (key, paint, coverId) =>
-        set({ ...INITIAL, productKey: key, paint, coverId, coverPhase: 'hidden' }),
+      // Opening on the cover is the default: the finished piece is what a buyer
+      // came to see, and the frame is the thing you step *back* to. `wipeIn`
+      // rather than `idle` so it reveals on load the same way a swap does,
+      // instead of appearing between frames.
+      initProduct: (key, paint, coverId, startStep = 1) =>
+        set({
+          ...INITIAL,
+          productKey: key,
+          paint,
+          coverId,
+          layerStep: startStep,
+          coverPhase: startStep === 1 ? 'wipeIn' : 'hidden',
+        }),
 
       setPaint: (partial, zone) => {
         const target = zone ?? get().activeZone

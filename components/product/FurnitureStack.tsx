@@ -196,8 +196,9 @@ export default function FurnitureStack({ config, controls, framing, sources, deb
   // the tilt turns about.
   const pivotY = (config.room.floorY ?? 0) + baseSize.y / 2
   // Kept out of `framing` on purpose: the camera must not follow this, or the
-  // piece would never move on screen. See the note on room.pieceOffsetY.
-  const pieceOffsetY = config.room.pieceOffsetY ?? 0
+  // piece would never move on screen. See the note on room.pieceOffset.
+  const [offsetX, offsetY, offsetZ] = config.room.pieceOffset ?? [0, 0, 0]
+  const pieceOffsetY = (config.room.pieceOffsetY ?? 0) + offsetY
 
   const pitchRef = useRef<THREE.Group>(null)
   const yawRef = useRef<THREE.Group>(null)
@@ -260,7 +261,7 @@ export default function FurnitureStack({ config, controls, framing, sources, deb
     // below it. Rotating about the world origin instead would swing the piece
     // through an arc — invisible at the old 16°, but it throws it off-screen at
     // 60°, because the piece sits a metre or so above that origin.
-    <group ref={pitchRef} name="furniture-stack" position={[0, pivotY + pieceOffsetY, 0]}>
+    <group ref={pitchRef} name="furniture-stack" position={[offsetX, pivotY + pieceOffsetY, offsetZ]}>
       <group position={[0, -pivotY, 0]}>
         <group ref={yawRef}>
           <group position={centerOffset}>

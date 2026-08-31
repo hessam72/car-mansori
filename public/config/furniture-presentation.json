@@ -7,6 +7,7 @@
       "imageDistance": 2,
       "imageOffsetY": 0,
       "pieceOffsetY": 0,
+      "pieceOffset": [0, 0, -2],
       "floorY": 0,
       "lightingMode": "store",
       "hdr": "/hdr/main_hdr.exr"

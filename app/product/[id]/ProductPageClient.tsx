@@ -166,7 +166,7 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
   }, [config, liveARPossible])
 
   useEffect(() => {
-    initProduct(key, defaultPaint(config), config.layers.cover.default)
+    initProduct(key, defaultPaint(config), config.layers.cover.default, config.layers.startStep ?? 1)
     return () => reset()
   }, [key, config, initProduct, reset])
 

@@ -106,6 +106,17 @@ export interface PresentationRoom {
    * instead brings the floor line up to the piece and keeps that clearance.
    */
   pieceOffsetY?: number
+  /**
+   * Moves the piece in world space, in metres — `[x, y, z]`, added to
+   * `pieceOffsetY`.
+   *
+   * Excluded from the camera's framing for the same reason `pieceOffsetY` is:
+   * the rig aims at the piece's measured centre, so an offset it followed would
+   * never move anything on screen. Push the piece back into a modelled room
+   * with a negative Z (the camera looks down +Z at azimuth 0) and it recedes
+   * towards the far wall, getting smaller as real distance should make it.
+   */
+  pieceOffset?: [number, number, number]
   /** Strip every reflection: no IBL, `envMapIntensity` 0, `clearcoat` 0.
    *  On by default — the HDR was tinting the colours the user picks. */
   matte?: boolean
@@ -190,8 +201,10 @@ export function galleryLighting(config: PresentationConfig): ResolvedGallery {
 
 export interface PresentationConfig {
   room: PresentationRoom
-  /** `soft` is optional: a product can ship as frame + cover alone. */
-  layers: { frame: LayerMeta; soft?: LayerMeta; cover: CoverLayerMeta }
+  /** `soft` is optional: a product can ship as frame + cover alone.
+   *  `startStep` is the layer the page opens on — 1, the finished piece, unless
+   *  set to 0 to open on the bare frame. */
+  layers: { frame: LayerMeta; soft?: LayerMeta; cover: CoverLayerMeta; startStep?: 0 | 1 }
   palettes: Record<PresentationZone, ZoneSwatch[]>
   /**
    * Framing is expressed as angles and ratios, never absolute metres. The rig
