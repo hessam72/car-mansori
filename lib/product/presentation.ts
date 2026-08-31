@@ -75,8 +75,19 @@ export interface PresentationRoom {
    * inside a wall or above the roof and the screen goes black.
    */
   alignFloor?: boolean
-  /** Moves the room GLB after `alignFloor`, in metres. For the horizontal
-   *  placement floor-alignment cannot solve — a room modelled off to one side. */
+  /**
+   * Moves the room GLB after `alignFloor`, in metres. For the horizontal
+   * placement floor-alignment cannot solve — a room modelled off to one side.
+   *
+   * Also **where the piece stands in the room**, which is why there is no
+   * horizontal offset on the piece itself. The camera aims at the piece's
+   * measured centre, which the framing puts at the origin, and the spin turns
+   * about the piece's own axes through that same point; slide the piece off it
+   * and it sits off the optical axis, where perspective swings its near and far
+   * ends across the frame as it turns — rotation in place reads as an orbit.
+   * A positive Z here slides the room towards the camera instead, leaving the
+   * piece deeper inside it and the geometry that governs the spin untouched.
+   */
   offset?: [number, number, number]
   /** Uniform scale on the room GLB, for a model exported in the wrong unit. */
   scale?: number
@@ -106,17 +117,6 @@ export interface PresentationRoom {
    * instead brings the floor line up to the piece and keeps that clearance.
    */
   pieceOffsetY?: number
-  /**
-   * Moves the piece in world space, in metres — `[x, y, z]`, added to
-   * `pieceOffsetY`.
-   *
-   * Excluded from the camera's framing for the same reason `pieceOffsetY` is:
-   * the rig aims at the piece's measured centre, so an offset it followed would
-   * never move anything on screen. Push the piece back into a modelled room
-   * with a negative Z (the camera looks down +Z at azimuth 0) and it recedes
-   * towards the far wall, getting smaller as real distance should make it.
-   */
-  pieceOffset?: [number, number, number]
   /** Strip every reflection: no IBL, `envMapIntensity` 0, `clearcoat` 0.
    *  On by default — the HDR was tinting the colours the user picks. */
   matte?: boolean
