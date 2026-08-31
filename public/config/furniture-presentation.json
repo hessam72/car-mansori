@@ -3,7 +3,7 @@
     "room": {
       "mode": "model",
       "image": "/models/presentation/test/backdrop.jpeg",
-      "path": "/models/presentation/test/FUR Scence GLB Final 3 Cmp-optimized.glb",
+      "path": "/models/presentation/test/main-room.glb",
       "imageDistance": 2,
       "imageOffsetY": 0,
       "pieceOffsetY": 0,
@@ -122,14 +122,14 @@
       ]
     },
     "camera": {
-      "azimuthDeg": 13,
+      "azimuthDeg": 0,
       "elevationDeg": 15,
       "fov": 50,
       "near": 0.1,
-      "far": 110,
+      "far": 150,
       "padding": 1.55,
-      "minZoom": 0.5,
-      "maxZoom": 1.8,
+      "minZoom": 0,
+      "maxZoom": 2.5,
       "tiltLimitDeg": 10,
       "screenLift": -0.05
     },
