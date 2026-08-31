@@ -13,7 +13,12 @@ import type { PresentationConfig } from '@/lib/product/presentation'
  */
 export default function PresentationEnvironment({ config }: { config: PresentationConfig }) {
   const { settings } = useQuality()
-  const resolution = Math.min(settings.envResolution * 2, 2048)
+  // Capped at 512, *not* the 2048 the tier ladder would allow. With children
+  // present drei switches to portal mode and allocates a WebGLCubeRenderTarget
+  // at this size — six half-float faces, so 2048 is a ~200MB allocation that a
+  // phone simply fails, and a failed environment map renders black. 512 is
+  // beyond ample for IBL, which is PMREM-blurred before anything samples it.
+  const resolution = Math.min(settings.envResolution * 2, 512)
 
   // `hdr` is optional now that matte is the default — without one there is
   // nothing to load, and drei would throw on an undefined url.

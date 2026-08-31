@@ -83,6 +83,55 @@ export interface PresentationRoom {
   matte?: boolean
 }
 
+/**
+ * Room-scale accent lighting, for when the backdrop is a modelled room.
+ *
+ * The studio rig is authored in absolute metres around a piece at the origin —
+ * fixtures at 5–8m with `decay: 2`, in cones under 35° wide. That lights a sofa
+ * in a void perfectly and leaves a room almost entirely unlit: anything outside
+ * those cones sees only ambient, and inverse-square drops what does reach the
+ * walls to nothing. So every value here is a *multiplier* on a rig solved from
+ * the room's measured bounds, never a distance — a 3m room and a 9m one both
+ * come out lit without re-tuning by hand.
+ */
+export interface GalleryLighting {
+  /** Defaults to on whenever the backdrop is a modelled room. */
+  enabled?: boolean
+  /** Ceiling track fixtures. Each one is a real light in every material's
+   *  shader loop, so this is capped at 6 and 3 is usually plenty. */
+  spots?: number
+  /** Multiplier on the solved track intensity. 0 turns the track off. */
+  track?: number
+  /** Multiplier on the back-wall wash. 0 turns it off. */
+  wash?: number
+  /** Cone half-angle of a track fixture, radians. Wider = flatter, softer. */
+  angle?: number
+  /** Fixture colour. Gallery track is warm white by convention. */
+  color?: string
+}
+
+export interface ResolvedGallery {
+  enabled: boolean
+  spots: number
+  track: number
+  wash: number
+  angle: number
+  color: string
+}
+
+/** Gallery rig settings with every default filled in. */
+export function galleryLighting(config: PresentationConfig): ResolvedGallery {
+  const g = config.lighting?.gallery ?? {}
+  return {
+    enabled: g.enabled ?? roomMode(config) === 'model',
+    spots: Math.max(0, Math.min(Math.round(g.spots ?? 3), 6)),
+    track: g.track ?? 1,
+    wash: g.wash ?? 1,
+    angle: g.angle ?? 0.6,
+    color: g.color ?? '#fff2df',
+  }
+}
+
 export interface PresentationConfig {
   room: PresentationRoom
   /** `soft` is optional: a product can ship as frame + cover alone. */
@@ -114,7 +163,15 @@ export interface PresentationConfig {
      *  alike. Implemented by aiming below the piece's centre. */
     screenLift?: number
   }
-  lighting?: { key: number; fill: number; rim: number; bounce: number; ambient: number; hemi?: number }
+  lighting?: {
+    key: number
+    fill: number
+    rim: number
+    bounce: number
+    ambient: number
+    hemi?: number
+    gallery?: GalleryLighting
+  }
   explode?: { gap: number; durationMs: number }
   wipe?: { durationMs: number }
 }

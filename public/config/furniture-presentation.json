@@ -139,7 +139,14 @@
       "rim": 60,
       "bounce": 6,
       "ambient": 1.1,
-      "hemi": 0.8
+      "hemi": 0.8,
+      "gallery": {
+        "spots": 3,
+        "track": 1,
+        "wash": 1,
+        "angle": 0.6,
+        "color": "#fff2df"
+      }
     },
     "explode": {
       "gap": 0.45,

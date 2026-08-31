@@ -23,9 +23,13 @@ export interface RoomBounds {
 export default function PresentationRoom({
   config,
   bounds,
+  onBounds,
 }: {
   config: PresentationConfig & { room: { path: string } }
   bounds?: React.MutableRefObject<RoomBounds | null>
+  /** The same box as `bounds`, but as a render-triggering callback — the
+   *  gallery rig is JSX and cannot read a ref that mutates silently. */
+  onBounds?: (box: THREE.Box3 | null) => void
 }) {
   const gltf = useGLTF(config.room.path)
   const invalidate = useThree((s) => s.invalidate)
@@ -51,6 +55,7 @@ export default function PresentationRoom({
   useEffect(() => {
     const box = new THREE.Box3().setFromObject(scene)
     if (bounds) bounds.current = { box }
+    onBounds?.(box)
     // Demand loop: without a frame the rig never reads the new bounds.
     invalidate()
     if (process.env.NODE_ENV !== 'production') {
@@ -63,8 +68,9 @@ export default function PresentationRoom({
     }
     return () => {
       if (bounds) bounds.current = null
+      onBounds?.(null)
     }
-  }, [scene, bounds, invalidate])
+  }, [scene, bounds, onBounds, invalidate])
 
   return <primitive object={scene} />
 }

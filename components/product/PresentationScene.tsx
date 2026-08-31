@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { NeutralToneMapping } from 'three'
+import { NeutralToneMapping, type Box3 } from 'three'
 import { PerfLadder } from '@/components/three/PerfLadder'
 import { PartErrorBoundary } from '@/components/car/PartErrorBoundary'
 import { clampDprToBudget } from '@/lib/three/dprBudget'
@@ -42,6 +42,9 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
   // The walls, when there are any — the rig clamps against these so a re-frame
   // cannot reverse the camera through the back of the room.
   const roomBounds = useRef<RoomBounds | null>(null)
+  // The same box again, as state: the gallery rig is JSX and has to re-render
+  // when the room resolves. The ref stays because the camera polls it per frame.
+  const [roomBox, setRoomBox] = useState<Box3 | null>(null)
 
   const dpr = useMemo<[number, number]>(() => {
     const [min, max] = clampDprToBudget(settings.dpr)
@@ -85,8 +88,16 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
             so it holds whether or not an environment exists. A room GLB is
             authored to be lit by one, so dropping it renders the room black.
             Hence: IBL whenever a modelled room needs it, or matte is off. */}
-        {needsIBL && <PresentationEnvironment config={config} />}
-        <PresentationLighting config={config} />
+        {/* Suspense-wrapped on its own: `useEnvironment` suspends while the HDR
+            downloads, and without a boundary of its own that unmounts the whole
+            canvas subtree until it lands. */}
+        <Suspense fallback={null}>
+          {needsIBL && <PresentationEnvironment config={config} />}
+        </Suspense>
+        {/* The studio rig is authored in absolute metres around a piece at the
+            origin; a modelled room needs fixtures scaled to the room itself, or
+            everything past the spot cones renders black. */}
+        <PresentationLighting config={config} roomBox={roomBox} />
 
         <Suspense fallback={null}>
           <PartErrorBoundary category="room" onError={onLayerError}>
@@ -95,6 +106,7 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
               <PresentationRoom
                 config={config as PresentationConfig & { room: { path: string } }}
                 bounds={roomBounds}
+                onBounds={setRoomBox}
               />
             )}
           </PartErrorBoundary>
