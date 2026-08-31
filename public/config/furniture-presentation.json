@@ -1,12 +1,16 @@
 {
   "test": {
     "room": {
+      "mode": "image",
       "image": "/models/presentation/test/backdrop.jpeg",
+      "path": "/models/presentation/test/room.glb",
       "imageDistance": 6,
       "imageOffsetY": 0,
       "pieceOffsetY": 0,
       "floorY": 0,
-      "matte": true
+      "matte": true,
+      "hdr": "/hdr/main_hdr.exr",
+      "envIntensity": 1
     },
     "layers": {
       "frame": {

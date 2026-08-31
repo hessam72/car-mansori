@@ -15,6 +15,10 @@ export default function PresentationEnvironment({ config }: { config: Presentati
   const { settings } = useQuality()
   const resolution = Math.min(settings.envResolution * 2, 2048)
 
+  // `hdr` is optional now that matte is the default — without one there is
+  // nothing to load, and drei would throw on an undefined url.
+  if (!config.room.hdr) return null
+
   return (
     <Environment
       files={config.room.hdr}

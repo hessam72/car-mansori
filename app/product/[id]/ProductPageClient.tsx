@@ -21,6 +21,7 @@ import {
   findCoverVariant,
   isMatte,
   requiredAssets,
+  roomMode,
   type PresentationConfig,
   type ResolvedPresentation,
 } from '@/lib/product/presentation'
@@ -177,7 +178,9 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
     assets
       .filter((path) => path.endsWith('.glb'))
       .forEach((path) => useGLTF.preload(path))
-    if (config.room.image) useTexture.preload(config.room.image)
+    // Only the backdrop actually in use — a manifest can carry both an image
+    // and a room GLB so `room.mode` can switch between them.
+    if (roomMode(config) === 'image' && config.room.image) useTexture.preload(config.room.image)
 
     const rest = config.layers.cover.variants
       .filter((v) => v.id !== config.layers.cover.default)

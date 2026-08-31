@@ -39,10 +39,20 @@ export interface CoverLayerMeta {
   variants: CoverVariant[]
 }
 
+/** What stands behind the piece: a photograph, or a modelled room. */
+export type RoomMode = 'image' | 'model' | 'none'
+
 export interface PresentationRoom {
-  /** Backdrop GLB. Ignored when `image` is set. */
+  /**
+   * Which backdrop to render. Both `image` and `path` can be filled in at once
+   * and this is the switch between them — flipping a product from a photograph
+   * to a modelled room is a one-word edit. Omit it and whichever of the two is
+   * present wins, image first.
+   */
+  mode?: 'image' | 'model'
+  /** Backdrop GLB, used when `mode` is "model". */
   path?: string
-  /** Backdrop photograph. Takes precedence over `path` — see PresentationBackdrop. */
+  /** Backdrop photograph, used when `mode` is "image" — see PresentationBackdrop. */
   image?: string
   /** How far behind the piece the backdrop plane sits, in metres. Together with
    *  `imageOffsetY` this is how the photographed floor is lined up with the
@@ -169,11 +179,30 @@ export function isMatte(config: PresentationConfig): boolean {
   return config.room.matte !== false
 }
 
+/**
+ * The backdrop actually in play.
+ *
+ * An explicit `mode` wins, but only if that mode's asset is configured — a
+ * `mode: "model"` with no `path` falls back rather than rendering nothing, so a
+ * half-finished manifest still shows the piece.
+ */
+export function roomMode(config: PresentationConfig): RoomMode {
+  const { mode, image, path } = config.room
+  if (mode === 'image' && image) return 'image'
+  if (mode === 'model' && path) return 'model'
+  if (image) return 'image'
+  if (path) return 'model'
+  return 'none'
+}
+
 /** Every asset the page needs before it can render anything meaningful. The
  *  backdrop is whichever of image/GLB this product actually uses. */
 export function requiredAssets(config: PresentationConfig): string[] {
   const cover = findCoverVariant(config, config.layers.cover.default)
-  const backdrop = config.room.image ?? config.room.path
+  const mode = roomMode(config)
+  // Probe only the backdrop in use — an unused `path` left in the manifest for
+  // easy switching must not block the page.
+  const backdrop = mode === 'image' ? config.room.image : mode === 'model' ? config.room.path : undefined
   return [
     config.layers.frame.path,
     config.layers.soft?.path,

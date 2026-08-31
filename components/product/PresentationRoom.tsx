@@ -13,18 +13,26 @@ import type { PresentationConfig } from '@/lib/product/presentation'
  * which is where the real saving lives (download, parse and VRAM, none of which
  * frustum culling helps with). Never a paint target, never a shadow caster.
  */
-export default function PresentationRoom({ config }: { config: PresentationConfig & { room: { path: string } } }) {
+export default function PresentationRoom({
+  config,
+  matte = false,
+}: {
+  config: PresentationConfig & { room: { path: string } }
+  /** Matte drops the IBL entirely, so leaving env reflections on the room would
+   *  only sample an environment that is no longer there. */
+  matte?: boolean
+}) {
   const gltf = useGLTF(config.room.path)
   const { settings } = useQuality()
 
   const scene = useMemo(() => {
     const clone = gltf.scene.clone(true)
     preparePresentationObject(clone, {
-      envMapIntensity: config.room.envIntensity ?? 1,
+      envMapIntensity: matte ? 0 : config.room.envIntensity ?? 1,
       anisotropy: settings.anisotropyLevel,
     })
     return clone
-  }, [gltf.scene, config.room.envIntensity, settings.anisotropyLevel])
+  }, [gltf.scene, matte, config.room.envIntensity, settings.anisotropyLevel])
 
   return <primitive object={scene} />
 }
