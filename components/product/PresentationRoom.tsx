@@ -15,13 +15,20 @@ import type { PresentationConfig } from '@/lib/product/presentation'
  * which is where the real saving lives (download, parse and VRAM, none of which
  * frustum culling helps with). Never a paint target, never a shadow caster.
  */
+/** Published so the camera rig can keep itself inside the walls. */
+export interface RoomBounds {
+  box: THREE.Box3
+}
+
 export default function PresentationRoom({
   config,
+  bounds,
 }: {
   config: PresentationConfig & { room: { path: string } }
+  bounds?: React.MutableRefObject<RoomBounds | null>
 }) {
   const gltf = useGLTF(config.room.path)
-  const camera = useThree((s) => s.camera)
+  const invalidate = useThree((s) => s.invalidate)
   const { settings } = useQuality()
 
   // Never matte. The matte flag exists to stop the *furniture* picking up
@@ -37,23 +44,27 @@ export default function PresentationRoom({
     return clone
   }, [gltf.scene, config.room.envIntensity, settings.anisotropyLevel])
 
-  // The other way this page goes black: the room is authored front-facing only,
-  // so if the camera lands inside a wall that wall fills the frame.
+  // Publish the walls. The camera rig derives its distance purely from the
+  // piece and has never known the room exists — which was fine while the piece
+  // was measured once, but the framing can now change after load, and a camera
+  // that reverses through the back wall renders solid black.
   useEffect(() => {
-    if (process.env.NODE_ENV === 'production') return
     const box = new THREE.Box3().setFromObject(scene)
-    const size = box.getSize(new THREE.Vector3())
-    console.log(
-      `[PresentationRoom] bounds ${box.min.toArray().map((n) => n.toFixed(1)).join('/')}` +
-        ` → ${box.max.toArray().map((n) => n.toFixed(1)).join('/')} (${size.toArray().map((n) => n.toFixed(1)).join(' x ')}m)`
-    )
-    if (box.containsPoint(camera.position)) {
-      console.warn(
-        '[PresentationRoom] the camera is inside the room bounds — if the screen is black,' +
-          ' the room is enclosing it. Lower camera.padding or move the room GLB back.'
+    if (bounds) bounds.current = { box }
+    // Demand loop: without a frame the rig never reads the new bounds.
+    invalidate()
+    if (process.env.NODE_ENV !== 'production') {
+      const size = box.getSize(new THREE.Vector3())
+      console.log(
+        `[PresentationRoom] bounds ${box.min.toArray().map((n) => n.toFixed(1)).join('/')}` +
+          ` → ${box.max.toArray().map((n) => n.toFixed(1)).join('/')}` +
+          ` (${size.toArray().map((n) => n.toFixed(1)).join(' x ')}m)`
       )
     }
-  }, [scene, camera])
+    return () => {
+      if (bounds) bounds.current = null
+    }
+  }, [scene, bounds, invalidate])
 
   return <primitive object={scene} />
 }

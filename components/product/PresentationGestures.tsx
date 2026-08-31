@@ -6,6 +6,7 @@ import * as THREE from 'three'
 import { usePresentation } from '@/stores/presentationStore'
 import type { PresentationConfig } from '@/lib/product/presentation'
 import type { StackControls, StackFraming } from './FurnitureStack'
+import type { RoomBounds } from './PresentationRoom'
 
 const SPIN_SENSITIVITY = 0.0075
 const TILT_SENSITIVITY = 0.005
@@ -18,6 +19,39 @@ interface Props {
   config: PresentationConfig
   controls: React.MutableRefObject<StackControls>
   framing: React.MutableRefObject<StackFraming | null>
+  /** The walls, when the backdrop is a modelled room. */
+  roomBounds?: React.MutableRefObject<RoomBounds | null>
+}
+
+/** Clearance kept between the camera and the wall behind it, in metres. */
+const WALL_MARGIN = 0.35
+
+/**
+ * How far the camera can travel back along `dir` from `origin` before it leaves
+ * the box.
+ *
+ * The rig sizes its distance from the piece alone and knows nothing about the
+ * room. That held while the piece was measured once, in a single render — but
+ * the cover's bounds now arrive after load, so the framing changes and the
+ * camera reverses. Through the back wall, the screen is solid black.
+ *
+ * The origin is clamped into the box first: the look-at target is aimed *below*
+ * the piece to clear the bottom sheet, and with the sheet open it can dip under
+ * the floor. Bailing out there would switch the clamp off exactly when the
+ * camera is furthest back.
+ */
+const clampedOrigin = new THREE.Vector3()
+
+function distanceToWall(origin: THREE.Vector3, dir: THREE.Vector3, box: THREE.Box3): number {
+  box.clampPoint(origin, clampedOrigin)
+  let limit = Infinity
+  for (const axis of ['x', 'y', 'z'] as const) {
+    const d = dir[axis]
+    if (Math.abs(d) < 1e-6) continue
+    const t = ((d > 0 ? box.max[axis] : box.min[axis]) - clampedOrigin[axis]) / d
+    if (t > 0) limit = Math.min(limit, t)
+  }
+  return limit
 }
 
 /**
@@ -32,7 +66,7 @@ interface Props {
  * sheet — starts a model spin. Canvas-scoping removes that conflict
  * structurally instead of heuristically.
  */
-export default function PresentationGestures({ config, controls, framing }: Props) {
+export default function PresentationGestures({ config, controls, framing, roomBounds }: Props) {
   const gl = useThree((s) => s.gl)
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const size = useThree((s) => s.size)
@@ -54,6 +88,14 @@ export default function PresentationGestures({ config, controls, framing }: Prop
 
   const minZoom = config.camera.minZoom ?? 0.6
   const maxZoom = config.camera.maxZoom ?? 1.8
+
+  /** Never let the requested distance put the camera through a wall. */
+  const clampToRoom = (wanted: number) => {
+    const box = roomBounds?.current?.box
+    if (!box) return wanted
+    const limit = distanceToWall(desiredTarget.current, viewDir.current, box) - WALL_MARGIN
+    return limit > 0 ? Math.min(wanted, limit) : wanted
+  }
 
   // Framing is the fiddliest thing on this page — `?debug=1` prints the solve.
   const trace =
@@ -101,10 +143,15 @@ export default function PresentationGestures({ config, controls, framing }: Prop
       console.log(
         `[reframe] coverage ${coverage.toFixed(3)} aspect ${aspect.toFixed(3)}` +
           ` size ${frame.size.toArray().map((n) => +n.toFixed(2)).join('/')}` +
-          ` distV ${distV.toFixed(2)} distH ${distH.toFixed(2)} framed ${framedDistance.current.toFixed(2)}`
+          ` distV ${distV.toFixed(2)} distH ${distH.toFixed(2)} framed ${framedDistance.current.toFixed(2)}` +
+          ` wallLimit ${
+            roomBounds?.current?.box
+              ? distanceToWall(desiredTarget.current, viewDir.current, roomBounds.current.box).toFixed(2)
+              : 'none'
+          }`
       )
     }
-    targetDistance.current = framedDistance.current * zoom.current
+    targetDistance.current = clampToRoom(framedDistance.current * zoom.current)
     // First frame snaps; a later re-frame (explode, resize) eases via useFrame
     // so the pull-back reads as part of the explode animation.
     if (!settled.current) {
@@ -143,7 +190,7 @@ export default function PresentationGestures({ config, controls, framing }: Prop
 
     const applyZoom = (factor: number) => {
       zoom.current = THREE.MathUtils.clamp(zoom.current * factor, minZoom, maxZoom)
-      targetDistance.current = framedDistance.current * zoom.current
+      targetDistance.current = clampToRoom(framedDistance.current * zoom.current)
     }
 
     const onPointerDown = (e: PointerEvent) => {
@@ -231,6 +278,12 @@ export default function PresentationGestures({ config, controls, framing }: Prop
   }, [gl, minZoom, maxZoom, controls, invalidate, regress])
 
   useFrame((_, delta) => {
+    // Re-clamped every frame, not just on reframe: the room GLB usually
+    // resolves after the camera has already settled, and the walls have to
+    // pull it back in when they arrive.
+    const legal = clampToRoom(framedDistance.current * zoom.current)
+    if (legal !== targetDistance.current) targetDistance.current = legal
+
     const distanceSettled = distance.current === targetDistance.current
     const targetSettled = target.current.distanceToSquared(desiredTarget.current) < 1e-8
     if (distanceSettled && targetSettled) return

@@ -11,7 +11,7 @@ import { needsEnvironment, roomMode, type PresentationConfig } from '@/lib/produ
 import type { ExportSources } from '@/lib/three/exportConfigured'
 import PresentationEnvironment from './PresentationEnvironment'
 import PresentationLighting from './PresentationLighting'
-import PresentationRoom from './PresentationRoom'
+import PresentationRoom, { type RoomBounds } from './PresentationRoom'
 import PresentationBackdrop from './PresentationBackdrop'
 import PresentationGestures from './PresentationGestures'
 import { PresentationPostProcessing } from './PresentationPostProcessing'
@@ -39,6 +39,9 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
   // Written by the stack once it has measured the frame layer, read by the
   // camera rig to compute a distance that actually fits this canvas.
   const framing = useRef<StackFraming | null>(null)
+  // The walls, when there are any — the rig clamps against these so a re-frame
+  // cannot reverse the camera through the back of the room.
+  const roomBounds = useRef<RoomBounds | null>(null)
 
   const dpr = useMemo<[number, number]>(() => {
     const [min, max] = clampDprToBudget(settings.dpr)
@@ -89,7 +92,10 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
           <PartErrorBoundary category="room" onError={onLayerError}>
             {backdrop === 'image' && <PresentationBackdrop config={config} framing={framing} />}
             {backdrop === 'model' && (
-              <PresentationRoom config={config as PresentationConfig & { room: { path: string } }} />
+              <PresentationRoom
+                config={config as PresentationConfig & { room: { path: string } }}
+                bounds={roomBounds}
+              />
             )}
           </PartErrorBoundary>
         </Suspense>
@@ -106,7 +112,12 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
           </PartErrorBoundary>
         </Suspense>
 
-        <PresentationGestures config={config} controls={controls} framing={framing} />
+        <PresentationGestures
+          config={config}
+          controls={controls}
+          framing={framing}
+          roomBounds={roomBounds}
+        />
 
         <PresentationPostProcessing />
 
