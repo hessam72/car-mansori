@@ -101,14 +101,25 @@ export default function ProductSheet({
 
   // Report how much of the screen this sheet hides so the camera rig can frame
   // the piece in the band that is actually visible.
+  //
+  // Only its *resting* height counts — the sheet minus the panel that expands.
+  // Reporting the live height re-framed the camera every time a tab opened, so
+  // the whole scene slid up the screen and back down again; expanding is meant
+  // to draw the panel over the viewport, not move what is behind it.
   const sheetRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const el = sheetRef.current
     if (!el) return
-    const report = () => setSheetCoverage(el.getBoundingClientRect().height / window.innerHeight)
+    const report = () => {
+      const panel = panelRef.current?.getBoundingClientRect().height ?? 0
+      const resting = el.getBoundingClientRect().height - panel
+      setSheetCoverage(resting / window.innerHeight)
+    }
     report()
     const observer = new ResizeObserver(report)
     observer.observe(el)
+    if (panelRef.current) observer.observe(panelRef.current)
     window.addEventListener('resize', report)
     return () => {
       observer.disconnect()
@@ -215,6 +226,7 @@ export default function ProductSheet({
         </div>
 
         <motion.div
+          ref={panelRef}
           initial={false}
           animate={{ height: expanded ? 'auto' : 0, opacity: expanded ? 1 : 0 }}
           transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}

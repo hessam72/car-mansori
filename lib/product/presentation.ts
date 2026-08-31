@@ -213,6 +213,9 @@ export interface PresentationConfig {
     /** Dolly clamps, as multiples of the framed distance. */
     minZoom?: number
     maxZoom?: number
+    /** How far a vertical drag can tip the piece, ±degrees. 36 is a tenth of a
+     *  full turn — enough to show the seat and the underside, short of tumbling. */
+    tiltLimitDeg?: number
     /** Pushes the piece up-screen by this fraction of the *viewport height*,
      *  clearing the bottom sheet. Expressed against the viewport rather than
      *  the model so the same value frames a tall wardrobe and a low table

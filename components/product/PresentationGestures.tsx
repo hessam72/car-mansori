@@ -10,10 +10,10 @@ import type { RoomBounds } from './PresentationRoom'
 
 const SPIN_SENSITIVITY = 0.0075
 const TILT_SENSITIVITY = 0.005
-/** ~60°. Wide enough that dragging up genuinely tips the piece over so you can
- *  see the seat, and down shows the underside — the old 16° barely read as
- *  movement at all. */
-const TILT_LIMIT = Math.PI / 3
+/** A tenth of a full turn each way. Still reads clearly as movement — the old
+ *  16° did not — without the wide swing of the 60° it replaces. Override per
+ *  product with `camera.tiltLimitDeg`. */
+const TILT_LIMIT_DEG = 36
 
 interface Props {
   config: PresentationConfig
@@ -89,6 +89,7 @@ export default function PresentationGestures({ config, controls, framing, roomBo
 
   const minZoom = config.camera.minZoom ?? 0.6
   const maxZoom = config.camera.maxZoom ?? 1.8
+  const tiltLimit = THREE.MathUtils.degToRad(config.camera.tiltLimitDeg ?? TILT_LIMIT_DEG)
 
   /** How far back the wall lets the camera go. Infinity with no room. */
   const wallLimit = () => {
@@ -248,8 +249,8 @@ export default function PresentationGestures({ config, controls, framing, roomBo
         // turns in place rather than swinging through an arc.
         controls.current.pitch = THREE.MathUtils.clamp(
           controls.current.pitch - dy * TILT_SENSITIVITY,
-          -TILT_LIMIT,
-          TILT_LIMIT
+          -tiltLimit,
+          tiltLimit
         )
       }
 
@@ -302,7 +303,7 @@ export default function PresentationGestures({ config, controls, framing, roomBo
       el.removeEventListener('gesturestart', onGesture)
       el.removeEventListener('gesturechange', onGesture)
     }
-  }, [gl, minZoom, maxZoom, controls, invalidate, regress])
+  }, [gl, minZoom, maxZoom, tiltLimit, controls, invalidate, regress])
 
   useFrame((_, delta) => {
     // Re-clamped every frame, not just on reframe: the room GLB usually
