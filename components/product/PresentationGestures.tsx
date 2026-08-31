@@ -85,16 +85,34 @@ export default function PresentationGestures({ config, controls, framing, roomBo
   const zoom = useRef(1)
   const appliedVersion = useRef(-1)
   const settled = useRef(false)
+  const warnedTight = useRef(false)
 
   const minZoom = config.camera.minZoom ?? 0.6
   const maxZoom = config.camera.maxZoom ?? 1.8
 
-  /** Never let the requested distance put the camera through a wall. */
-  const clampToRoom = (wanted: number) => {
+  /** How far back the wall lets the camera go. Infinity with no room. */
+  const wallLimit = () => {
     const box = roomBounds?.current?.box
-    if (!box) return wanted
+    if (!box) return Infinity
     const limit = distanceToWall(desiredTarget.current, viewDir.current, box) - WALL_MARGIN
-    return limit > 0 ? Math.min(wanted, limit) : wanted
+    return limit > 0 ? limit : Infinity
+  }
+
+  /**
+   * The distance to actually fly to, for a given zoom factor.
+   *
+   * The wall caps the *base* framing distance before zoom is applied, rather
+   * than capping the final number. Capping the result pins the camera to the
+   * wall and the dolly stops responding entirely — which is exactly what a
+   * flat `Math.min(framed * zoom, limit)` did. Scaling the base instead keeps
+   * the full zoom range usable inside whatever room there is: a piece that
+   * cannot be framed without backing through the wall simply gets cropped a
+   * little, which is the right trade.
+   */
+  const solveDistance = (zoomFactor: number) => {
+    const limit = wallLimit()
+    const base = Math.min(framedDistance.current, limit)
+    return Math.min(base * zoomFactor, limit)
   }
 
   // Framing is the fiddliest thing on this page — `?debug=1` prints the solve.
@@ -144,14 +162,23 @@ export default function PresentationGestures({ config, controls, framing, roomBo
         `[reframe] coverage ${coverage.toFixed(3)} aspect ${aspect.toFixed(3)}` +
           ` size ${frame.size.toArray().map((n) => +n.toFixed(2)).join('/')}` +
           ` distV ${distV.toFixed(2)} distH ${distH.toFixed(2)} framed ${framedDistance.current.toFixed(2)}` +
-          ` wallLimit ${
-            roomBounds?.current?.box
-              ? distanceToWall(desiredTarget.current, viewDir.current, roomBounds.current.box).toFixed(2)
-              : 'none'
-          }`
+          ` wall ${roomBounds?.current?.box ? wallLimit().toFixed(2) : 'none'}` +
+          ` → dist ${solveDistance(zoom.current).toFixed(2)}`
       )
     }
-    targetDistance.current = clampToRoom(framedDistance.current * zoom.current)
+    if (process.env.NODE_ENV !== 'production' && !warnedTight.current) {
+      const limit = wallLimit()
+      if (limit < framedDistance.current) {
+        warnedTight.current = true
+        console.warn(
+          `[PresentationGestures] the room wall is ${limit.toFixed(2)}m back but the piece needs` +
+            ` ${framedDistance.current.toFixed(2)}m to frame — the view is cropped and the dolly` +
+            ` range is squeezed. Lower camera.padding, or scale the room GLB up.`
+        )
+      }
+    }
+
+    targetDistance.current = solveDistance(zoom.current)
     // First frame snaps; a later re-frame (explode, resize) eases via useFrame
     // so the pull-back reads as part of the explode animation.
     if (!settled.current) {
@@ -190,7 +217,7 @@ export default function PresentationGestures({ config, controls, framing, roomBo
 
     const applyZoom = (factor: number) => {
       zoom.current = THREE.MathUtils.clamp(zoom.current * factor, minZoom, maxZoom)
-      targetDistance.current = clampToRoom(framedDistance.current * zoom.current)
+      targetDistance.current = solveDistance(zoom.current)
     }
 
     const onPointerDown = (e: PointerEvent) => {
@@ -281,7 +308,7 @@ export default function PresentationGestures({ config, controls, framing, roomBo
     // Re-clamped every frame, not just on reframe: the room GLB usually
     // resolves after the camera has already settled, and the walls have to
     // pull it back in when they arrive.
-    const legal = clampToRoom(framedDistance.current * zoom.current)
+    const legal = solveDistance(zoom.current)
     if (legal !== targetDistance.current) targetDistance.current = legal
 
     const distanceSettled = distance.current === targetDistance.current
