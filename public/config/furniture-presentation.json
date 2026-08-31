@@ -150,6 +150,14 @@
         "color": "#fff2df"
       }
     },
+    "sun": {
+      "enabled": true,
+      "position": [4, 6.5, -5],
+      "intensity": 6,
+      "color": "#ffe3c2",
+      "soft": { "size": 20, "samples": 16, "focus": 0 },
+      "shadow": { "bias": -0.0001, "normalBias": 0.03 }
+    },
     "explode": {
       "gap": 0.45,
       "durationMs": 700

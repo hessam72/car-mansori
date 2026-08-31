@@ -3,10 +3,8 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useQuality } from '@/contexts/QualityContext'
-import type { StoreConfig, SunConfig } from './hooks/useStoreConfig'
+import type { PartialSun, SunConfig } from './hooks/useStoreConfig'
 import { SunDebug } from './SunDebug'
-
-type PartialSun = StoreConfig['sun']
 
 // Code-side fallback so a store may specify only the fields it wants to
 // override. Bounds/bias mirror the proven /car values (CarLighting.tsx).
@@ -39,10 +37,11 @@ const sunDebugRequested = () =>
   new URLSearchParams(window.location.search).get('sundebug') === '1'
 
 /**
- * "Sun through a window" directional light for /store. The window's shape is
+ * "Sun through a window" directional light. The window's shape is
  * carved in the GLB by the user; this light shines from outside through it and
  * the shadow lands on the floor/GLB. Position/target/bounds are config-driven
- * (stores.json) and re-tunable live with ?sundebug=1.
+ * (stores.json, or furniture-presentation.json on /product) and re-tunable live
+ * with ?sundebug=1 on either page.
  *
  * The orthographic shadow box MUST enclose the whole salon: drei SoftShadows
  * (PCSS) early-returns fully-lit for any fragment outside it, so an undersized

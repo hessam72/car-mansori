@@ -7,20 +7,48 @@ export interface ZoneTarget {
   zone: PresentationZone
 }
 
+/** `preparePresentationObject`'s options: material prep, plus whether this
+ *  subtree takes part in the sun's shadow pass. */
+export interface PresentationObjectOptions extends CarMaterialOptions {
+  /** Enrol every mesh as a caster and receiver. Off unless the product config
+   *  turns the sun on — see `sunEnabled`. */
+  shadows?: boolean
+}
+
 /**
  * Material prep for the presentation page.
  *
  * Deliberately NOT `prepareCarObject` — that force-sets castShadow/receiveShadow
- * on every mesh, and this page renders with no shadow maps at all. Here we only
- * set env reflection strength and sharpen textures.
+ * on every mesh unconditionally, and this page renders with no shadow maps at
+ * all unless a product asks for the sun. Here the flags follow `shadows`, and
+ * with it come /store's two naming rules, because they are what makes a window
+ * read as a window rather than a hole punched in the light:
+ *
+ *  - *glass* never casts. The depth pass is alpha-blind, so a pane would black
+ *    out the entire sun patch; the frames and mullions around it keep casting
+ *    and are what paints the window pattern on the floor.
+ *  - *lamp* never casts, so a glowing shade does not throw a hard sun shadow.
+ *
+ * `shadowSide` is forced double so a thin single-plane wall or window frame
+ * casts regardless of which way the GLB happens to wind. That is the depth pass
+ * only — `mat.side`, and PresentationRoom's ceiling rule, are untouched.
  */
-export function preparePresentationObject(root: THREE.Object3D, options: CarMaterialOptions = {}) {
+export function preparePresentationObject(root: THREE.Object3D, options: PresentationObjectOptions = {}) {
+  const shadows = options.shadows === true
   root.traverse((child) => {
     if (!(child instanceof THREE.Mesh)) return
-    child.castShadow = false
-    child.receiveShadow = false
+    const name = child.name.toLowerCase()
+    child.castShadow = shadows && !name.includes('glass') && !name.includes('lamp')
+    child.receiveShadow = shadows
     const materials = Array.isArray(child.material) ? child.material : [child.material]
-    materials.forEach((mat: THREE.Material) => mat && prepareCarMaterial(mat, options))
+    materials.forEach((mat: THREE.Material) => {
+      if (!mat) return
+      prepareCarMaterial(mat, options)
+      if (shadows) {
+        mat.shadowSide = THREE.DoubleSide
+        mat.needsUpdate = true
+      }
+    })
   })
 }
 

@@ -18,6 +18,8 @@ interface CoverLayerProps {
   /** Strip reflections. This layer is the one the buyer is actually judging,
    *  so it was the worst place to have missed it. */
   matte: boolean
+  /** Enrol in the sun's shadow pass — see `sunEnabled`. */
+  shadows: boolean
   onWipeComplete: () => void
 }
 
@@ -26,7 +28,7 @@ interface CoverLayerProps {
  * a fresh instance whose clip plane starts fully closed — the incoming cover
  * never flashes at full size before its reveal begins.
  */
-export default function CoverLayer({ variant, direction, durationMs, matte, onWipeComplete }: CoverLayerProps) {
+export default function CoverLayer({ variant, direction, durationMs, matte, shadows, onWipeComplete }: CoverLayerProps) {
   const gltf = useGLTF(variant.path)
   const groupRef = useRef<THREE.Group>(null)
   const { settings } = useQuality()
@@ -36,6 +38,7 @@ export default function CoverLayer({ variant, direction, durationMs, matte, onWi
     preparePresentationObject(clone, {
       envMapIntensity: matte ? 0 : settings.envIntensity,
       anisotropy: settings.anisotropyLevel,
+      shadows,
     })
 
     // The whole layer is clipped, so every material must be cloned — not just
@@ -57,7 +60,7 @@ export default function CoverLayer({ variant, direction, durationMs, matte, onWi
 
     return { scene: clone, targets: collected, bounds: localBoundsY(clone) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gltf.scene, variant.path, matte])
+  }, [gltf.scene, variant.path, matte, shadows])
 
   useZonePaint(targets)
   useClipWipe({ groupRef, targets, bounds, direction, durationMs, onComplete: onWipeComplete })

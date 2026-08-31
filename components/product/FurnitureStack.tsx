@@ -12,6 +12,7 @@ import { PartErrorBoundary } from '@/components/car/PartErrorBoundary'
 import {
   findCoverVariant,
   isMatte,
+  sunEnabled,
   type LayerMeta,
   type PresentationConfig,
   type PresentationZone,
@@ -50,7 +51,7 @@ interface FurnitureStackProps {
 }
 
 /** One GLB layer: cloned, prepared, its colourable subset tagged with a zone. */
-function useLayer(path: string, zone: PresentationZone, matte: boolean, match?: string) {
+function useLayer(path: string, zone: PresentationZone, matte: boolean, shadows: boolean, match?: string) {
   const gltf = useGLTF(path)
   const { settings } = useQuality()
 
@@ -59,13 +60,14 @@ function useLayer(path: string, zone: PresentationZone, matte: boolean, match?: 
     preparePresentationObject(clone, {
       envMapIntensity: matte ? 0 : settings.envIntensity,
       anisotropy: settings.anisotropyLevel,
+      shadows,
     })
     const collected = collectZoneTargets(clone, { zone, match })
     applyFirstCoat(collected, usePresentation.getState().paint)
     if (matte) applyMatte(collected)
     return { scene: clone, targets: collected }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gltf.scene, path, matte])
+  }, [gltf.scene, path, matte, shadows])
 
   useZonePaint(targets)
   useEffect(() => () => disposeTargets(targets), [targets])
@@ -104,13 +106,15 @@ function CoverSource({
 function SoftLayer({
   meta,
   matte,
+  shadows,
   sources,
 }: {
   meta: LayerMeta
   matte: boolean
+  shadows: boolean
   sources?: React.MutableRefObject<ExportSources>
 }) {
-  const soft = useLayer(meta.path, 'cushion', matte, meta.zoneMatch)
+  const soft = useLayer(meta.path, 'cushion', matte, shadows, meta.zoneMatch)
   useEffect(() => {
     if (!sources) return
     sources.current.soft = soft.source
@@ -135,12 +139,15 @@ export default function FurnitureStack({ config, controls, framing, sources, deb
   const setLayerError = usePresentation((s) => s.setLayerError)
 
   const matte = isMatte(config)
+  // The piece casts into the sun patch, and takes the window's shape across it,
+  // only where a product configures a sun.
+  const shadows = sunEnabled(config)
   const softMeta = config.layers.soft
 
   // The frame never changes path, so loading it here rather than in a child
   // makes its bounding box available in the same render — the centering offset
   // lands on the first committed frame, with no one-frame pop.
-  const frame = useLayer(config.layers.frame.path, 'wood', matte)
+  const frame = useLayer(config.layers.frame.path, 'wood', matte, shadows)
 
   // Reported by CoverSource once the active variant is in cache.
   const [coverBox, setCoverBox] = useState<THREE.Box3 | null>(null)
@@ -281,7 +288,7 @@ export default function FurnitureStack({ config, controls, framing, sources, deb
               <group ref={softSlot} visible={softVisible}>
                 <Suspense fallback={null}>
                   <PartErrorBoundary category="soft">
-                    <SoftLayer meta={softMeta} matte={matte} sources={sources} />
+                    <SoftLayer meta={softMeta} matte={matte} shadows={shadows} sources={sources} />
                   </PartErrorBoundary>
                 </Suspense>
                 {exploded && <LayerLabel text={softMeta.label} />}
@@ -305,6 +312,7 @@ export default function FurnitureStack({ config, controls, framing, sources, deb
                       variant={variant}
                       direction={coverDirection}
                       matte={matte}
+                      shadows={shadows}
                       durationMs={(config.wipe?.durationMs ?? 900) / 2}
                       onWipeComplete={coverPhase === 'wipeOut' ? commitCover : finishWipe}
                     />

@@ -12,12 +12,14 @@ import {
   needsEnvironment,
   roomMode,
   STORE_RENDER,
+  sunEnabled,
   type PresentationConfig,
 } from '@/lib/product/presentation'
 import type { ExportSources } from '@/lib/three/exportConfigured'
 import PresentationEnvironment from './PresentationEnvironment'
 import PresentationLighting from './PresentationLighting'
 import PresentationRoom, { type RoomBounds } from './PresentationRoom'
+import PresentationSun from './PresentationSun'
 import PresentationBackdrop from './PresentationBackdrop'
 import PresentationGestures from './PresentationGestures'
 import { PresentationPostProcessing } from './PresentationPostProcessing'
@@ -40,6 +42,8 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
   // only read correctly through the same tone-mapping curve and exposure, so
   // store mode brings both across rather than re-grading the asset by hand.
   const store = lightingMode(config) === 'store'
+  // The page's only shadow map, and only when a product asks for it.
+  const sun = sunEnabled(config)
   const debug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug')
   const [perfScale, setPerfScale] = useState(1)
 
@@ -67,7 +71,9 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
       style={{ touchAction: 'none', overscrollBehavior: 'none' }}
     >
       <Canvas
-        /* No `shadows`: this page renders with no shadow maps at all. */
+        /* Off unless the product configures a sun: with no `sun` block this
+           page still renders with no shadow maps at all. */
+        shadows={sun}
         frameloop="demand"
         dpr={dpr}
         style={{ touchAction: 'none' }}
@@ -108,6 +114,11 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
             origin; a modelled room needs fixtures scaled to the room itself, or
             everything past the spot cones renders black. */}
         <PresentationLighting config={config} roomBox={roomBox} />
+
+        {/* Sun through the room's window + PCSS soft shadows. Its frustum is
+            fitted to `roomBox`, so it mounts before the room and re-solves once
+            the bounds arrive. */}
+        {sun && <PresentationSun sun={config.sun!} roomBox={roomBox} />}
 
         <Suspense fallback={null}>
           <PartErrorBoundary category="room" onError={onLayerError}>

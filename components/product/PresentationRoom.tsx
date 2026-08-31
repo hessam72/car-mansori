@@ -6,14 +6,16 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { preparePresentationObject } from '@/lib/three/layerMaterials'
 import { useQuality } from '@/contexts/QualityContext'
-import type { PresentationConfig } from '@/lib/product/presentation'
+import { sunEnabled, type PresentationConfig } from '@/lib/product/presentation'
 
 /**
  * The trimmed presentation booth.
  *
  * Authored front-facing only — there is no geometry behind the static camera,
  * which is where the real saving lives (download, parse and VRAM, none of which
- * frustum culling helps with). Never a paint target, never a shadow caster.
+ * frustum culling helps with). Never a paint target, and a shadow caster only
+ * where the product configures a sun — trimming the room is what made dropping
+ * the shadow pass worth it, so it is paid for deliberately or not at all.
  */
 /** Published so the camera rig can keep itself inside the walls. */
 export interface RoomBounds {
@@ -45,6 +47,7 @@ export default function PresentationRoom({
   const scaleFactor = room.scale ?? 1
   const doubleSide = room.doubleSide === true
   const offset = room.offset
+  const shadows = sunEnabled(config)
 
   // Never matte. The matte flag exists to stop the *furniture* picking up
   // environment reflections, and it does that per-material. A room GLB is
@@ -55,6 +58,10 @@ export default function PresentationRoom({
     preparePresentationObject(clone, {
       envMapIntensity: room.envIntensity ?? 1,
       anisotropy: settings.anisotropyLevel,
+      // Casts the window frame's pattern onto the floor and receives the patch.
+      // The *glass* / *lamp* name rules that make that read correctly live in
+      // preparePresentationObject, shared with the furniture.
+      shadows,
     })
 
     // Lifted from /store's ModelLoader, which forces DoubleSide on any mesh
@@ -129,6 +136,7 @@ export default function PresentationRoom({
     doubleSide,
     offset,
     floorY,
+    shadows,
   ])
 
   // Publish the walls. The camera rig derives its distance purely from the

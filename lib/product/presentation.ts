@@ -1,6 +1,7 @@
 import presentationConfig from '@/public/config/furniture-presentation.json'
 import productsConfig from '@/public/config/products.json'
 import type { ProductData } from '@/components/store/ProductInteraction'
+import type { PartialSun } from '@/components/store/hooks/useStoreConfig'
 
 /** The three independently colourable parts of a piece. Unlike the showroom's
  *  keyword matching, the zone is implied by which layer GLB a mesh came from —
@@ -146,6 +147,11 @@ export const STORE_RENDER = {
   point: { position: [0, 10, -1.5] as [number, number, number], intensity: 5, distance: 20, decay: 0.7 },
 } as const
 
+/** Whether this product draws the sun and, with it, the page's only shadow map. */
+export function sunEnabled(config: PresentationConfig): boolean {
+  return config.sun?.enabled === true
+}
+
 export function lightingMode(config: PresentationConfig): RoomLighting {
   return config.room.lightingMode ?? 'studio'
 }
@@ -253,6 +259,21 @@ export interface PresentationConfig {
     hemi?: number
     gallery?: GalleryLighting
   }
+  /**
+   * Window sunlight and its PCSS soft shadow — /store's `sun` block, verbatim,
+   * so a `?sundebug=1` printout pastes straight in.
+   *
+   * Absent, or `enabled: false`, and the page renders with no shadow maps at
+   * all, which is what it did before this existed and still the right default:
+   * a shadow pass re-renders the scene from the *light's* frustum and so
+   * ignores the camera culling the trimmed, front-facing-only room is built
+   * around. Turn it on for a room that actually has a window worth the cost.
+   *
+   * Only `shadow` differs from /store in how it is read: leave the four
+   * bounds out and the frustum is fitted to the measured room every time it
+   * loads, instead of being hand-tuned per product. @see PresentationSun.
+   */
+  sun?: PartialSun
   explode?: { gap: number; durationMs: number }
   wipe?: { durationMs: number }
 }
