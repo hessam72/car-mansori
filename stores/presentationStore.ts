@@ -12,13 +12,15 @@ export interface ZonePaint {
 
 export type ZonePaintConfig = Record<PresentationZone, ZonePaint>
 
-/** Cumulative reveal: 0 = frame only, 1 = + soft parts, 2 = + cover. */
-export type LayerStep = 0 | 1 | 2
+/** Exclusive, not cumulative: 0 = bare frame, 1 = finished piece (cover only).
+ *  Picking a material is what commits to the finished view, so the frame is
+ *  hidden at step 1 — except while exploded, where the point is seeing both. */
+export type LayerStep = 0 | 1
 
 /** Where the cover layer is in its clip-wipe timeline. */
 export type CoverPhase = 'hidden' | 'wipeIn' | 'idle' | 'wipeOut'
 
-export const LAYER_STEPS: LayerStep[] = [0, 1, 2]
+export const LAYER_STEPS: LayerStep[] = [0, 1]
 
 export interface PresentationState {
   productKey: string | null
@@ -86,16 +88,20 @@ export const usePresentation = create<PresentationState>()(
 
       setActiveZone: (activeZone) => set({ activeZone }),
 
-      // The cover is mounted whenever layerStep === 2 or a wipe-out is still
+      // The cover is mounted whenever layerStep === 1 or a wipe-out is still
       // playing; `coverPhase` alone decides what the clip plane is doing.
+      // Selecting also advances to step 1 — choosing a material *is* the
+      // gesture that says "show me the finished piece".
       selectCover: (id) => {
-        const { coverId, coverPhase } = get()
-        if (id === coverId && (coverPhase === 'idle' || coverPhase === 'wipeIn')) return
-        if (coverPhase === 'hidden' || !coverId) {
-          set({ coverId: id, pendingCoverId: null, coverPhase: 'wipeIn' })
+        const { coverId, coverPhase, layerStep } = get()
+        if (id === coverId && layerStep === 1 && (coverPhase === 'idle' || coverPhase === 'wipeIn')) {
           return
         }
-        set({ pendingCoverId: id, coverPhase: 'wipeOut' })
+        if (coverPhase === 'hidden' || !coverId || layerStep === 0) {
+          set({ coverId: id, pendingCoverId: null, coverPhase: 'wipeIn', layerStep: 1 })
+          return
+        }
+        set({ pendingCoverId: id, coverPhase: 'wipeOut', layerStep: 1 })
       },
 
       commitCover: () => {
@@ -114,7 +120,7 @@ export const usePresentation = create<PresentationState>()(
       setLayerStep: (step) => {
         const { layerStep, coverPhase, exploded } = get()
         if (step === layerStep || exploded) return
-        if (step === 2) {
+        if (step === 1) {
           set({
             layerStep: step,
             pendingCoverId: null,
@@ -122,7 +128,7 @@ export const usePresentation = create<PresentationState>()(
           })
           return
         }
-        if (layerStep === 2 && coverPhase !== 'hidden') {
+        if (layerStep === 1 && coverPhase !== 'hidden') {
           // Stays mounted through the wipe-out; commitCover() hides it.
           set({ layerStep: step, pendingCoverId: null, coverPhase: 'wipeOut' })
           return
@@ -136,7 +142,7 @@ export const usePresentation = create<PresentationState>()(
           // You cannot fan apart layers you have not revealed.
           return {
             exploded: true,
-            layerStep: 2 as LayerStep,
+            layerStep: 1 as LayerStep,
             pendingCoverId: null,
             coverPhase: state.coverPhase === 'hidden' ? ('wipeIn' as CoverPhase) : state.coverPhase,
           }

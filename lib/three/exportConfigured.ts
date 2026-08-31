@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { collectZoneTargets, disposeTargets, type ZoneTarget } from './layerMaterials'
+import { applyMatte, collectZoneTargets, disposeTargets, type ZoneTarget } from './layerMaterials'
 import { applyFirstCoat } from '@/hooks/useZonePaint'
 import type { ZonePaintConfig } from '@/stores/presentationStore'
 import type { CoverVariant, PresentationZone } from '@/lib/product/presentation'
@@ -41,7 +41,11 @@ interface LayerSpec {
 
 /** Clone one layer, recolour it, and strip the render-only state a file cannot
  *  carry. Returns the cloned materials so the caller can dispose them. */
-function buildLayer(spec: LayerSpec, paint: ZonePaintConfig): { object: THREE.Object3D; targets: ZoneTarget[] } {
+function buildLayer(
+  spec: LayerSpec,
+  paint: ZonePaintConfig,
+  matte: boolean
+): { object: THREE.Object3D; targets: ZoneTarget[] } {
   const object = spec.source.clone(true)
 
   // NOT preparePresentationObject: it writes `anisotropy` onto drei's *shared*
@@ -61,6 +65,10 @@ function buildLayer(spec: LayerSpec, paint: ZonePaintConfig): { object: THREE.Ob
       }
     })
   }
+
+  // Matte last, so it overrides the variant's own clearcoat — AR must match
+  // what the page shows, not the value authored in the manifest.
+  if (matte) applyMatte(targets)
 
   // Material.copy() carries clippingPlanes across a clone, so a cover cloned
   // mid-wipe would export sliced in half. Clipping is renderer-only state.
@@ -89,7 +97,7 @@ export async function exportConfiguredGLB(
   sources: ExportSources,
   paint: ZonePaintConfig,
   variant: CoverVariant | null,
-  options: { softMatch?: string } = {}
+  options: { softMatch?: string; matte?: boolean } = {}
 ): Promise<Blob> {
   if (!sources.frame) throw new Error('frame layer is not loaded yet')
 
@@ -105,7 +113,7 @@ export async function exportConfiguredGLB(
   if (sources.soft) specs.push({ source: sources.soft, zone: 'cushion', match: options.softMatch })
   if (sources.cover) specs.push({ source: sources.cover, zone: 'cover', variant: variant ?? undefined })
 
-  const built = specs.map((spec) => buildLayer(spec, paint))
+  const built = specs.map((spec) => buildLayer(spec, paint, options.matte !== false))
   built.forEach(({ object }) => inner.add(object))
 
   try {

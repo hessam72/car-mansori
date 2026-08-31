@@ -1,15 +1,21 @@
 'use client'
 
-import { Suspense, useEffect, useMemo, useRef } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Html, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { collectZoneTargets, disposeTargets, preparePresentationObject } from '@/lib/three/layerMaterials'
+import { applyMatte, collectZoneTargets, disposeTargets, preparePresentationObject } from '@/lib/three/layerMaterials'
 import { applyFirstCoat, useZonePaint } from '@/hooks/useZonePaint'
 import { usePresentation } from '@/stores/presentationStore'
 import { useQuality } from '@/contexts/QualityContext'
 import { PartErrorBoundary } from '@/components/car/PartErrorBoundary'
-import { findCoverVariant, type PresentationConfig, type PresentationZone } from '@/lib/product/presentation'
+import {
+  findCoverVariant,
+  isMatte,
+  type LayerMeta,
+  type PresentationConfig,
+  type PresentationZone,
+} from '@/lib/product/presentation'
 import type { ExportSources } from '@/lib/three/exportConfigured'
 import CoverLayer from './CoverLayer'
 import type { WipeDirection } from '@/hooks/useClipWipe'
@@ -41,21 +47,22 @@ interface FurnitureStackProps {
 const TILT_LIMIT = 0.28 // ~16°
 
 /** One GLB layer: cloned, prepared, its colourable subset tagged with a zone. */
-function useLayer(path: string, zone: PresentationZone, match?: string) {
+function useLayer(path: string, zone: PresentationZone, matte: boolean, match?: string) {
   const gltf = useGLTF(path)
   const { settings } = useQuality()
 
   const { scene, targets } = useMemo(() => {
     const clone = gltf.scene.clone(true)
     preparePresentationObject(clone, {
-      envMapIntensity: settings.envIntensity,
+      envMapIntensity: matte ? 0 : settings.envIntensity,
       anisotropy: settings.anisotropyLevel,
     })
     const collected = collectZoneTargets(clone, { zone, match })
     applyFirstCoat(collected, usePresentation.getState().paint)
+    if (matte) applyMatte(collected)
     return { scene: clone, targets: collected }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gltf.scene, path])
+  }, [gltf.scene, path, matte])
 
   useZonePaint(targets)
   useEffect(() => () => disposeTargets(targets), [targets])
@@ -66,22 +73,51 @@ function useLayer(path: string, zone: PresentationZone, match?: string) {
 /**
  * Registers the active cover's source scene without rendering it.
  *
- * The mounted CoverLayer only exists at layer step 2, but AR must export the
- * finished piece from any step — so the variant is resolved here instead.
+ * The mounted CoverLayer only exists at the finished step, but two things need
+ * the cover regardless: the AR export, which always ships the whole piece, and
+ * the camera framing — with the soft layer gone the cover is what overhangs the
+ * frame, so a camera framed to the frame alone crops the arms.
+ *
  * It reads the same drei cache CoverLayer does, so this costs no extra fetch.
  */
 function CoverSource({
   path,
   sources,
+  onBounds,
 }: {
   path: string
-  sources: React.MutableRefObject<ExportSources>
+  sources?: React.MutableRefObject<ExportSources>
+  onBounds: (box: THREE.Box3) => void
 }) {
   const { scene } = useGLTF(path)
   useEffect(() => {
-    sources.current.cover = scene
-  }, [scene, sources])
+    if (sources) sources.current.cover = scene
+    onBounds(new THREE.Box3().setFromObject(scene))
+  }, [scene, sources, onBounds])
   return null
+}
+
+/** The soft layer is optional — a product can ship as frame + cover alone. */
+function SoftLayer({
+  meta,
+  matte,
+  sources,
+}: {
+  meta: LayerMeta
+  matte: boolean
+  sources?: React.MutableRefObject<ExportSources>
+}) {
+  const soft = useLayer(meta.path, 'cushion', matte, meta.zoneMatch)
+  useEffect(() => {
+    if (!sources) return
+    sources.current.soft = soft.source
+    // Cleared on unmount, or the AR export would keep shipping a layer the
+    // page has stopped showing.
+    return () => {
+      sources.current.soft = null
+    }
+  }, [sources, soft.source])
+  return <primitive object={soft.scene} />
 }
 
 export default function FurnitureStack({ config, controls, framing, sources }: FurnitureStackProps) {
@@ -95,11 +131,16 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
   const finishWipe = usePresentation((s) => s.finishWipe)
   const setLayerError = usePresentation((s) => s.setLayerError)
 
-  // Frame and soft never change path, so loading them here rather than in child
-  // components makes both bounding boxes available in the same render — the
-  // centering offset lands on the first committed frame, with no one-frame pop.
-  const frame = useLayer(config.layers.frame.path, 'wood')
-  const soft = useLayer(config.layers.soft.path, 'cushion', config.layers.soft.zoneMatch)
+  const matte = isMatte(config)
+  const softMeta = config.layers.soft
+
+  // The frame never changes path, so loading it here rather than in a child
+  // makes its bounding box available in the same render — the centering offset
+  // lands on the first committed frame, with no one-frame pop.
+  const frame = useLayer(config.layers.frame.path, 'wood', matte)
+
+  // Reported by CoverSource once the active variant is in cache.
+  const [coverBox, setCoverBox] = useState<THREE.Box3 | null>(null)
 
   const gap = config.explode?.gap ?? 0.45
 
@@ -108,12 +149,12 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
   // three layers (authored at a shared world origin) never drift apart.
   const { centerOffset, baseSize } = useMemo(() => {
     // The frame alone is the structural datum for centering — it is the layer
-    // that always exists and never changes. Framing, though, measures frame ∪
-    // soft: the upholstery overhangs the frame on every real piece, and a
+    // that always exists and never changes. Framing, though, unions in the
+    // cover: the upholstery overhangs the frame on every real piece, and a
     // camera framed to the frame alone crops the arms.
     const box = new THREE.Box3().setFromObject(frame.scene)
     const center = box.getCenter(new THREE.Vector3())
-    const outer = box.clone().union(new THREE.Box3().setFromObject(soft.scene))
+    const outer = coverBox ? box.clone().union(coverBox) : box.clone()
     const size = outer.getSize(new THREE.Vector3())
     if (process.env.NODE_ENV !== 'production' && (size.y > 3 || size.y < 0.2)) {
       console.warn(
@@ -126,14 +167,13 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
       centerOffset: [-center.x, floorY - box.min.y, -center.z] as [number, number, number],
       baseSize: size,
     }
-  }, [frame.scene, soft.scene, config.room.floorY, config.layers.frame.path])
+  }, [frame.scene, coverBox, config.room.floorY, config.layers.frame.path])
 
   useEffect(() => {
     if (!sources) return
     sources.current.frame = frame.source
-    sources.current.soft = soft.source
     sources.current.centerOffset = centerOffset
-  }, [sources, frame.source, soft.source, centerOffset])
+  }, [sources, frame.source, centerOffset])
 
   // Publish the bounds the camera should frame. Exploding raises the top layer
   // by two gaps, so the rig has to re-frame or the fanned stack runs off-screen.
@@ -157,13 +197,22 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
 
   const variant = findCoverVariant(config, coverId)
 
+  // Box3 has no value equality, so compare before setting or the framing memo
+  // re-runs on every cover mount and the camera re-frames for nothing.
+  const handleCoverBounds = useCallback((box: THREE.Box3) => {
+    setCoverBox((previous) => (previous && previous.equals(box) ? previous : box))
+  }, [])
+
   // The cover stays mounted through a wipe-out so it animates away rather than
   // popping when you step back off it.
-  const coverMounted = !!variant && (layerStep === 2 || coverPhase === 'wipeOut')
+  const coverMounted = !!variant && (layerStep === 1 || coverPhase === 'wipeOut')
   const coverDirection: WipeDirection =
     coverPhase === 'wipeIn' ? 'in' : coverPhase === 'wipeOut' ? 'out' : null
 
-  const softVisible = layerStep >= 1
+  // Layers are exclusive now: choosing a material hides the skeleton. Exploded
+  // is the exception — fanning two layers apart is pointless with one hidden.
+  const frameVisible = exploded || layerStep === 0
+  const softVisible = exploded || layerStep === 0
 
   useFrame((_, delta) => {
     const pitch = pitchRef.current
@@ -184,8 +233,12 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
     pitch.rotation.x = nextPitch
 
     // Explode fans the layers apart along Y; the clip plane follows via each
-    // layer's world matrix, so no special-casing is needed there.
-    const slots = [frameSlot.current, softSlot.current, coverSlot.current]
+    // layer's world matrix, so no special-casing is needed there. The soft slot
+    // drops out of the ladder entirely when the product has no soft layer, so
+    // the cover does not fan to a gap that nothing occupies.
+    const slots = softMeta
+      ? [frameSlot.current, softSlot.current, coverSlot.current]
+      : [frameSlot.current, coverSlot.current]
     slots.forEach((slot, index) => {
       if (!slot) return
       const goal = exploded ? index * gap : 0
@@ -201,15 +254,21 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
     <group ref={pitchRef} name="furniture-stack">
       <group ref={yawRef}>
         <group position={centerOffset}>
-          <group ref={frameSlot}>
+          <group ref={frameSlot} visible={frameVisible}>
             <primitive object={frame.scene} />
             {exploded && <LayerLabel text={config.layers.frame.label} />}
           </group>
 
-          <group ref={softSlot} visible={softVisible}>
-            <primitive object={soft.scene} />
-            {exploded && <LayerLabel text={config.layers.soft.label} />}
-          </group>
+          {softMeta && (
+            <group ref={softSlot} visible={softVisible}>
+              <Suspense fallback={null}>
+                <PartErrorBoundary category="soft">
+                  <SoftLayer meta={softMeta} matte={matte} sources={sources} />
+                </PartErrorBoundary>
+              </Suspense>
+              {exploded && <LayerLabel text={softMeta.label} />}
+            </group>
+          )}
 
           <group ref={coverSlot}>
             {/* Its own Suspense: a child that suspends hides the *nearest*
@@ -236,10 +295,10 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
             {exploded && <LayerLabel text={config.layers.cover.label} />}
           </group>
 
-          {sources && variant && (
+          {variant && (
             <Suspense fallback={null}>
               <PartErrorBoundary category="cover-source">
-                <CoverSource path={variant.path} sources={sources} />
+                <CoverSource path={variant.path} sources={sources} onBounds={handleCoverBounds} />
               </PartErrorBoundary>
             </Suspense>
           )}

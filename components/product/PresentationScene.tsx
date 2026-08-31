@@ -7,11 +7,12 @@ import { PerfLadder } from '@/components/three/PerfLadder'
 import { PartErrorBoundary } from '@/components/car/PartErrorBoundary'
 import { clampDprToBudget } from '@/lib/three/dprBudget'
 import { useQuality } from '@/contexts/QualityContext'
-import type { PresentationConfig } from '@/lib/product/presentation'
+import { isMatte, type PresentationConfig } from '@/lib/product/presentation'
 import type { ExportSources } from '@/lib/three/exportConfigured'
 import PresentationEnvironment from './PresentationEnvironment'
 import PresentationLighting from './PresentationLighting'
 import PresentationRoom from './PresentationRoom'
+import PresentationBackdrop from './PresentationBackdrop'
 import PresentationGestures from './PresentationGestures'
 import { PresentationPostProcessing } from './PresentationPostProcessing'
 import FurnitureStack, { type StackControls, type StackFraming } from './FurnitureStack'
@@ -27,6 +28,7 @@ interface Props {
 
 export default function PresentationScene({ config, onLayerError, sources }: Props) {
   const { settings } = useQuality()
+  const matte = isMatte(config)
   const debug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug')
   const [perfScale, setPerfScale] = useState(1)
 
@@ -74,12 +76,19 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
       >
         <PerfLadder onScale={setPerfScale} adaptive={settings.adaptiveDpr} />
 
-        <PresentationEnvironment config={config} />
+        {/* No <Environment>: IBL was the main thing reflecting into the
+            upholstery and shifting the colours away from the picked hex. The
+            spot rig carries the whole scene now. */}
+        {!matte && <PresentationEnvironment config={config} />}
         <PresentationLighting config={config} />
 
         <Suspense fallback={null}>
           <PartErrorBoundary category="room" onError={onLayerError}>
-            <PresentationRoom config={config} />
+            {config.room.image ? (
+              <PresentationBackdrop config={config} framing={framing} />
+            ) : config.room.path ? (
+              <PresentationRoom config={config as PresentationConfig & { room: { path: string } }} />
+            ) : null}
           </PartErrorBoundary>
         </Suspense>
 

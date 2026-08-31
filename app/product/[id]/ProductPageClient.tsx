@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { useEnvironment, useGLTF } from '@react-three/drei'
+import { useGLTF, useTexture } from '@react-three/drei'
 import { QualityProvider } from '@/contexts/QualityContext'
 import { useAssetProbe } from '@/hooks/useAssetProbe'
 import { usePresentation, type ZonePaintConfig } from '@/stores/presentationStore'
@@ -18,6 +18,7 @@ import {
 } from '@/lib/three/exportConfigured'
 import {
   findCoverVariant,
+  isMatte,
   requiredAssets,
   type PresentationConfig,
   type ResolvedPresentation,
@@ -42,7 +43,12 @@ const ARProductViewer = dynamic(() => import('@/components/store/ARProductViewer
  *  a real, sellable finish rather than whatever the GLB happened to ship with. */
 function defaultPaint(config: PresentationConfig): ZonePaintConfig {
   const cover = config.layers.cover.variants.find((v) => v.id === config.layers.cover.default)
-  const surface = { metalness: cover?.material?.metalness ?? 0, clearcoat: cover?.material?.clearcoat ?? 0 }
+  // Clearcoat is a gloss layer over the base colour — one of the two things
+  // that was reflecting into the upholstery. Matte drops it at the source.
+  const surface = {
+    metalness: cover?.material?.metalness ?? 0,
+    clearcoat: isMatte(config) ? 0 : cover?.material?.clearcoat ?? 0,
+  }
   const first = (zone: 'wood' | 'cover' | 'cushion') => config.palettes[zone]?.[0]
 
   return {
@@ -141,7 +147,7 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
         sources.current,
         paint,
         findCoverVariant(config, coverId),
-        { softMatch: config.layers.soft.zoneMatch }
+        { softMatch: config.layers.soft?.zoneMatch, matte: isMatte(config) }
       )
       const url = URL.createObjectURL(blob)
       if (arCache.current) URL.revokeObjectURL(arCache.current.url)
@@ -172,8 +178,12 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
   // variants on idle so a swap never suspends mid-wipe.
   useEffect(() => {
     if (state !== 'ready') return
-    assets.forEach((path) => useGLTF.preload(path))
-    useEnvironment.preload({ files: config.room.hdr })
+    // Only the GLBs go through drei's loader cache; the backdrop is a plain
+    // texture, and there is no HDR to warm now that the scene has no IBL.
+    assets
+      .filter((path) => path.endsWith('.glb'))
+      .forEach((path) => useGLTF.preload(path))
+    if (config.room.image) useTexture.preload(config.room.image)
 
     const rest = config.layers.cover.variants
       .filter((v) => v.id !== config.layers.cover.default)
@@ -190,7 +200,7 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
   }, [state, assets, config])
 
   const retry = useCallback(() => {
-    assets.forEach((path) => useGLTF.clear(path))
+    assets.filter((path) => path.endsWith('.glb')).forEach((path) => useGLTF.clear(path))
     setLayerError(null)
     setProbeKey((n) => n + 1)
   }, [assets])

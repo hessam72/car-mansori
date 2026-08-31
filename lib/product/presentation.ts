@@ -39,9 +39,28 @@ export interface CoverLayerMeta {
   variants: CoverVariant[]
 }
 
+export interface PresentationRoom {
+  /** Backdrop GLB. Ignored when `image` is set. */
+  path?: string
+  /** Backdrop photograph. Takes precedence over `path` — see PresentationBackdrop. */
+  image?: string
+  /** How far behind the piece the backdrop plane sits, in metres. Together with
+   *  `imageOffsetY` this is how the photographed floor is lined up with the
+   *  piece; there is no way to solve that in code. */
+  imageDistance?: number
+  imageOffsetY?: number
+  hdr?: string
+  envIntensity?: number
+  floorY?: number
+  /** Strip every reflection: no IBL, `envMapIntensity` 0, `clearcoat` 0.
+   *  On by default — the HDR was tinting the colours the user picks. */
+  matte?: boolean
+}
+
 export interface PresentationConfig {
-  room: { path: string; hdr: string; envIntensity?: number; floorY?: number }
-  layers: { frame: LayerMeta; soft: LayerMeta; cover: CoverLayerMeta }
+  room: PresentationRoom
+  /** `soft` is optional: a product can ship as frame + cover alone. */
+  layers: { frame: LayerMeta; soft?: LayerMeta; cover: CoverLayerMeta }
   palettes: Record<PresentationZone, ZoneSwatch[]>
   /**
    * Framing is expressed as angles and ratios, never absolute metres. The rig
@@ -69,7 +88,7 @@ export interface PresentationConfig {
      *  alike. Implemented by aiming below the piece's centre. */
     screenLift?: number
   }
-  lighting?: { key: number; fill: number; rim: number; bounce: number; ambient: number }
+  lighting?: { key: number; fill: number; rim: number; bounce: number; ambient: number; hemi?: number }
   explode?: { gap: number; durationMs: number }
   wipe?: { durationMs: number }
 }
@@ -110,10 +129,20 @@ export function totalPrice(product: ProductData, variant: CoverVariant | null): 
   return (product.price ?? 0) + (variant?.priceDelta ?? 0)
 }
 
-/** Every GLB the page needs before it can render anything meaningful. */
+/** Whether reflections are stripped for this product. Defaults to on. */
+export function isMatte(config: PresentationConfig): boolean {
+  return config.room.matte !== false
+}
+
+/** Every asset the page needs before it can render anything meaningful. The
+ *  backdrop is whichever of image/GLB this product actually uses. */
 export function requiredAssets(config: PresentationConfig): string[] {
   const cover = findCoverVariant(config, config.layers.cover.default)
-  return [config.layers.frame.path, config.layers.soft.path, cover?.path, config.room.path].filter(
-    (p): p is string => !!p
-  )
+  const backdrop = config.room.image ?? config.room.path
+  return [
+    config.layers.frame.path,
+    config.layers.soft?.path,
+    cover?.path,
+    backdrop,
+  ].filter((p): p is string => !!p)
 }

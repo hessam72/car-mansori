@@ -12,7 +12,7 @@ export interface ZoneTarget {
  *
  * Deliberately NOT `prepareCarObject` — that force-sets castShadow/receiveShadow
  * on every mesh, and this page renders with no shadow maps at all. Here we only
- * boost env reflections and sharpen textures.
+ * set env reflection strength and sharpen textures.
  */
 export function preparePresentationObject(root: THREE.Object3D, options: CarMaterialOptions = {}) {
   root.traverse((child) => {
@@ -21,6 +21,27 @@ export function preparePresentationObject(root: THREE.Object3D, options: CarMate
     child.receiveShadow = false
     const materials = Array.isArray(child.material) ? child.material : [child.material]
     materials.forEach((mat: THREE.Material) => mat && prepareCarMaterial(mat, options))
+  })
+}
+
+/**
+ * Strip every specular reflection from a set of painted materials.
+ *
+ * The HDR environment was reflecting into the upholstery and shifting the
+ * colours away from the hex the user actually picked. With no IBL in the scene
+ * `envMapIntensity` has nothing to sample, but it is zeroed anyway so a stray
+ * `scene.environment` cannot creep back in; `clearcoat` is the other source —
+ * a glossy coat over the base colour, authored per cover variant.
+ *
+ * `reflectivity` is deliberately left alone. Zeroing it would kill the direct
+ * specular from the spot rig too, and that is ordinary shading — it is what
+ * gives the fabric its form. The complaint was the environment bouncing into
+ * the colour, not the lights.
+ */
+export function applyMatte(targets: ZoneTarget[]) {
+  targets.forEach(({ material }) => {
+    material.envMapIntensity = 0
+    if (material.clearcoat !== undefined) material.clearcoat = 0
   })
 }
 

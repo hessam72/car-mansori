@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, type PanInfo } from 'framer-motion'
 import { Box, ChevronDown, Loader2, ShoppingBag, Smartphone } from 'lucide-react'
 import { faPrice } from '@/lib/store/catalog'
@@ -63,6 +63,12 @@ export default function ProductSheet({
   hidden = false,
 }: Props) {
   const { product, config } = presentation
+
+  // No cushion row without a soft layer — the swatches would paint nothing.
+  const zones = useMemo<PresentationZone[]>(
+    () => (config.layers.soft ? ['wood', 'cover', 'cushion'] : ['wood', 'cover']),
+    [config.layers.soft]
+  )
   const [activeTab, setActiveTab] = useState<Tab>('specs')
   // Opens collapsed: the piece is the hero, details are one tap away.
   const [expanded, setExpanded] = useState(false)
@@ -215,7 +221,7 @@ export default function ProductSheet({
 
               {activeTab === 'colors' && (
                 <div className="space-y-5">
-                  {(['wood', 'cover', 'cushion'] as PresentationZone[]).map((zone) => (
+                  {zones.map((zone) => (
                     <SwatchRow
                       key={zone}
                       zone={zone}
@@ -235,16 +241,13 @@ export default function ProductSheet({
                     <span className="text-[12px] text-[var(--text-muted)]">جنس رویه</span>
                     <CoverVariantGrid
                       variants={config.layers.cover.variants}
-                      activeId={coverId}
-                      disabled={layerStep < 2}
+                      activeId={layerStep === 1 ? coverId : null}
                       errors={layerErrors}
                       onSelect={selectCover}
                     />
-                    {layerStep < 2 && (
-                      <p className="text-[11px] text-[var(--text-muted)]">
-                        برای انتخاب جنس رویه، ابتدا لایه رویه را نمایش دهید.
-                      </p>
-                    )}
+                    <p className="text-[11px] text-[var(--text-muted)]">
+                      با انتخاب جنس رویه، اسکلت چوبی پنهان می‌شود.
+                    </p>
                   </div>
                 </div>
               )}

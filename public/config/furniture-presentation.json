@@ -1,22 +1,17 @@
 {
   "test": {
     "room": {
-      "path": "/models/presentation/test/room.glb",
-      "hdr": "/hdr/main_hdr.exr",
-      "envIntensity": 1.0,
-      "floorY": 0
+      "image": "/images/presentation/test/backdrop.jpg",
+      "imageDistance": 6,
+      "imageOffsetY": 0,
+      "floorY": 0,
+      "matte": true
     },
     "layers": {
       "frame": {
         "path": "/models/presentation/test/frame.glb",
         "label": "اسکلت چوبی",
         "desc": "چوب راش خشک‌شده با اتصالات فاق و زبانه"
-      },
-      "soft": {
-        "path": "/models/presentation/test/soft.glb",
-        "label": "الیاف و نشیمن",
-        "desc": "فوم سرد با تراکم ۳۵ و الیاف سیلیکونی",
-        "zoneMatch": "cushion"
       },
       "cover": {
         "label": "رویه",
@@ -32,7 +27,7 @@
             "material": {
               "roughness": 0.45,
               "metalness": 0,
-              "clearcoat": 0.15
+              "clearcoat": 0
             }
           },
           {
@@ -56,7 +51,7 @@
             "material": {
               "roughness": 0.25,
               "metalness": 0,
-              "clearcoat": 0.6
+              "clearcoat": 0
             }
           }
         ]
@@ -147,10 +142,11 @@
     },
     "lighting": {
       "key": 120,
-      "fill": 45,
+      "fill": 70,
       "rim": 60,
       "bounce": 6,
-      "ambient": 0.35
+      "ambient": 1.1,
+      "hemi": 0.8
     },
     "explode": {
       "gap": 0.45,

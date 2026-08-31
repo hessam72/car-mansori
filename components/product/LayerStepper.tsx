@@ -13,13 +13,20 @@ export default function LayerStepper({ config }: { config: PresentationConfig })
   const setLayerStep = usePresentation((s) => s.setLayerStep)
   const toggleExplode = usePresentation((s) => s.toggleExplode)
 
+  // Two exclusive views, not a cumulative stack: the bare frame, or the
+  // finished piece. `soft` only earns a label when the product actually ships
+  // one — its meta is optional now.
+  const soft = config.layers.soft
+  const finished = soft
+    ? `${soft.label} + ${config.layers.cover.label}`
+    : config.layers.cover.label
+
   const steps: { step: LayerStep; label: string; desc?: string }[] = [
     { step: 0, label: config.layers.frame.label, desc: config.layers.frame.desc },
-    { step: 1, label: `+ ${config.layers.soft.label}`, desc: config.layers.soft.desc },
-    { step: 2, label: `+ ${config.layers.cover.label}`, desc: config.layers.cover.desc },
+    { step: 1, label: finished, desc: config.layers.cover.desc },
   ]
 
-  const activeDesc = steps[layerStep]?.desc
+  const activeDesc = steps.find((s) => s.step === layerStep)?.desc
 
   return (
     <div className="space-y-3">

@@ -13,7 +13,7 @@ import type { PresentationConfig } from '@/lib/product/presentation'
  * which is where the real saving lives (download, parse and VRAM, none of which
  * frustum culling helps with). Never a paint target, never a shadow caster.
  */
-export default function PresentationRoom({ config }: { config: PresentationConfig }) {
+export default function PresentationRoom({ config }: { config: PresentationConfig & { room: { path: string } } }) {
   const gltf = useGLTF(config.room.path)
   const { settings } = useQuality()
 
