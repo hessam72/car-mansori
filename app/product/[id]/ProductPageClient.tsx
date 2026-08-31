@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { useGLTF, useTexture } from '@react-three/drei'
+import { useEnvironment, useGLTF, useTexture } from '@react-three/drei'
 import { QualityProvider } from '@/contexts/QualityContext'
 import { useAssetProbe } from '@/hooks/useAssetProbe'
 import { usePresentation, type ZonePaintConfig } from '@/stores/presentationStore'
@@ -20,6 +20,7 @@ import {
   coverSurface,
   findCoverVariant,
   isMatte,
+  needsEnvironment,
   requiredAssets,
   roomMode,
   type PresentationConfig,
@@ -173,11 +174,14 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
   // variants on idle so a swap never suspends mid-wipe.
   useEffect(() => {
     if (state !== 'ready') return
-    // Only the GLBs go through drei's loader cache; the backdrop is a plain
-    // texture, and there is no HDR to warm now that the scene has no IBL.
+    // Only the GLBs go through drei's loader cache; the backdrop image is a
+    // plain texture and the HDR has its own loader.
     assets
       .filter((path) => path.endsWith('.glb'))
       .forEach((path) => useGLTF.preload(path))
+    if (needsEnvironment(config) && config.room.hdr) {
+      useEnvironment.preload({ files: config.room.hdr })
+    }
     // Only the backdrop actually in use — a manifest can carry both an image
     // and a room GLB so `room.mode` can switch between them.
     if (roomMode(config) === 'image' && config.room.image) useTexture.preload(config.room.image)

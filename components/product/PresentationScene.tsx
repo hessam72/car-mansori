@@ -7,7 +7,7 @@ import { PerfLadder } from '@/components/three/PerfLadder'
 import { PartErrorBoundary } from '@/components/car/PartErrorBoundary'
 import { clampDprToBudget } from '@/lib/three/dprBudget'
 import { useQuality } from '@/contexts/QualityContext'
-import { isMatte, roomMode, type PresentationConfig } from '@/lib/product/presentation'
+import { needsEnvironment, roomMode, type PresentationConfig } from '@/lib/product/presentation'
 import type { ExportSources } from '@/lib/three/exportConfigured'
 import PresentationEnvironment from './PresentationEnvironment'
 import PresentationLighting from './PresentationLighting'
@@ -28,8 +28,8 @@ interface Props {
 
 export default function PresentationScene({ config, onLayerError, sources }: Props) {
   const { settings } = useQuality()
-  const matte = isMatte(config)
   const backdrop = roomMode(config)
+  const needsIBL = needsEnvironment(config)
   const debug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug')
   const [perfScale, setPerfScale] = useState(1)
 
@@ -77,22 +77,19 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
       >
         <PerfLadder onScale={setPerfScale} adaptive={settings.adaptiveDpr} />
 
-        {/* Matte drops the IBL: it was the main thing reflecting into the
-            upholstery and shifting the colours away from the picked hex, and
-            the spot rig carries the scene without it. Turn `room.matte` off to
-            get it back — worth doing for a modelled room, which was authored
-            expecting one. */}
-        {!matte && <PresentationEnvironment config={config} />}
+        {/* Matte does NOT mean "no environment" — it means the *furniture*
+            takes none, and that is enforced per-material (envMapIntensity 0),
+            so it holds whether or not an environment exists. A room GLB is
+            authored to be lit by one, so dropping it renders the room black.
+            Hence: IBL whenever a modelled room needs it, or matte is off. */}
+        {needsIBL && <PresentationEnvironment config={config} />}
         <PresentationLighting config={config} />
 
         <Suspense fallback={null}>
           <PartErrorBoundary category="room" onError={onLayerError}>
             {backdrop === 'image' && <PresentationBackdrop config={config} framing={framing} />}
             {backdrop === 'model' && (
-              <PresentationRoom
-                config={config as PresentationConfig & { room: { path: string } }}
-                matte={matte}
-              />
+              <PresentationRoom config={config as PresentationConfig & { room: { path: string } }} />
             )}
           </PartErrorBoundary>
         </Suspense>

@@ -180,6 +180,17 @@ export function isMatte(config: PresentationConfig): boolean {
 }
 
 /**
+ * Whether the scene needs an HDR environment loaded.
+ *
+ * Matte does not mean "no environment": it means the furniture takes none, and
+ * that is enforced per-material. A modelled room is authored to be lit by an
+ * environment, so it needs one whether or not the furniture is matte.
+ */
+export function needsEnvironment(config: PresentationConfig): boolean {
+  return !!config.room.hdr && (!isMatte(config) || roomMode(config) === 'model')
+}
+
+/**
  * The backdrop actually in play.
  *
  * An explicit `mode` wins, but only if that mode's asset is configured — a
@@ -208,5 +219,8 @@ export function requiredAssets(config: PresentationConfig): string[] {
     config.layers.soft?.path,
     cover?.path,
     backdrop,
+    // The Environment has no error boundary of its own, so a missing HDR would
+    // hang behind a Suspense fallback rather than say what is wrong.
+    needsEnvironment(config) ? config.room.hdr : undefined,
   ].filter((p): p is string => !!p)
 }
