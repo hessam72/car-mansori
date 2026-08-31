@@ -1,7 +1,7 @@
 {
   "test": {
     "room": {
-      "image": "/images/presentation/test/backdrop.jpg",
+      "image": "/models/presentation/test/backdrop.jpeg",
       "imageDistance": 6,
       "imageOffsetY": 0,
       "floorY": 0,
@@ -38,18 +38,6 @@
             "priceDelta": 0,
             "material": {
               "roughness": 0.95,
-              "metalness": 0,
-              "clearcoat": 0
-            }
-          },
-          {
-            "id": "plastic",
-            "name": "پلی‌اورتان",
-            "path": "/models/presentation/test/cover-plastic.glb",
-            "thumbnail": "/images/covers/plastic.jpg",
-            "priceDelta": -1200000,
-            "material": {
-              "roughness": 0.25,
               "metalness": 0,
               "clearcoat": 0
             }
