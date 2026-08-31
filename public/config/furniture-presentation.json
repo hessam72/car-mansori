@@ -7,7 +7,11 @@
       "imageDistance": 2,
       "imageOffsetY": 0,
       "pieceOffsetY": 0,
-      "offset": [0, 0, 2],
+      "offset": [
+        0,
+        0,
+        2
+      ],
       "floorY": 0,
       "lightingMode": "store",
       "hdr": "/hdr/main_hdr.exr"
@@ -150,14 +154,36 @@
         "color": "#fff2df"
       }
     },
-    "sun": {
-      "enabled": true,
-      "position": [4, 6.5, -5],
-      "intensity": 6,
-      "color": "#ffe3c2",
-      "soft": { "size": 20, "samples": 16, "focus": 0 },
-      "shadow": { "bias": -0.0001, "normalBias": 0.03 }
+  "sun": {
+    "enabled": true,
+    "position": [
+      -2.5,
+      2.5,
+      5
+    ],
+    "target": [
+      0.007048580466527676,
+      1.496530166182611,
+      0.7229428589840117
+    ],
+    "intensity": 6,
+    "color": "#ffe3c2",
+    "soft": {
+      "size": 20,
+      "samples": 16,
+      "focus": 0
     },
+    "shadow": {
+      "left": -7.306572541126144,
+      "right": 7.306572541126144,
+      "top": 6.443415717532126,
+      "bottom": -6.443415717532126,
+      "near": 1.2210115810532578,
+      "far": 17.34523005281967,
+      "bias": -0.0001,
+      "normalBias": 0.03
+    }
+  },
     "explode": {
       "gap": 0.45,
       "durationMs": 700
