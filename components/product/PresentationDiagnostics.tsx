@@ -54,6 +54,36 @@ export default function PresentationDiagnostics() {
           ` · screenY top ${screenY(c.x, box.max.y, c.z)} base ${base}` +
           ` · sheetTop ${sheetTop}${base > sheetTop ? ' ⚠ base is behind the sheet' : ''}`
       )
+      // The "one specific GLB renders pitch black" report. Nothing else on this
+      // page can tell you *why* the screen is empty, and the three causes look
+      // identical from the outside: the room is somewhere else entirely, the
+      // camera is sealed inside a mesh, or the room is past the far plane.
+      const room = scene.getObjectByName('presentation-room')
+      if (!room) {
+        console.log('[presentation] room · none in scene (image or no backdrop)')
+      } else {
+        const roomBox = new THREE.Box3().setFromObject(room)
+        const inside = roomBox.containsPoint(camera.position)
+        // Any room mesh whose bounds swallow the camera. This is the black
+        // screen: you are inside a wall, looking at the inside of it.
+        const swallowing: string[] = []
+        const meshBox = new THREE.Box3()
+        room.traverse((child) => {
+          if (!(child instanceof THREE.Mesh) || swallowing.length >= 4) return
+          meshBox.setFromObject(child)
+          if (meshBox.containsPoint(camera.position)) swallowing.push(child.name || '(unnamed)')
+        })
+        const far = (camera as THREE.PerspectiveCamera).far
+        const reach = roomBox.getBoundingSphere(new THREE.Sphere())
+        const clipped = reach.center.length() + reach.radius > far
+        console.log(
+          `[presentation] room ${round(roomBox.min).join('/')} → ${round(roomBox.max).join('/')}` +
+            ` · camera ${inside ? 'inside' : '⚠ OUTSIDE the room'}` +
+            ` · far ${far.toFixed(0)}${clipped ? ' ⚠ room reaches past it' : ''}` +
+            (swallowing.length ? ` · ⚠ camera is inside mesh: ${swallowing.join(', ')}` : '')
+        )
+      }
+
       frames.current = 0
     }
 

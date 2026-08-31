@@ -61,6 +61,34 @@ export interface PresentationRoom {
   /** Slides the backdrop photograph up/down, in metres. Raising it brings the
    *  photographed floor line up to meet the piece without moving the piece. */
   imageOffsetY?: number
+  /**
+   * Seat the room GLB's floor at `floorY`, instead of trusting its authored
+   * origin. On by default, and the single most important knob here.
+   *
+   * `/store` does exactly this to every model it loads — ModelLoader sets
+   * `clone.position.y = -box.min.y` — and so does the furniture on this page
+   * (FurnitureStack's `centerOffset`). The room was the one thing rendered at
+   * whatever origin Blender happened to export, so a GLB whose origin sits at
+   * its geometric centre, or at a corner, lands metres away from where the
+   * camera is looking. That camera is solved from the *piece's* bounds and
+   * cannot walk out of trouble the way /store's player can, so it ends up
+   * inside a wall or above the roof and the screen goes black.
+   */
+  alignFloor?: boolean
+  /** Moves the room GLB after `alignFloor`, in metres. For the horizontal
+   *  placement floor-alignment cannot solve — a room modelled off to one side. */
+  offset?: [number, number, number]
+  /** Uniform scale on the room GLB, for a model exported in the wrong unit. */
+  scale?: number
+  /**
+   * Render every room mesh from both sides.
+   *
+   * The escape hatch for a room authored to be seen from outside: with the
+   * camera indoors, single-sided walls facing away are culled and the room is
+   * invisible or half-there. `/store` applies a narrower version of this to
+   * ceiling meshes, which is kept unconditionally.
+   */
+  doubleSide?: boolean
   hdr?: string
   envIntensity?: number
   /**

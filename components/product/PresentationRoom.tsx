@@ -20,6 +20,9 @@ export interface RoomBounds {
   box: THREE.Box3
 }
 
+/** Headroom over the room's own reach before the far plane clips it. */
+const FAR_MARGIN = 5
+
 export default function PresentationRoom({
   config,
   bounds,
@@ -33,7 +36,15 @@ export default function PresentationRoom({
 }) {
   const gltf = useGLTF(config.room.path)
   const invalidate = useThree((s) => s.invalidate)
+  const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const { settings } = useQuality()
+
+  const { room } = config
+  const floorY = room.floorY ?? 0
+  const alignFloor = room.alignFloor !== false
+  const scaleFactor = room.scale ?? 1
+  const doubleSide = room.doubleSide === true
+  const offset = room.offset
 
   // Never matte. The matte flag exists to stop the *furniture* picking up
   // environment reflections, and it does that per-material. A room GLB is
@@ -42,11 +53,66 @@ export default function PresentationRoom({
   const scene = useMemo(() => {
     const clone = gltf.scene.clone(true)
     preparePresentationObject(clone, {
-      envMapIntensity: config.room.envIntensity ?? 1,
+      envMapIntensity: room.envIntensity ?? 1,
       anisotropy: settings.anisotropyLevel,
     })
+
+    // Lifted from /store's ModelLoader, which forces DoubleSide on any mesh
+    // named *ceiling*. A ceiling is modelled to be seen from below and often
+    // exported with its normals pointing up, so from inside the room it is
+    // culled and the room reads as open to a black sky. `room.doubleSide`
+    // widens the same treatment to every mesh, for a model authored to be
+    // viewed from outside.
+    clone.traverse((child) => {
+      if (!(child instanceof THREE.Mesh) || !child.material) return
+      if (!doubleSide && !child.name.toLowerCase().includes('ceiling')) return
+      const materials = Array.isArray(child.material) ? child.material : [child.material]
+      materials.forEach((mat: THREE.Material) => {
+        mat.side = THREE.DoubleSide
+        mat.needsUpdate = true
+      })
+    })
+
+    // Placement. This page used to render the room at whatever origin it was
+    // exported with, while both /store and the furniture on this page seat the
+    // model on the floor first — so a room whose origin is not at its floor was
+    // the one asset in the scene standing somewhere else entirely.
+    clone.scale.setScalar(scaleFactor)
+    const authored = new THREE.Box3().setFromObject(clone)
+    const lift = alignFloor ? floorY - authored.min.y : 0
+    clone.position.set(offset?.[0] ?? 0, lift + (offset?.[1] ?? 0), offset?.[2] ?? 0)
+
+    if (process.env.NODE_ENV !== 'production') {
+      const size = authored.getSize(new THREE.Vector3())
+      const f = (n: number) => n.toFixed(2)
+      console.log(
+        `[PresentationRoom] ${room.path}` +
+          ` · authored ${authored.min.toArray().map(f).join('/')} → ${authored.max.toArray().map(f).join('/')}` +
+          ` (${size.toArray().map(f).join(' x ')}m)` +
+          ` · scale ${scaleFactor} · lift ${f(lift)}${alignFloor ? '' : ' (alignFloor off)'}`
+      )
+      if (alignFloor && Math.abs(lift) > 0.5) {
+        console.warn(
+          `[PresentationRoom] the room GLB's origin is ${f(-lift)}m from its floor, so it was` +
+            ' authored to sit somewhere other than on the ground. It has been seated on' +
+            ' room.floorY the way /store seats every model. Set room.alignFloor false to' +
+            ' render it at its authored origin instead.'
+        )
+      }
+    }
+
     return clone
-  }, [gltf.scene, config.room.envIntensity, settings.anisotropyLevel])
+  }, [
+    gltf.scene,
+    room.envIntensity,
+    room.path,
+    settings.anisotropyLevel,
+    alignFloor,
+    scaleFactor,
+    doubleSide,
+    offset,
+    floorY,
+  ])
 
   // Publish the walls. The camera rig derives its distance purely from the
   // piece and has never known the room exists — which was fine while the piece
@@ -56,6 +122,27 @@ export default function PresentationRoom({
     const box = new THREE.Box3().setFromObject(scene)
     if (bounds) bounds.current = { box }
     onBounds?.(box)
+
+    // /store runs its camera at far 200; this page runs 40, chosen to keep depth
+    // precision tight for N8AO. That is the right default for a booth and wrong
+    // for a real room — anything past it is clipped away, and a room clipped
+    // away around a piece framed inside it leaves an empty screen. Raise it only
+    // as far as this room actually needs, and never lower it.
+    const sphere = box.getBoundingSphere(new THREE.Sphere())
+    const needed = sphere.center.length() + sphere.radius + FAR_MARGIN
+    if (needed > camera.far) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(
+          `[PresentationRoom] the room reaches ${needed.toFixed(1)}m but camera.far is` +
+            ` ${camera.far} — raising it so the room is not clipped away. Set camera.far in` +
+            ' the manifest to make this deliberate, or scale the room GLB down if it is' +
+            ' larger than the space it is meant to be.'
+        )
+      }
+      camera.far = needed
+      camera.updateProjectionMatrix()
+    }
+
     // Demand loop: without a frame the rig never reads the new bounds.
     invalidate()
     if (process.env.NODE_ENV !== 'production') {
@@ -70,7 +157,7 @@ export default function PresentationRoom({
       if (bounds) bounds.current = null
       onBounds?.(null)
     }
-  }, [scene, bounds, onBounds, invalidate])
+  }, [scene, bounds, onBounds, invalidate, camera])
 
-  return <primitive object={scene} />
+  return <primitive object={scene} name="presentation-room" />
 }
