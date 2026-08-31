@@ -4,7 +4,7 @@
       "mode": "model",
       "image": "/models/presentation/test/backdrop.jpeg",
       "path": "/models/presentation/test/room.glb",
-      "imageDistance": 0,
+      "imageDistance": 2,
       "imageOffsetY": 0,
       "pieceOffsetY": 0,
       "floorY": 0,
@@ -125,12 +125,12 @@
     "camera": {
       "azimuthDeg": 18,
       "elevationDeg": 10,
-      "fov": 35,
+      "fov": 50,
       "near": 0.1,
-      "far": 40,
+      "far": 50,
       "padding": 1.55,
-      "minZoom": 0.6,
-      "maxZoom": 1.25,
+      "minZoom": 0.3,
+      "maxZoom": 1.8,
       "screenLift": 0
     },
     "lighting": {
