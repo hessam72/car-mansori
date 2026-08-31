@@ -314,22 +314,10 @@ export default function FurnitureStack({ config, controls, framing, sources, deb
               </Suspense>
             )}
 
-            {debug && <GroundGuide y={config.room.floorY ?? 0} radius={Math.max(baseSize.x, baseSize.z)} />}
           </group>
         </group>
       </group>
     </group>
-  )
-}
-
-/** The plane the piece is standing on, drawn flat. Line this up with the floor
- *  in the backdrop photograph using room.pieceOffsetY / room.imageOffsetY. */
-function GroundGuide({ y, radius }: { y: number; radius: number }) {
-  return (
-    <mesh position={[0, y, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[radius * 0.48, radius * 0.5, 64]} />
-      <meshBasicMaterial color="#00ff9c" transparent opacity={0.9} side={THREE.DoubleSide} />
-    </mesh>
   )
 }
 
