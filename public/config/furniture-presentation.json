@@ -122,16 +122,16 @@
       ]
     },
     "camera": {
-      "azimuthDeg": 18,
-      "elevationDeg": 10,
+      "azimuthDeg": 13,
+      "elevationDeg": 15,
       "fov": 50,
       "near": 0.1,
-      "far": 50,
+      "far": 110,
       "padding": 1.55,
-      "minZoom": 0.3,
+      "minZoom": 0.5,
       "maxZoom": 1.8,
-      "tiltLimitDeg": 36,
-      "screenLift": 0
+      "tiltLimitDeg": 10,
+      "screenLift": -0.05
     },
     "lighting": {
       "key": 120,
