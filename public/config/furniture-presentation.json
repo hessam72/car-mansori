@@ -26,7 +26,7 @@
             "thumbnail": "/images/covers/leather.png",
             "priceDelta": 4500000,
             "material": {
-              "roughness": 0.45,
+              "roughness": 0.8,
               "metalness": 0,
               "clearcoat": 0
             }
