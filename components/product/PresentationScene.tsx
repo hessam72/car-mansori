@@ -34,7 +34,7 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
 
   // Spin/tilt targets live in a ref shared with the gesture layer — writing
   // them to zustand at 60Hz would re-render the bottom sheet every frame.
-  const controls = useRef<StackControls>({ yaw: 0, lift: 0 })
+  const controls = useRef<StackControls>({ yaw: 0, pitch: 0 })
   // Written by the stack once it has measured the frame layer, read by the
   // camera rig to compute a distance that actually fits this canvas.
   const framing = useRef<StackFraming | null>(null)

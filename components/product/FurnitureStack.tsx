@@ -24,10 +24,9 @@ import type { WipeDirection } from '@/hooks/useClipWipe'
  *  would re-render the whole bottom sheet every frame. */
 export interface StackControls {
   yaw: number
-  /** Vertical drag offset in metres — the piece rises and falls with the
-   *  finger. It used to be a tilt; furniture that leans back reads as broken,
-   *  and lifting is what people actually reach for. */
-  lift: number
+  /** Vertical drag, in radians about the horizontal axis through the piece's
+   *  own centre. Drag up tips it towards the viewer, down tips it away. */
+  pitch: number
 }
 
 /** Measured bounds of the seated piece, published to the camera rig so it can
@@ -190,7 +189,11 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
     invalidate()
   }, [baseSize, exploded, gap, config.room.floorY, framing, invalidate])
 
-  const liftRef = useRef<THREE.Group>(null)
+  // The piece's centre — the same height the camera frames on, and the axis
+  // the tilt turns about.
+  const pivotY = (config.room.floorY ?? 0) + baseSize.y / 2
+
+  const pitchRef = useRef<THREE.Group>(null)
   const yawRef = useRef<THREE.Group>(null)
   const frameSlot = useRef<THREE.Group>(null)
   const softSlot = useRef<THREE.Group>(null)
@@ -216,17 +219,17 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
   const softVisible = exploded || layerStep === 0
 
   useFrame((_, delta) => {
-    const lift = liftRef.current
+    const pitch = pitchRef.current
     const yaw = yawRef.current
-    if (!lift || !yaw) return
+    if (!pitch || !yaw) return
 
     const target = controls.current
     const nextYaw = THREE.MathUtils.damp(yaw.rotation.y, target.yaw, 12, delta)
-    const nextLift = THREE.MathUtils.damp(lift.position.y, target.lift, 12, delta)
+    const nextPitch = THREE.MathUtils.damp(pitch.rotation.x, target.pitch, 12, delta)
 
-    let moving = Math.abs(nextYaw - target.yaw) > 1e-4 || Math.abs(nextLift - target.lift) > 1e-4
+    let moving = Math.abs(nextYaw - target.yaw) > 1e-4 || Math.abs(nextPitch - target.pitch) > 1e-4
     yaw.rotation.y = nextYaw
-    lift.position.y = nextLift
+    pitch.rotation.x = nextPitch
 
     // Explode fans the layers apart along Y; the clip plane follows via each
     // layer's world matrix, so no special-casing is needed there. The soft slot
@@ -247,58 +250,64 @@ export default function FurnitureStack({ config, controls, framing, sources }: F
   })
 
   return (
-    <group ref={liftRef} name="furniture-stack">
-      <group ref={yawRef}>
-        <group position={centerOffset}>
-          <group ref={frameSlot} visible={frameVisible}>
-            <primitive object={frame.scene} />
-            {exploded && <LayerLabel text={config.layers.frame.label} />}
-          </group>
+    // The tilt pivot is raised to the piece's centre and undone immediately
+    // below it. Rotating about the world origin instead would swing the piece
+    // through an arc — invisible at the old 16°, but it throws it off-screen at
+    // 60°, because the piece sits a metre or so above that origin.
+    <group ref={pitchRef} name="furniture-stack" position={[0, pivotY, 0]}>
+      <group position={[0, -pivotY, 0]}>
+        <group ref={yawRef}>
+          <group position={centerOffset}>
+            <group ref={frameSlot} visible={frameVisible}>
+              <primitive object={frame.scene} />
+              {exploded && <LayerLabel text={config.layers.frame.label} />}
+            </group>
 
-          {softMeta && (
-            <group ref={softSlot} visible={softVisible}>
+            {softMeta && (
+              <group ref={softSlot} visible={softVisible}>
+                <Suspense fallback={null}>
+                  <PartErrorBoundary category="soft">
+                    <SoftLayer meta={softMeta} matte={matte} sources={sources} />
+                  </PartErrorBoundary>
+                </Suspense>
+                {exploded && <LayerLabel text={softMeta.label} />}
+              </group>
+            )}
+
+            <group ref={coverSlot}>
+              {/* Its own Suspense: a child that suspends hides the *nearest*
+                  boundary's whole subtree, so without this a cover swap would
+                  blank the frame and cushions too. */}
               <Suspense fallback={null}>
-                <PartErrorBoundary category="soft">
-                  <SoftLayer meta={softMeta} matte={matte} sources={sources} />
+                {/* A single corrupt variant degrades to "unavailable" in the
+                    grid; the frame and cushions keep rendering. */}
+                <PartErrorBoundary
+                  category="cover"
+                  onError={(_category, error) => variant && setLayerError(variant.id, error.message)}
+                >
+                  {coverMounted && variant && (
+                    <CoverLayer
+                      key={variant.id}
+                      variant={variant}
+                      direction={coverDirection}
+                      matte={matte}
+                      durationMs={(config.wipe?.durationMs ?? 900) / 2}
+                      onWipeComplete={coverPhase === 'wipeOut' ? commitCover : finishWipe}
+                    />
+                  )}
                 </PartErrorBoundary>
               </Suspense>
-              {exploded && <LayerLabel text={softMeta.label} />}
+              {exploded && <LayerLabel text={config.layers.cover.label} />}
             </group>
-          )}
 
-          <group ref={coverSlot}>
-            {/* Its own Suspense: a child that suspends hides the *nearest*
-                boundary's whole subtree, so without this a cover swap would
-                blank the frame and cushions too. */}
-            <Suspense fallback={null}>
-              {/* A single corrupt variant degrades to "unavailable" in the
-                  grid; the frame and cushions keep rendering. */}
-              <PartErrorBoundary
-                category="cover"
-                onError={(_category, error) => variant && setLayerError(variant.id, error.message)}
-              >
-                {coverMounted && variant && (
-                  <CoverLayer
-                    key={variant.id}
-                    variant={variant}
-                    direction={coverDirection}
-                    matte={matte}
-                    durationMs={(config.wipe?.durationMs ?? 900) / 2}
-                    onWipeComplete={coverPhase === 'wipeOut' ? commitCover : finishWipe}
-                  />
-                )}
-              </PartErrorBoundary>
-            </Suspense>
-            {exploded && <LayerLabel text={config.layers.cover.label} />}
+            {variant && (
+              <Suspense fallback={null}>
+                <PartErrorBoundary category="cover-source">
+                  <CoverSource path={variant.path} sources={sources} onBounds={handleCoverBounds} />
+                </PartErrorBoundary>
+              </Suspense>
+            )}
           </group>
-
-          {variant && (
-            <Suspense fallback={null}>
-              <PartErrorBoundary category="cover-source">
-                <CoverSource path={variant.path} sources={sources} onBounds={handleCoverBounds} />
-              </PartErrorBoundary>
-            </Suspense>
-          )}
         </group>
       </group>
     </group>

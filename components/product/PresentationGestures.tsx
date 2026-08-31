@@ -8,10 +8,11 @@ import type { PresentationConfig } from '@/lib/product/presentation'
 import type { StackControls, StackFraming } from './FurnitureStack'
 
 const SPIN_SENSITIVITY = 0.0075
-/** How far the piece may be dragged off its seated height, as a multiple of
- *  its own height. Enough to look under it or lift it clear of the sheet,
- *  not enough to lose it off-screen. */
-const LIFT_LIMIT_RATIO = 0.6
+const TILT_SENSITIVITY = 0.005
+/** ~60°. Wide enough that dragging up genuinely tips the piece over so you can
+ *  see the seat, and down shows the underside — the old 16° barely read as
+ *  movement at all. */
+const TILT_LIMIT = Math.PI / 3
 
 interface Props {
   config: PresentationConfig
@@ -168,17 +169,13 @@ export default function PresentationGestures({ config, controls, framing }: Prop
         pinchStart = current
       } else if (mode === 'rotate') {
         controls.current.yaw += dx * SPIN_SENSITIVITY
-        // Vertical drag moves the piece, it does not tilt it. Converted through
-        // the view height at the piece's depth so the model tracks the finger
-        // 1:1 at any zoom or screen size — a fixed px→radian factor felt
-        // faster on a phone than on a desktop.
-        const halfFov = Math.tan(THREE.MathUtils.degToRad(config.camera.fov) / 2)
-        const worldPerPixel = (2 * distance.current * halfFov) / (el.clientHeight || 1)
-        const limit = (framing.current?.size.y ?? 1) * LIFT_LIMIT_RATIO
-        controls.current.lift = THREE.MathUtils.clamp(
-          controls.current.lift - dy * worldPerPixel,
-          -limit,
-          limit
+        // Drag up tips the piece towards you, down tips it away. The rotation
+        // happens about the piece's own centre — see FurnitureStack — so it
+        // turns in place rather than swinging through an arc.
+        controls.current.pitch = THREE.MathUtils.clamp(
+          controls.current.pitch - dy * TILT_SENSITIVITY,
+          -TILT_LIMIT,
+          TILT_LIMIT
         )
       }
 
@@ -231,7 +228,7 @@ export default function PresentationGestures({ config, controls, framing }: Prop
       el.removeEventListener('gesturestart', onGesture)
       el.removeEventListener('gesturechange', onGesture)
     }
-  }, [gl, minZoom, maxZoom, controls, framing, config.camera.fov, invalidate, regress])
+  }, [gl, minZoom, maxZoom, controls, invalidate, regress])
 
   useFrame((_, delta) => {
     const distanceSettled = distance.current === targetDistance.current
