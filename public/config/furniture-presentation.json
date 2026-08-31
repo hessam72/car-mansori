@@ -1,10 +1,10 @@
 {
   "test": {
     "room": {
-      "mode": "image",
+      "mode": "model",
       "image": "/models/presentation/test/backdrop.jpeg",
       "path": "/models/presentation/test/room.glb",
-      "imageDistance": 6,
+      "imageDistance": 0,
       "imageOffsetY": 0,
       "pieceOffsetY": 0,
       "floorY": 0,
