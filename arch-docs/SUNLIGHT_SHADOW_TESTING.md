@@ -163,12 +163,23 @@ everywhere. The manifest names the tier and `QualityProvider` is pinned to it,
 bypassing both the stored preset and the phone downgrade.
 
 ```json
-"quality": { "preset": "high" }
+"quality": { "preset": "high", "mobile": "low" }
 ```
 
-`quality.mobile` exists for a product heavy enough to need an exception, and
-**defaults to `preset`** — nothing is downgraded silently. Omit the block
-entirely and the app-wide default (`medium`) applies on every device.
+`quality.mobile` **defaults to `preset`** — nothing is downgraded silently.
+Omit the block entirely and the app-wide default (`medium`) applies everywhere.
+
+Which device gets `mobile` is `PHONE_QUERY`, and it is a phone test, not a
+narrow-window test:
+
+```
+(pointer: coarse) and ((max-width: 767px) or (max-height: 767px))
+```
+
+`pointer: coarse` keeps a desktop browser dragged narrow on the desktop tier.
+The **short side** under 768px then splits phone from tablet in either
+orientation — an iPad is 768 across even in portrait, a phone in landscape is
+~430 tall — which testing width alone gets backwards.
 
 Note the two runtime scalers are unaffected and still apply on both: `PerfLadder`
 steps DPR down under sustained load, and `clampDprToBudget` caps it on very

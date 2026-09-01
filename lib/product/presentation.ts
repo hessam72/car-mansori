@@ -178,21 +178,36 @@ export function floorReflection(config: PresentationConfig): PresentationFloorCo
 }
 
 /**
- * The tier this product renders at, on a viewport of `width`.
+ * The tier this product renders at.
  *
  * The app-wide provider drops to `low` under 768px and otherwise restores
  * whatever /car's quality selector last stored — right for a scene you walk
  * around, wrong here. A presentation is one piece in a booth under a camera
- * that only dollies: the frame cost is known up front and does not depend on
- * the device, so the manifest names the tier and a phone gets the same render
- * as a desktop. `quality.mobile` is there for a product heavy enough to need
- * an exception, and defaults to `quality.preset` — no silent downgrade.
+ * that only dollies: the frame cost is known up front, so the manifest names
+ * the tier and the device only decides which of the two it gets.
+ *
+ * `phone` is deliberately not "narrow". A phone held sideways is wider than a
+ * 768px breakpoint and would have been served the desktop tier; a desktop
+ * browser in a short window is not a phone and must not be served the mobile
+ * one. @see isPhoneViewport
  */
-export function presentationQuality(config: PresentationConfig, width: number): QualityPreset {
+export function presentationQuality(config: PresentationConfig, phone: boolean): QualityPreset {
   const q = config.quality
   const base = q?.preset ?? DEFAULT_QUALITY
-  return width < 768 ? q?.mobile ?? base : base
+  return phone ? q?.mobile ?? base : base
 }
+
+/**
+ * Media query for "a phone", as opposed to a tablet or a small window.
+ *
+ * Two conditions, and both are load-bearing. `pointer: coarse` separates touch
+ * hardware from a desktop browser someone has dragged narrow — the desktop
+ * keeps the desktop tier at any window size. The **short side** under 768px
+ * then separates a phone from a tablet, in either orientation: an iPad is 768
+ * across even in portrait, while a phone in landscape is ~430 tall. Testing
+ * width alone gets that one backwards.
+ */
+export const PHONE_QUERY = '(pointer: coarse) and ((max-width: 767px) or (max-height: 767px))'
 
 export function lightingMode(config: PresentationConfig): RoomLighting {
   return config.room.lightingMode ?? 'studio'

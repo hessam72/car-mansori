@@ -21,6 +21,7 @@ import {
   findCoverVariant,
   isMatte,
   needsEnvironment,
+  PHONE_QUERY,
   presentationQuality,
   requiredAssets,
   roomMode,
@@ -100,21 +101,19 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
    * desktop tier and a phone with a `quality.mobile` override settles onto it
    * before the canvas mounts behind the splash.
    */
-  const [narrow, setNarrow] = useState(false)
+  const [phone, setPhone] = useState(false)
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)')
-    const apply = () => setNarrow(mq.matches)
+    const mq = window.matchMedia(PHONE_QUERY)
+    const apply = () => setPhone(mq.matches)
     apply()
     // matchMedia rather than a resize listener: this only ever needs to know
-    // which side of the breakpoint we are on, and a resize handler would
-    // re-render the page on every frame of a window drag.
+    // which side of the query we are on, and a resize handler would re-render
+    // the page on every frame of a window drag. It also keeps up with a phone
+    // being turned, which the query is written to answer either way round.
     mq.addEventListener('change', apply)
     return () => mq.removeEventListener('change', apply)
   }, [])
-  const qualityPreset = useMemo(
-    () => presentationQuality(config, narrow ? 0 : 1280),
-    [config, narrow]
-  )
+  const qualityPreset = useMemo(() => presentationQuality(config, phone), [config, phone])
 
   const assets = useMemo(() => requiredAssets(config), [config])
   const { state, missing } = useAssetProbe(useMemo(() => assets, [assets, probeKey]))

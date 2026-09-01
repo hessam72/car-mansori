@@ -175,7 +175,8 @@
       }
     },
     "quality": {
-      "preset": "high"
+      "preset": "high",
+      "mobile": "low"
     },
     "floor": {
       "enabled": true,
