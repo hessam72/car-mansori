@@ -23,8 +23,13 @@ interface Props {
   roomBounds?: React.MutableRefObject<RoomBounds | null>
 }
 
-/** Clearance kept between the camera and the wall behind it, in metres. */
+/** Clearance kept between the camera and the wall behind it, in metres.
+ *  Override per product with `camera.wallMargin`. */
 const WALL_MARGIN = 0.35
+
+/** Widest the rig will open the lens to fit a piece it cannot back away from.
+ *  Override per product with `camera.maxFov`; set it to `fov` to refuse. */
+const MAX_FOV = 75
 
 /**
  * How far the camera can travel back along `dir` from `origin` before it leaves
@@ -90,13 +95,22 @@ export default function PresentationGestures({ config, controls, framing, roomBo
   const minZoom = config.camera.minZoom ?? 0.6
   const maxZoom = config.camera.maxZoom ?? 1.8
   const tiltLimit = THREE.MathUtils.degToRad(config.camera.tiltLimitDeg ?? TILT_LIMIT_DEG)
+  const wallMargin = config.camera.wallMargin ?? WALL_MARGIN
+  const baseFov = config.camera.fov
+  const maxFov = Math.max(baseFov, config.camera.maxFov ?? MAX_FOV)
 
-  /** How far back the wall lets the camera go. Infinity with no room. */
+  /** How far back the wall lets the camera go. Infinity only when there is no
+   *  room to be stopped by.
+   *
+   *  A room too tight to hold even the margin used to return Infinity — which
+   *  read as "unclamped" and let the camera fly out through the wall in exactly
+   *  the case that needed the clamp most. It now returns the smallest usable
+   *  distance instead: the view is useless either way, but it is useless from
+   *  inside the room, and the dev warning below says why. */
   const wallLimit = () => {
     const box = roomBounds?.current?.box
     if (!box) return Infinity
-    const limit = distanceToWall(desiredTarget.current, viewDir.current, box) - WALL_MARGIN
-    return limit > 0 ? limit : Infinity
+    return Math.max(0.05, distanceToWall(desiredTarget.current, viewDir.current, box) - wallMargin)
   }
 
   /**
@@ -126,14 +140,29 @@ export default function PresentationGestures({ config, controls, framing, roomBo
    * `fov` is vertical, so on a portrait canvas the horizontal field is far
    * narrower than it looks — a distance tuned on desktop puts the camera
    * inside the sofa on a phone. Both axes are solved and the larger wins.
+   *
+   * Which is where a booth runs out of room. The pull-back a phone needs is
+   * roughly twice a desktop window's, and a room modelled around the piece
+   * does not have it, so the rig used to take the crop. It now opens the lens
+   * instead, up to `camera.maxFov`: the piece is framed from a distance the
+   * room actually affords rather than from one it does not. Desktop is
+   * untouched — it never reaches the limit, so the lens never widens — which
+   * is the half that lowering `maxZoom` for the phone could not preserve.
    */
   const reframe = () => {
     const frame = framing.current
     if (!frame || !size.height) return
 
+    // Solved first: `wallLimit` measures along this ray, and the lens widening
+    // below depends on the answer.
+    const azimuth = THREE.MathUtils.degToRad(config.camera.azimuthDeg ?? 0)
+    const elevation = THREE.MathUtils.degToRad(config.camera.elevationDeg ?? 10)
+    viewDir.current
+      .set(Math.sin(azimuth) * Math.cos(elevation), Math.sin(elevation), Math.cos(azimuth) * Math.cos(elevation))
+      .normalize()
+
     const aspect = size.width / size.height
-    const fovRad = THREE.MathUtils.degToRad(config.camera.fov)
-    const halfFov = Math.tan(fovRad / 2)
+    let halfFov = Math.tan(THREE.MathUtils.degToRad(baseFov) / 2)
 
     // Worst-case silhouette: the piece can be spun to any yaw.
     const radius = Math.hypot(frame.size.x, frame.size.z) / 2
@@ -141,42 +170,70 @@ export default function PresentationGestures({ config, controls, framing, roomBo
     // viewport. Capped so an over-tall sheet cannot push the camera to infinity
     // — the sheet's own max height is kept below this so the two agree.
     const coverage = Math.min(sheetCoverage, 0.62)
-    const distV = frame.size.y / (1 - coverage) / 2 / halfFov
-    const distH = radius / (halfFov * aspect)
-    framedDistance.current = Math.max(distV, distH) * (config.camera.padding ?? 1.15)
+    const padding = config.camera.padding ?? 1.15
+    // Half-heights the piece must fit into at unit distance, so the same two
+    // constraints can be re-solved for the lens below.
+    const needV = frame.size.y / (1 - coverage) / 2
+    const needH = radius / aspect
+    const fit = (h: number) => (Math.max(needV, needH) / h) * padding
 
-    // Aiming below the centre lifts the piece up-screen, clear of the sheet.
-    // Half the sheet's coverage re-centres the piece in the visible band; the
-    // configured lift is a small extra bias on top.
-    const viewHeight = 2 * framedDistance.current * halfFov
-    const lift = (coverage / 2 + (config.camera.screenLift ?? 0.02)) * viewHeight
-    desiredTarget.current.copy(frame.center).setY(frame.center.y - lift)
+    framedDistance.current = fit(halfFov)
 
-    const azimuth = THREE.MathUtils.degToRad(config.camera.azimuthDeg ?? 0)
-    const elevation = THREE.MathUtils.degToRad(config.camera.elevationDeg ?? 10)
-    viewDir.current
-      .set(Math.sin(azimuth) * Math.cos(elevation), Math.sin(elevation), Math.cos(azimuth) * Math.cos(elevation))
-      .normalize()
+    // The aim point stays on the piece — see the lens shift below — so the
+    // limit is measured from inside the room whatever the sheet is doing.
+    desiredTarget.current.copy(frame.center)
+
+    // Too deep for the room? Widen the lens until the piece fits at the
+    // distance the room allows, rather than reversing into the wall for the
+    // distance it does not.
+    const limit = wallLimit()
+    if (framedDistance.current > limit && limit < Infinity) {
+      const needed = (Math.max(needV, needH) * padding) / limit
+      const cap = Math.tan(THREE.MathUtils.degToRad(maxFov) / 2)
+      halfFov = Math.min(needed, cap)
+      framedDistance.current = fit(halfFov)
+    }
+
+    const fov = 2 * THREE.MathUtils.radToDeg(Math.atan(halfFov))
+    if (Math.abs(camera.fov - fov) > 1e-3) camera.fov = fov
+
+    /**
+     * Push the piece up-screen, clear of the sheet — as a lens shift, not by
+     * aiming the camera below it.
+     *
+     * Aiming low is what put the camera under the floor on a phone. The lift
+     * scales with the framed distance and with how much of the screen the
+     * sheet takes, and a phone maximises both: a ~2m dive on a sofa whose
+     * centre is 0.4m up, which the elevation angle could not climb back out
+     * of. Every metre of it also came off the pull-back the room could afford,
+     * because the limit was measured from that sunken point.
+     *
+     * `setViewOffset` renders a window offset within a virtual frame of the
+     * same size, which skews the frustum down in world space and moves the
+     * image up on screen — the identical result, from a camera that stays on
+     * the piece's own level and inside the room.
+     */
+    const lift = coverage / 2 + (config.camera.screenLift ?? 0.02)
+    camera.setViewOffset(size.width, size.height, 0, lift * size.height, size.width, size.height)
+    camera.updateProjectionMatrix()
 
     if (trace) {
       console.log(
         `[reframe] coverage ${coverage.toFixed(3)} aspect ${aspect.toFixed(3)}` +
           ` size ${frame.size.toArray().map((n) => +n.toFixed(2)).join('/')}` +
-          ` distV ${distV.toFixed(2)} distH ${distH.toFixed(2)} framed ${framedDistance.current.toFixed(2)}` +
+          ` fov ${camera.fov.toFixed(1)} framed ${framedDistance.current.toFixed(2)}` +
           ` wall ${roomBounds?.current?.box ? wallLimit().toFixed(2) : 'none'}` +
           ` → dist ${solveDistance(zoom.current).toFixed(2)}`
       )
     }
-    if (process.env.NODE_ENV !== 'production' && !warnedTight.current) {
-      const limit = wallLimit()
-      if (limit < framedDistance.current) {
-        warnedTight.current = true
-        console.warn(
-          `[PresentationGestures] the room wall is ${limit.toFixed(2)}m back but the piece needs` +
-            ` ${framedDistance.current.toFixed(2)}m to frame — the view is cropped and the dolly` +
-            ` range is squeezed. Lower camera.padding, or scale the room GLB up.`
-        )
-      }
+    if (process.env.NODE_ENV !== 'production' && !warnedTight.current && camera.fov > baseFov + 0.5) {
+      warnedTight.current = true
+      console.warn(
+        `[PresentationGestures] the room lets the camera back off only ${limit.toFixed(2)}m, so the` +
+          ` lens opened from ${baseFov}° to ${camera.fov.toFixed(1)}° to fit the piece` +
+          `${camera.fov >= maxFov - 0.5 ? ' — and hit camera.maxFov, so the view is still cropped' : ''}.` +
+          ' Scale the room GLB up, or lower camera.padding, to shoot it at the intended focal length.'
+      )
     }
 
     // Opening zoom, on the first solve only. Expressed against how far the rig
@@ -221,6 +278,17 @@ export default function PresentationGestures({ config, controls, framing, roomBo
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(reframe, [size.width, size.height, config.camera, sheetCoverage])
+
+  // The shift and any widening live on the camera object, which outlives this
+  // component — hand it back as it was found.
+  useEffect(
+    () => () => {
+      camera.clearViewOffset()
+      camera.fov = baseFov
+      camera.updateProjectionMatrix()
+    },
+    [camera, baseFov]
+  )
 
   useEffect(() => {
     const el = gl.domElement

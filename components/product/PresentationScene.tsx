@@ -26,16 +26,20 @@ import PresentationGestures from './PresentationGestures'
 import { PresentationPostProcessing } from './PresentationPostProcessing'
 import FurnitureStack, { type StackControls, type StackFraming } from './FurnitureStack'
 import PresentationDiagnostics from './PresentationDiagnostics'
+import { SceneReady } from './PresentationLoading'
 
 interface Props {
   config: PresentationConfig
   onLayerError?: (category: string, error: Error) => void
+  /** Raised once the piece is measured, the room is in, and the programs are
+   *  compiled — the page holds its splash until then. @see SceneReady */
+  onReady?: () => void
   /** Owned by the page so the AR export, which lives outside the Canvas, can
    *  reach the loaded GLTFs. Same ref-passing idiom as `controls`/`framing`. */
   sources?: React.MutableRefObject<ExportSources>
 }
 
-export default function PresentationScene({ config, onLayerError, sources }: Props) {
+export default function PresentationScene({ config, onLayerError, onReady, sources }: Props) {
   const { settings } = useQuality()
   const backdrop = roomMode(config)
   const needsIBL = needsEnvironment(config)
@@ -157,6 +161,15 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
           framing={framing}
           roomBounds={roomBounds}
         />
+
+        {onReady && (
+          <SceneReady
+            framing={framing}
+            needsRoom={backdrop === 'model'}
+            roomBox={roomBox}
+            onReady={onReady}
+          />
+        )}
 
         <PresentationPostProcessing />
 

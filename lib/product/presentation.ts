@@ -2,6 +2,7 @@ import presentationConfig from '@/public/config/furniture-presentation.json'
 import productsConfig from '@/public/config/products.json'
 import type { ProductData } from '@/components/store/ProductInteraction'
 import type { PartialSun } from '@/components/store/hooks/useStoreConfig'
+import { DEFAULT_QUALITY, type QualityPreset } from '@/lib/config/quality'
 
 /** The three independently colourable parts of a piece. Unlike the showroom's
  *  keyword matching, the zone is implied by which layer GLB a mesh came from —
@@ -176,6 +177,23 @@ export function floorReflection(config: PresentationConfig): PresentationFloorCo
   return { ...DEFAULT_FLOOR, ...config.floor }
 }
 
+/**
+ * The tier this product renders at, on a viewport of `width`.
+ *
+ * The app-wide provider drops to `low` under 768px and otherwise restores
+ * whatever /car's quality selector last stored — right for a scene you walk
+ * around, wrong here. A presentation is one piece in a booth under a camera
+ * that only dollies: the frame cost is known up front and does not depend on
+ * the device, so the manifest names the tier and a phone gets the same render
+ * as a desktop. `quality.mobile` is there for a product heavy enough to need
+ * an exception, and defaults to `quality.preset` — no silent downgrade.
+ */
+export function presentationQuality(config: PresentationConfig, width: number): QualityPreset {
+  const q = config.quality
+  const base = q?.preset ?? DEFAULT_QUALITY
+  return width < 768 ? q?.mobile ?? base : base
+}
+
 export function lightingMode(config: PresentationConfig): RoomLighting {
   return config.room.lightingMode ?? 'studio'
 }
@@ -319,6 +337,20 @@ export interface PresentationConfig {
     /** How far a vertical drag can tip the piece, ±degrees. 36 is a tenth of a
      *  full turn — enough to show the seat and the underside, short of tumbling. */
     tiltLimitDeg?: number
+    /**
+     * Clearance kept between the camera and the room's bounding box, metres.
+     * Raise it for a room whose box reaches past its usable floor.
+     */
+    wallMargin?: number
+    /**
+     * Ceiling on the field of view the rig may open up to when the room is too
+     * shallow to frame the piece from — a portrait phone needs roughly twice
+     * the pull-back a desktop window does, and a booth rarely has it.
+     *
+     * Set equal to `fov` to refuse the widening and take the crop instead.
+     * @see PresentationGestures
+     */
+    maxFov?: number
     /** Pushes the piece up-screen by this fraction of the *viewport height*,
      *  clearing the bottom sheet. Expressed against the viewport rather than
      *  the model so the same value frames a tall wardrobe and a low table
@@ -352,6 +384,8 @@ export interface PresentationConfig {
   /** Semi-transparent reflection over the room's floor. Absent → off, and no
    *  reflection pass runs. @see PresentationFloor */
   floor?: Partial<PresentationFloorConfig>
+  /** Render tier, pinned per product rather than per device. @see presentationQuality */
+  quality?: { preset?: QualityPreset; mobile?: QualityPreset }
   explode?: { gap: number; durationMs: number }
   wipe?: { durationMs: number }
 }

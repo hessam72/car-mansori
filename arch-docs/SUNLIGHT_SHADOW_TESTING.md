@@ -143,3 +143,74 @@ it. Receiving would apply the sun's shadow a second time over a floor that has
 already taken it — and a shadow across a polished floor dims its diffuse, not
 what is reflected in it, so leaving the shadow to the real floor is also the
 truer answer.
+
+---
+
+# /product manifest: quality, loading, camera
+
+## `quality` — the tier, per product instead of per device
+
+`QualityProvider` drops to `low` under 768px on a first visit, and otherwise
+restores whatever /car's quality selector last stored (they share the
+`car-quality-preset` key). On `low` that means **floor reflections off**, a 512
+shadow map instead of 2048, dpr `[0.5, 1]` and a 256 environment — the phone
+was rendering a visibly different scene from the desktop.
+
+Right for /car and /store, which are free-roaming and cost whatever the player
+walks into. Wrong here: a presentation is one piece in a booth under a camera
+that only dollies, so its frame cost is known up front and is the same
+everywhere. The manifest names the tier and `QualityProvider` is pinned to it,
+bypassing both the stored preset and the phone downgrade.
+
+```json
+"quality": { "preset": "high" }
+```
+
+`quality.mobile` exists for a product heavy enough to need an exception, and
+**defaults to `preset`** — nothing is downgraded silently. Omit the block
+entirely and the app-wide default (`medium`) applies on every device.
+
+Note the two runtime scalers are unaffected and still apply on both: `PerfLadder`
+steps DPR down under sustained load, and `clampDprToBudget` caps it on very
+high-resolution screens.
+
+## Loading
+
+`useAssetProbe` HEAD-checks the manifest's URLs before mounting the canvas, but
+that only proves the files exist. Everything after it streamed in behind
+`Suspense fallback={null}` — blank, then a room, then a piece, in whatever order
+the network delivered.
+
+`PresentationLoading` now covers the canvas until `SceneReady` fires, which
+takes its cue from the scene's own products rather than a loader count: the
+stack has published `framing`, the room (when there is one) has published its
+bounds, and one `gl.compile` has run, so the first visible frame is not the one
+that stalls compiling shaders. `useProgress` drives the bar only — it reports
+0 of 0 both before the first request and after a warm cache, so it cannot decide
+readiness. A 20s failsafe reveals the scene anyway rather than hanging.
+
+## Camera: portrait no longer reverses through the wall
+
+Two defects, both invisible on desktop:
+
+1. **The lift aimed the camera under the floor.** To clear the bottom sheet the
+   rig aimed *below* the piece, by a distance scaling with both the framed
+   distance and the sheet's screen coverage. A phone maximises both — roughly a
+   2m dive on a sofa whose centre is 0.4m up, which a 10° elevation cannot climb
+   back out of. It is now a **lens shift** (`camera.setViewOffset`), which skews
+   the frustum down and moves the image up on screen for the identical result,
+   from a camera that stays on the piece's level. Every metre of that dive also
+   came off the pull-back the room could afford, since the wall limit was
+   measured from the sunken point.
+2. **The wall clamp failed open.** A room too tight to hold `WALL_MARGIN`
+   returned `Infinity` — read as "unclamped" — in precisely the case that needed
+   the clamp. It now returns the smallest usable distance.
+
+And the reason lowering `maxZoom` "fixed" the phone at the cost of the desktop:
+`fov` is vertical, so a portrait canvas needs roughly twice the pull-back, and a
+booth modelled around the piece does not have it. Rather than crop or reverse,
+the rig now **opens the lens** until the piece fits at the distance the room
+actually affords, capped by `camera.maxFov` (default 75; set it equal to `fov`
+to refuse and take the crop). Desktop never reaches the limit, so its lens never
+widens and its full zoom range is untouched. `camera.wallMargin` (default 0.35m)
+tunes the clearance.

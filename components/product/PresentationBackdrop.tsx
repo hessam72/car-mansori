@@ -28,6 +28,7 @@ interface Props {
  */
 export default function PresentationBackdrop({ config, framing }: Props) {
   const size = useThree((s) => s.size)
+  const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   // Same input the camera rig frames from, so the two cannot disagree and
   // leave an uncovered strip when the sheet opens.
   const sheetCoverage = usePresentation((s) => s.sheetCoverage)
@@ -60,6 +61,7 @@ export default function PresentationBackdrop({ config, framing }: Props) {
   }, [texture])
 
   const appliedVersion = useRef(-1)
+  const appliedFov = useRef(-1)
 
   const fit = useCallback(() => {
     const mesh = meshRef.current
@@ -67,7 +69,10 @@ export default function PresentationBackdrop({ config, framing }: Props) {
     if (!mesh || !frame || !size.height) return
 
     const aspect = size.width / size.height
-    const halfFov = Math.tan(THREE.MathUtils.degToRad(config.camera.fov) / 2)
+    // The live lens, not the manifest's: the rig opens the fov up when the room
+    // is too shallow to frame the piece from, and a plane sized for the narrower
+    // one leaves bare canvas down the sides.
+    const halfFov = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)
 
     // The rig's own framing solve, reproduced exactly — including the live
     // sheet coverage. Sizing against the *cap* (0.62) instead of the current
@@ -119,15 +124,18 @@ export default function PresentationBackdrop({ config, framing }: Props) {
     }
 
     invalidate()
-  }, [size, sheetCoverage, config.camera, distance, offsetY, texture, viewDir, framing, invalidate])
+  }, [size, sheetCoverage, config.camera, camera, distance, offsetY, texture, viewDir, framing, invalidate])
 
   // The stack publishes its bounds through a ref, so there is nothing to
   // subscribe to — poll the version the way PresentationGestures does, and
   // re-fit when it changes (first measure, a different product, explode).
   useFrame(() => {
     const version = framing.current?.version ?? -1
-    if (version >= 0 && version !== appliedVersion.current) {
+    // The rig can widen the lens after this has already fitted once — it solves
+    // in the same frame, off the same version — so the fov is polled too.
+    if (version >= 0 && (version !== appliedVersion.current || camera.fov !== appliedFov.current)) {
       appliedVersion.current = version
+      appliedFov.current = camera.fov
       fit()
     }
   })

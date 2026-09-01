@@ -21,6 +21,7 @@ import {
   findCoverVariant,
   isMatte,
   needsEnvironment,
+  presentationQuality,
   requiredAssets,
   roomMode,
   type PresentationConfig,
@@ -29,6 +30,7 @@ import {
 import ProductSheet from '@/components/product/ProductSheet'
 import PresentationTopBar from '@/components/product/PresentationTopBar'
 import MissingAssetsNotice from '@/components/product/MissingAssetsNotice'
+import PresentationLoading from '@/components/product/PresentationLoading'
 import type { Catalog } from '@/lib/store/catalog'
 
 // Must run before any preload in this chunk — drei otherwise reaches for its
@@ -82,10 +84,37 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
   /** A GLB that exists but fails to parse never reaches the probe — the error
    *  boundaries in the scene report it here so it still gets a way out. */
   const [layerError, setLayerError] = useState<string | null>(null)
+  /** Raised by the scene once the piece and room are actually drawn — the probe
+   *  below only proves the files exist. */
+  const [sceneReady, setSceneReady] = useState(false)
 
   const initProduct = usePresentation((s) => s.initProduct)
   const reset = usePresentation((s) => s.reset)
   const addToCart = useShop((s) => s.addToCart)
+
+  /**
+   * Tier, pinned from the manifest instead of guessed from the viewport.
+   *
+   * Resolved on the client only — reading `innerWidth` during render would
+   * disagree with the server's HTML — so the first paint uses the manifest's
+   * desktop tier and a phone with a `quality.mobile` override settles onto it
+   * before the canvas mounts behind the splash.
+   */
+  const [narrow, setNarrow] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const apply = () => setNarrow(mq.matches)
+    apply()
+    // matchMedia rather than a resize listener: this only ever needs to know
+    // which side of the breakpoint we are on, and a resize handler would
+    // re-render the page on every frame of a window drag.
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
+  const qualityPreset = useMemo(
+    () => presentationQuality(config, narrow ? 0 : 1280),
+    [config, narrow]
+  )
 
   const assets = useMemo(() => requiredAssets(config), [config])
   const { state, missing } = useAssetProbe(useMemo(() => assets, [assets, probeKey]))
@@ -210,26 +239,43 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
     setLayerError(`${category}: ${error.message}`)
   }, [])
 
+  // Failsafe. The splash is dismissed by the scene reporting itself drawn, and
+  // an asset that resolves but never measures — a frame GLB with no geometry,
+  // say — would otherwise leave it up for good. A half-dressed scene beats a
+  // splash that never lifts.
+  useEffect(() => {
+    if (state !== 'ready' || sceneReady) return
+    const t = window.setTimeout(() => {
+      console.warn('[presentation] scene never reported ready — revealing anyway')
+      setSceneReady(true)
+    }, 20000)
+    return () => window.clearTimeout(t)
+  }, [state, sceneReady])
+
   return (
-    <QualityProvider>
+    <QualityProvider preset={qualityPreset}>
       <div className="relative h-screen w-screen overflow-hidden bg-[var(--surface-0)]">
         {state === 'ready' && (
-          <PresentationScene config={config} onLayerError={handleLayerError} sources={sources} />
+          <PresentationScene
+            config={config}
+            onLayerError={handleLayerError}
+            onReady={() => setSceneReady(true)}
+            sources={sources}
+          />
         )}
 
-        {state === 'checking' && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="font-persian text-[11px] tracking-[0.4em] text-[var(--gold-primary)]/60">
-              در حال آماده‌سازی نما
-            </span>
-          </div>
+        {/* Covers the probe *and* the streaming behind it. The canvas has to be
+            mounted and rendering to load its own assets, so the splash is held
+            over it and faded, rather than shown in its place. */}
+        {!layerError && state !== 'missing' && (
+          <PresentationLoading productName={product.name} ready={state === 'ready' && sceneReady} />
         )}
 
         {/* The AR overlay owns the screen and carries its own close button —
             the back link here would leave the page outright. */}
         {!showAR && <PresentationTopBar productName={product.name} catalogId={catalogId} />}
 
-        {state === 'ready' && (
+        {state === 'ready' && sceneReady && (
           <ProductSheet
             presentation={presentation}
             // Not gated on the device: the viewer is a 3D preview of the
