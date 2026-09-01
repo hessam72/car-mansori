@@ -452,7 +452,17 @@ export interface PresentationConfig {
    *  reflection pass runs. @see PresentationFloor */
   floor?: Partial<PresentationFloorConfig>
   /** Render tier, pinned per product rather than per device. @see presentationQuality */
-  quality?: { preset?: QualityPreset; mobile?: QualityPreset }
+  quality?: {
+    preset?: QualityPreset
+    mobile?: QualityPreset
+    /**
+     * Force screen-space ambient occlusion on or off, over the tier's
+     * `enableN8AO`. Off on every tier but ultra, because N8AO haloes off a
+     * large silhouette and the halo reads as a shadow floating behind the
+     * piece; the sun's own contact shadow grounds it instead.
+     */
+    ao?: boolean
+  }
   explode?: { gap: number; durationMs: number }
   wipe?: { durationMs: number }
 }
