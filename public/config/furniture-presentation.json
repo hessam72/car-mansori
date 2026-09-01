@@ -3,11 +3,15 @@
     "room": {
       "mode": "model",
       "image": "/models/presentation/test/backdrop.jpeg",
-      "path": "/models/presentation/test/main-room.glb",
+      "path": "/models/presentation/test/Final Fur High Comp-optimized.glb",
       "imageDistance": 2,
       "imageOffsetY": 0,
       "pieceOffsetY": 0,
-      "offset": [0, 0, 2],
+      "offset": [
+        -0.12,
+        -0.35,
+        3.3
+      ],
       "floorY": 0,
       "lightingMode": "store",
       "hdr": "/hdr/main_hdr.exr"
@@ -26,7 +30,7 @@
           {
             "id": "leather",
             "name": "چرم طبیعی",
-            "path": "/models/presentation/test/cover-leather.glb",
+            "path": "/models/presentation/test/final curve-optimized.glb",
             "thumbnail": "/images/covers/leather.png",
             "priceDelta": 4500000,
             "material": {
@@ -124,7 +128,7 @@
     },
     "camera": {
       "azimuthDeg": 0,
-      "elevationDeg": 15,
+      "elevationDeg": 8,
       "fov": 50,
       "near": 0.1,
       "far": 150,
@@ -152,11 +156,23 @@
     },
     "sun": {
       "enabled": true,
-      "position": [4, 6.5, -5],
+      "position": [
+        -1,
+        2,
+        1.5
+      ],
+      "target": [
+        0.007048580466527676,
+        1.496530166182611,
+        0.7229428589840117
+      ],
       "intensity": 6,
       "color": "#ffe3c2",
-      "soft": { "size": 20, "samples": 16, "focus": 0 },
-      "shadow": { "bias": -0.0001, "normalBias": 0.03 }
+      "soft": {
+        "size": 20,
+        "samples": 16,
+        "focus": 0
+      }
     },
     "quality": {
       "preset": "high"
