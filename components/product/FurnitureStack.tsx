@@ -19,6 +19,7 @@ import {
 } from '@/lib/product/presentation'
 import type { ExportSources } from '@/lib/three/exportConfigured'
 import CoverLayer from './CoverLayer'
+import PresentationStage from './PresentationStage'
 import type { WipeDirection } from '@/hooks/useClipWipe'
 
 /** Rotation/tilt targets live in refs, not the store — a 60Hz zustand write
@@ -152,6 +153,22 @@ export default function FurnitureStack({ config, controls, framing, sources, deb
   // Reported by CoverSource once the active variant is in cache.
   const [coverBox, setCoverBox] = useState<THREE.Box3 | null>(null)
 
+  // Scenery under the piece. Measured by the stage itself so a re-exported
+  // plinth of a different thickness needs no re-tuning here.
+  const stageMeta = config.layers.stage
+  const [stageHeight, setStageHeight] = useState(0)
+  /**
+   * The surface the piece actually stands on — the room floor, or the top of
+   * the stage when it is asked to carry the piece.
+   *
+   * Everything that seats or measures the piece reads this instead of
+   * `room.floorY`, framing included: a piece raised onto a plinth has genuinely
+   * moved up in the room, and a camera that did not follow would frame the
+   * plinth and crop the piece. That is the opposite of `room.pieceOffsetY`,
+   * which is a screen-space nudge the camera is deliberately blind to.
+   */
+  const deckY = (config.room.floorY ?? 0) + (stageMeta?.liftPiece ? stageHeight : 0)
+
   const gap = config.explode?.gap ?? 0.45
 
   // Centred in X/Z but *seated* in Y: the piece stands on the room floor rather
@@ -172,12 +189,11 @@ export default function FurnitureStack({ config, controls, framing, sources, deb
         config.layers.frame.path
       )
     }
-    const floorY = config.room.floorY ?? 0
     return {
-      centerOffset: [-center.x, floorY - box.min.y, -center.z] as [number, number, number],
+      centerOffset: [-center.x, deckY - box.min.y, -center.z] as [number, number, number],
       baseSize: size,
     }
-  }, [frame.scene, coverBox, config.room.floorY, config.layers.frame.path])
+  }, [frame.scene, coverBox, deckY, config.layers.frame.path])
 
   useEffect(() => {
     if (!sources) return
@@ -188,20 +204,19 @@ export default function FurnitureStack({ config, controls, framing, sources, deb
   // Publish the bounds the camera should frame. Exploding raises the top layer
   // by two gaps, so the rig has to re-frame or the fanned stack runs off-screen.
   useEffect(() => {
-    const floorY = config.room.floorY ?? 0
     const extra = exploded ? gap * 2 : 0
     const size = new THREE.Vector3(baseSize.x, baseSize.y + extra, baseSize.z)
     framing.current = {
-      center: new THREE.Vector3(0, floorY + size.y / 2, 0),
+      center: new THREE.Vector3(0, deckY + size.y / 2, 0),
       size,
       version: (framing.current?.version ?? 0) + 1,
     }
     invalidate()
-  }, [baseSize, exploded, gap, config.room.floorY, framing, invalidate])
+  }, [baseSize, exploded, gap, deckY, framing, invalidate])
 
   // The piece's centre — the same height the camera frames on, and the axis
   // the tilt turns about.
-  const pivotY = (config.room.floorY ?? 0) + baseSize.y / 2
+  const pivotY = deckY + baseSize.y / 2
   // Kept out of `framing` on purpose: the camera must not follow this, or the
   // piece would never move on screen. See the note on room.pieceOffsetY.
   //
@@ -216,6 +231,7 @@ export default function FurnitureStack({ config, controls, framing, sources, deb
 
   const pitchRef = useRef<THREE.Group>(null)
   const yawRef = useRef<THREE.Group>(null)
+  const stageYawRef = useRef<THREE.Group>(null)
   const frameSlot = useRef<THREE.Group>(null)
   const softSlot = useRef<THREE.Group>(null)
   const coverSlot = useRef<THREE.Group>(null)
@@ -251,6 +267,11 @@ export default function FurnitureStack({ config, controls, framing, sources, deb
     let moving = Math.abs(nextYaw - target.yaw) > 1e-4 || Math.abs(nextPitch - target.pitch) > 1e-4
     yaw.rotation.y = nextYaw
     pitch.rotation.x = nextPitch
+    // The stage turns with the piece and takes the same damping, so the two
+    // never shear apart mid-spin. Yaw only, and outside the pitch pivot: a
+    // plinth that tipped with the drag would lift off the floor on one edge,
+    // and a turntable does not tilt.
+    if (stageYawRef.current) stageYawRef.current.rotation.y = nextYaw
 
     // Explode fans the layers apart along Y; the clip plane follows via each
     // layer's world matrix, so no special-casing is needed there. The soft slot
@@ -271,11 +292,34 @@ export default function FurnitureStack({ config, controls, framing, sources, deb
   })
 
   return (
-    // The tilt pivot is raised to the piece's centre and undone immediately
-    // below it. Rotating about the world origin instead would swing the piece
-    // through an arc — invisible at the old 16°, but it throws it off-screen at
-    // 60°, because the piece sits a metre or so above that origin.
-    <group ref={pitchRef} name="furniture-stack" position={[0, pivotY + pieceOffsetY, 0]}>
+    <>
+      {/* Sibling of the stack, not a child: it shares the spin but must stay
+          clear of the tilt pivot above. Both turn about the same vertical axis
+          through the origin, which is where the framing puts the piece. */}
+      {stageMeta && (
+        <group ref={stageYawRef} name="presentation-stage-yaw">
+          {/* No Suspense of its own, unlike the soft and cover layers. Theirs
+              exist so a late layer cannot hide the rest of the piece; the stage
+              is under the piece from the first frame or it pops in behind the
+              splash lifting. Letting it suspend the shared boundary is what
+              makes SceneReady wait for it. */}
+          <PartErrorBoundary category="stage">
+            <PresentationStage
+              meta={stageMeta}
+              floorY={config.room.floorY ?? 0}
+              shadows={shadows}
+              onHeight={setStageHeight}
+            />
+          </PartErrorBoundary>
+        </group>
+      )}
+
+      {/* The tilt pivot is raised to the piece's centre and undone immediately
+          below it. Rotating about the world origin instead would swing the
+          piece through an arc — invisible at the old 16°, but it throws it
+          off-screen at 60°, because the piece sits a metre or so above that
+          origin. */}
+      <group ref={pitchRef} name="furniture-stack" position={[0, pivotY + pieceOffsetY, 0]}>
       <group position={[0, -pivotY, 0]}>
         <group ref={yawRef}>
           <group position={centerOffset}>
@@ -333,7 +377,8 @@ export default function FurnitureStack({ config, controls, framing, sources, deb
           </group>
         </group>
       </group>
-    </group>
+      </group>
+    </>
   )
 }
 

@@ -34,6 +34,41 @@ export interface LayerMeta {
   zoneMatch?: string
 }
 
+/**
+ * A plinth for the piece to stand on.
+ *
+ * Not a layer in the sense the other three are — it is scenery, so it is
+ * excluded from both of the things a layer takes part in:
+ *
+ *  - **No colour.** `collectZoneTargets` is never run over it, so no mesh of
+ *    its can become a paint target however it is named or tagged. The swatches
+ *    dress the piece, and a plinth that changed with them would read as part
+ *    of the product.
+ *  - **No AR.** `ExportSources` has room for the frame, the soft layer and the
+ *    cover, and nothing else; the stage is simply never registered, so the
+ *    configured GLB cannot carry it. What the customer places in their room is
+ *    the furniture, not the showroom it was photographed in.
+ *
+ * It does spin with the piece — see `stageYawRef` in FurnitureStack.
+ */
+export interface StageMeta {
+  path: string
+  /**
+   * Raise the piece to stand on top of the stage, instead of both sitting on
+   * the floor and intersecting. The lift is the stage's own measured height, so
+   * a re-exported plinth of a different thickness needs no re-tuning, and the
+   * camera framing follows it.
+   */
+  liftPiece?: boolean
+  /** Uniform scale, for a stage exported in the wrong unit. */
+  scale?: number
+  /** Moved after it is centred under the piece and seated on the floor. */
+  offset?: [number, number, number]
+  /** envMapIntensity for the stage's materials. Never matted: `matte` protects
+   *  the colours the customer picks, and the stage has none. */
+  envIntensity?: number
+}
+
 export interface CoverLayerMeta {
   label: string
   desc?: string
@@ -327,7 +362,15 @@ export interface PresentationConfig {
   /** `soft` is optional: a product can ship as frame + cover alone.
    *  `startStep` is the layer the page opens on — 1, the finished piece, unless
    *  set to 0 to open on the bare frame. */
-  layers: { frame: LayerMeta; soft?: LayerMeta; cover: CoverLayerMeta; startStep?: 0 | 1 }
+  layers: {
+    frame: LayerMeta
+    soft?: LayerMeta
+    cover: CoverLayerMeta
+    /** Scenery under the piece: spins with it, takes no colour, never ships to
+     *  AR. Omit for a piece that stands on the room floor. @see StageMeta */
+    stage?: StageMeta
+    startStep?: 0 | 1
+  }
   palettes: Record<PresentationZone, ZoneSwatch[]>
   /**
    * Framing is expressed as angles and ratios, never absolute metres. The rig
@@ -522,6 +565,7 @@ export function requiredAssets(config: PresentationConfig): string[] {
   return [
     config.layers.frame.path,
     config.layers.soft?.path,
+    config.layers.stage?.path,
     cover?.path,
     backdrop,
     // The Environment has no error boundary of its own, so a missing HDR would

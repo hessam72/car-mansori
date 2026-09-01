@@ -230,3 +230,61 @@ actually affords, capped by `camera.maxFov` (default 75; set it equal to `fov`
 to refuse and take the crop). Desktop never reaches the limit, so its lens never
 widens and its full zoom range is untouched. `camera.wallMargin` (default 0.35m)
 tunes the clearance.
+
+---
+
+# The stage layer
+
+A plinth for the piece to stand on, added under `layers.stage`:
+
+```json
+"layers": {
+  "frame":  { "path": "/models/presentation/test/frame.glb", "label": "..." },
+  "cover":  { "...": "..." },
+  "stage":  {
+    "path": "/models/presentation/test/stage.glb",
+    "liftPiece": true
+  }
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `path` | the GLB. Probed with the others, so a wrong path shows the missing-assets notice rather than a hole in the scene |
+| `liftPiece` | raise the piece to stand on top, by the stage's own **measured** height — re-export a thicker plinth and nothing needs re-tuning |
+| `scale` | uniform, for a stage exported in the wrong unit |
+| `offset` | moved after it is centred under the piece and seated on the floor |
+| `envIntensity` | its own reflection strength (default 1) |
+
+## What it is, and the two things it deliberately is not
+
+**It spins with the piece.** `stageYawRef` takes the same damped yaw the piece
+does in the same frame, so the two never shear apart mid-drag. Yaw *only*, and
+mounted as a sibling of `furniture-stack` rather than a child, so it stays
+outside the tilt pivot: a plinth that tipped with a vertical drag would lift off
+the floor along one edge, and a turntable does not tilt.
+
+**It takes no colour.** `collectZoneTargets` is never run over it, so no mesh of
+its can become a paint target however it is named or tagged in Blender. The
+swatches dress the piece; a plinth that changed with them would read as part of
+the product.
+
+**It never reaches AR.** `ExportSources` has room for the frame, the soft layer
+and the cover and nothing else, and the stage is simply never registered, so
+`exportConfiguredGLB` has no way to include it. What the customer places in
+their own room is the furniture, not the showroom it was shot in.
+
+Both exclusions are structural — there is no flag to get wrong.
+
+## Framing follows the lift
+
+With `liftPiece`, everything that seats or measures the piece reads the deck
+height instead of `room.floorY` — the framing included, because a piece raised
+onto a plinth has genuinely moved up in the room, and a camera that ignored it
+would frame the plinth and crop the piece. That is the opposite of
+`room.pieceOffsetY`, which is a screen-space nudge the camera is deliberately
+blind to.
+
+The stage shares the piece's Suspense boundary rather than taking one of its
+own, so the loading splash waits for it — the soft and cover layers get their
+own boundary precisely because they may arrive late, and the stage may not.
