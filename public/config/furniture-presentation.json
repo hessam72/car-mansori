@@ -183,6 +183,7 @@
       "opacity": 0.35,
       "blend": "normal",
       "offsetY": 0.004,
+      "resolution": 512,
       "mixStrength": 1,
       "mixBlur": 1.4,
       "mixContrast": 1,

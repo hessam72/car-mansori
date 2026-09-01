@@ -40,11 +40,17 @@ const floorDebugRequested = () =>
  *    a shadow falling across a polished floor dims its diffuse, not the things
  *    reflected in it, so leaving it to the real floor is also the truer answer.
  *
- * Off below the quality tier that affords it, and off with no `floor` block:
- * the reflection re-renders the scene from the mirror's frustum on every drawn
- * frame, which is the same cost /store gates. The fallback is simply the room's
- * own floor, so nothing is missing when it is skipped — the reason this can be
- * dropped silently where /store had to swap in a matte plane.
+ * Drawn on **every** quality tier, unlike /store's floor, which the low tier
+ * switches off outright. The reflection re-renders the scene from the mirror's
+ * frustum on every drawn frame, so it is not free — but /store pays that for a
+ * walkable salon whose contents change with every step, while this is one piece
+ * in a booth under a camera that only dollies, on a demand loop that draws
+ * nothing at all when the viewer is still. The cost is bounded and the floor is
+ * half the shot, so the tier scales it by *resolution* instead of removing it:
+ * 128² on low up to 2048² on ultra, and `floor.resolution` overrules that.
+ *
+ * `enabled: false`, or no `floor` block, is the only way off — and it leaves
+ * the room's own floor, which is why nothing looks missing when it is.
  */
 export default function PresentationFloor({
   config,
@@ -84,7 +90,7 @@ export default function PresentationFloor({
   // it mounts and never draws.
   useEffect(() => invalidate(), [invalidate, cfg, size, centre, y])
 
-  if (!cfg.enabled || !settings.floorReflectionsEnabled) return null
+  if (!cfg.enabled) return null
 
   return (
     <>
@@ -98,7 +104,7 @@ export default function PresentationFloor({
       >
         <planeGeometry args={[size, size]} />
         <MeshReflectorMaterial
-          resolution={settings.floorReflectionResolution}
+          resolution={cfg.resolution ?? settings.floorReflectionResolution}
           // `mirror` 1 makes the layer the reflection itself rather than a
           // surface tinted by it; the blend below is what holds it back, so
           // opacity stays the single dial for "how much floor is left".

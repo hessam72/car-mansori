@@ -104,10 +104,15 @@ shows through.
 
 - **Where:** `public/config/furniture-presentation.json`, per product, a `floor`
   block beside `sun`. Absent, or `"enabled": false`, and no reflection pass runs.
-- **Also off** below the quality tier that affords it
-  (`settings.floorReflectionsEnabled` — low tier). Unlike /store there is no
-  matte stand-in to swap in: the real floor is already there, so it is simply
-  skipped.
+- **On at every quality tier**, unlike /store's floor, which `low` switches off
+  outright. /store pays the reflection pass for a walkable salon whose contents
+  change with every step; this is one piece in a booth under a camera that only
+  dollies, on a demand loop that draws nothing while the viewer is still. So the
+  tier scales it by *resolution* rather than removing it — 128² on low up to
+  2048² on ultra. Set `floor.resolution` to overrule that; the test product
+  pins 512 because 128 is visibly coarse on a floor that fills half the shot.
+- **`enabled: false` is the only way off**, and it leaves the room's own floor —
+  which is why nothing looks missing when it is.
 - **Tune it at** `http://localhost:3000/product/test?floordebug=1`:
 
 | Key | Effect |

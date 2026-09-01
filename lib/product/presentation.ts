@@ -296,6 +296,15 @@ export interface PresentationFloorConfig {
   /** Clearance over `room.floorY`. Enough to beat depth precision, small enough
    *  not to read as a sheet of glass hovering over the floor. */
   offsetY: number
+  /**
+   * Reflection render-target size. Omitted → the quality tier's
+   * `floorReflectionResolution` (128 on low, up to 2048 on ultra).
+   *
+   * The tier is the right default because this is the one thing here that
+   * costs per pixel. Name it only to overrule a tier that reads too coarse —
+   * the floor is on screen at all times, and 128 on a phone shows it.
+   */
+  resolution?: number
   /** Strength of the reflection in the layer, before `opacity`. */
   mixStrength: number
   /** Roughness-driven blur of the reflection. 0 is a hard mirror. */
