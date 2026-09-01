@@ -3,13 +3,13 @@
     "room": {
       "mode": "model",
       "image": "/models/presentation/test/backdrop.jpeg",
-      "path": "/models/presentation/test/Final Fur High Comp-optimized.glb",
+      "path": "/models/presentation/test/final-scene.glb",
       "imageDistance": 2,
       "imageOffsetY": 0,
       "pieceOffsetY": 0,
       "offset": [
         -0.12,
-        -0.35,
+        -1.35,
         3.3
       ],
       "floorY": 0,
@@ -52,6 +52,10 @@
             }
           }
         ]
+      },
+      "stage": {
+        "path": "/models/presentation/test/stage.glb",
+        "liftPiece": true
       }
     },
     "palettes": {
@@ -182,7 +186,7 @@
       "enabled": true,
       "opacity": 0.35,
       "blend": "normal",
-      "offsetY": 0.004,
+      "offsetY": 0.1,
       "resolution": 512,
       "mixStrength": 1,
       "mixBlur": 1.4,
