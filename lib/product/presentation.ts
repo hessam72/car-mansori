@@ -152,6 +152,30 @@ export function sunEnabled(config: PresentationConfig): boolean {
   return config.sun?.enabled === true
 }
 
+/** Code-side fallback, so a manifest names only what it wants to change.
+ *  Tuned for a lit room rather than /store's dark salon: a sheen you can see
+ *  the tiles through, not a mirror. */
+export const DEFAULT_FLOOR: PresentationFloorConfig = {
+  enabled: false,
+  opacity: 0.35,
+  blend: 'normal',
+  offsetY: 0.004,
+  mixStrength: 1,
+  mixBlur: 1.4,
+  mixContrast: 1,
+  roughness: 0.6,
+  metalness: 0.4,
+  depthScale: 1.2,
+  minDepthThreshold: 0.2,
+  maxDepthThreshold: 1.4,
+  color: '#ffffff',
+}
+
+/** Floor settings with every default filled in. */
+export function floorReflection(config: PresentationConfig): PresentationFloorConfig {
+  return { ...DEFAULT_FLOOR, ...config.floor }
+}
+
 export function lightingMode(config: PresentationConfig): RoomLighting {
   return config.room.lightingMode ?? 'studio'
 }
@@ -203,6 +227,57 @@ export function galleryLighting(config: PresentationConfig): ResolvedGallery {
     angle: g.angle ?? 0.6,
     color: g.color ?? '#fff2df',
   }
+}
+
+/**
+ * A semi-transparent planar reflection laid *over* the room's own floor.
+ *
+ * /store's ReflectiveFloor is an opaque plane carrying its own concrete texture
+ * — it replaces the floor. Here the room GLB already has a floor worth looking
+ * at, so only the reflection is ported: the same drei planar reflector (a
+ * mirrored virtual camera into an FBO, obliquely clipped at the plane), on a
+ * transparent plane a couple of millimetres above the real one, with no `map`
+ * of its own. The floor's texture reads through the gaps in the reflection
+ * rather than being covered over.
+ */
+export interface PresentationFloorConfig {
+  enabled: boolean
+  /**
+   * How much of the reflection layer survives the blend, 0..1. This is the
+   * whole point of the feature: at 1 the floor is a mirror and its texture is
+   * gone, at 0.3 the texture is still what you read and the reflection is a
+   * sheen over it.
+   */
+  opacity: number
+  /**
+   * `normal` alpha-blends the reflection over the floor — dark reflections
+   * darken it, which is what a polished surface does as it turns mirror-like.
+   *
+   * `additive` only ever adds reflected light. Nothing darkens, so the floor's
+   * texture survives at any opacity; the trade is that a bright reflection can
+   * blow out. The better choice over a dark floor.
+   */
+  blend: 'normal' | 'additive'
+  /** Plane size in metres. Omitted → the room's own XZ footprint. */
+  size?: number
+  /** Clearance over `room.floorY`. Enough to beat depth precision, small enough
+   *  not to read as a sheet of glass hovering over the floor. */
+  offsetY: number
+  /** Strength of the reflection in the layer, before `opacity`. */
+  mixStrength: number
+  /** Roughness-driven blur of the reflection. 0 is a hard mirror. */
+  mixBlur: number
+  /** Contrast pushed through the reflection. Above 1 deepens it. */
+  mixContrast: number
+  /** Higher = blurrier reflection, since `mixBlur` is scaled by it. */
+  roughness: number
+  metalness: number
+  /** Fades the reflection with distance from the reflected surface, so a piece
+   *  reflects hard at the feet and dissolves further out. 0 disables. */
+  depthScale: number
+  minDepthThreshold: number
+  maxDepthThreshold: number
+  color: string
 }
 
 export interface PresentationConfig {
@@ -274,6 +349,9 @@ export interface PresentationConfig {
    * loads, instead of being hand-tuned per product. @see PresentationSun.
    */
   sun?: PartialSun
+  /** Semi-transparent reflection over the room's floor. Absent → off, and no
+   *  reflection pass runs. @see PresentationFloor */
+  floor?: Partial<PresentationFloorConfig>
   explode?: { gap: number; durationMs: number }
   wipe?: { durationMs: number }
 }

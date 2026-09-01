@@ -158,6 +158,21 @@
       "soft": { "size": 20, "samples": 16, "focus": 0 },
       "shadow": { "bias": -0.0001, "normalBias": 0.03 }
     },
+    "floor": {
+      "enabled": true,
+      "opacity": 0.35,
+      "blend": "normal",
+      "offsetY": 0.004,
+      "mixStrength": 1,
+      "mixBlur": 1.4,
+      "mixContrast": 1,
+      "roughness": 0.6,
+      "metalness": 0.4,
+      "depthScale": 1.2,
+      "minDepthThreshold": 0.2,
+      "maxDepthThreshold": 1.4,
+      "color": "#ffffff"
+    },
     "explode": {
       "gap": 0.45,
       "durationMs": 700

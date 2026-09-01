@@ -20,6 +20,7 @@ import PresentationEnvironment from './PresentationEnvironment'
 import PresentationLighting from './PresentationLighting'
 import PresentationRoom, { type RoomBounds } from './PresentationRoom'
 import PresentationSun from './PresentationSun'
+import PresentationFloor from './PresentationFloor'
 import PresentationBackdrop from './PresentationBackdrop'
 import PresentationGestures from './PresentationGestures'
 import { PresentationPostProcessing } from './PresentationPostProcessing'
@@ -119,6 +120,11 @@ export default function PresentationScene({ config, onLayerError, sources }: Pro
             fitted to `roomBox`, so it mounts before the room and re-solves once
             the bounds arrive. */}
         {sun && <PresentationSun sun={config.sun!} roomBox={roomBox} />}
+
+        {/* Reflection laid over the room's own floor, sized from the same
+            bounds. After the room in the tree only for readability — it draws
+            in the transparent pass regardless. */}
+        <PresentationFloor config={config} roomBox={roomBox} />
 
         <Suspense fallback={null}>
           <PartErrorBoundary category="room" onError={onLayerError}>
