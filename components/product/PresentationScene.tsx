@@ -171,7 +171,7 @@ export default function PresentationScene({ config, onLayerError, onReady, sourc
           />
         )}
 
-        <PresentationPostProcessing />
+        <PresentationPostProcessing config={config} />
 
         {debug && <PresentationDiagnostics />}
       </Canvas>

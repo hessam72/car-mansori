@@ -3,20 +3,31 @@
 import { type ReactElement } from 'react'
 import { EffectComposer, Bloom, N8AO, SMAA, Vignette } from '@react-three/postprocessing'
 import { useQuality } from '@/contexts/QualityContext'
+import type { PresentationConfig } from '@/lib/product/presentation'
 
 /**
  * A lighter composer than the showroom's, tuned for fabric rather than paint.
  *
- * AO is promoted to high as well as ultra: with no shadow or reflection passes
- * competing for budget this scene can afford it, and ambient occlusion is the
- * only permitted stand-in for the contact shadow this page deliberately drops —
- * it is what stops the piece reading as detached from the floor.
+ * AO follows `settings.enableN8AO` and nothing else. It used to be promoted on
+ * `high` too, over the top of a tier config that sets the flag `false` there —
+ * so `high` was the one tier running an effect its own preset had switched off,
+ * and the halo N8AO bleeds off a large silhouette read as a soft shadow hanging
+ * in the air behind the piece.
+ *
+ * The promotion had a reason, and it has expired: it was justified by there
+ * being "no shadow or reflection passes competing for budget", with AO standing
+ * in for the contact shadow the page dropped. This page now has both. The sun
+ * casts a real contact shadow under the piece and the floor reflects it, which
+ * is what grounds it — better than AO ever did, and without the halo.
+ *
+ * `quality.ao` in the manifest forces it either way for a product that wants
+ * the occlusion back.
  */
-export function PresentationPostProcessing() {
-  const { settings, preset } = useQuality()
+export function PresentationPostProcessing({ config }: { config: PresentationConfig }) {
+  const { settings } = useQuality()
   const effects: ReactElement[] = []
 
-  if (settings.enableN8AO || preset === 'high') {
+  if (config.quality?.ao ?? settings.enableN8AO) {
     effects.push(
       <N8AO
         key="n8ao"
