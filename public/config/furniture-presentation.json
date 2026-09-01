@@ -154,24 +154,25 @@
         "color": "#fff2df"
       }
     },
-  "sun": {
-    "enabled": true,
-    "position": [
-      -1,
-      2,
-      1.5
-    ],
-    "target": [
-      0.007048580466527676,
-      1.496530166182611,
-      0.7229428589840117
-    ],
-    "intensity": 6,
-    "color": "#ffe3c2",
-    "soft": {
-      "size": 20,
-      "samples": 16,
-      "focus": 0
+    "sun": {
+      "enabled": true,
+      "position": [
+        -1,
+        2,
+        1.5
+      ],
+      "target": [
+        0.007048580466527676,
+        1.496530166182611,
+        0.7229428589840117
+      ],
+      "intensity": 6,
+      "color": "#ffe3c2",
+      "soft": {
+        "size": 20,
+        "samples": 16,
+        "focus": 0
+      }
     },
     "floor": {
       "enabled": true,
@@ -196,4 +197,4 @@
       "durationMs": 900
     }
   }
-  }}
+}
