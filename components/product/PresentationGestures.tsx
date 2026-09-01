@@ -95,6 +95,14 @@ export default function PresentationGestures({ config, controls, framing, roomBo
   /** How far the aim point sits above the piece's centre, in metres. */
   const aimOffset = useRef(0)
   const lensDistance = useRef(-1)
+  /** Half-height the piece must cover at unit distance, padding folded in — the
+   *  numerator of the fit, so distance and lens can be re-solved against it. */
+  const need = useRef(0)
+  const baseHalf = useRef(0)
+  const capHalf = useRef(0)
+  const targetHalf = useRef(0)
+  /** Furthest the camera may travel: what a landscape window would need. */
+  const distanceCeiling = useRef(Infinity)
   const warnedTight = useRef(false)
 
   const minZoom = config.camera.minZoom ?? 0.6
@@ -102,6 +110,7 @@ export default function PresentationGestures({ config, controls, framing, roomBo
   const tiltLimit = THREE.MathUtils.degToRad(config.camera.tiltLimitDeg ?? TILT_LIMIT_DEG)
   const wallMargin = config.camera.wallMargin ?? WALL_MARGIN
   const aimHeight = THREE.MathUtils.clamp(config.camera.aimHeight ?? 0.5, 0, 1)
+  const maxDistance = config.camera.maxDistance ?? Infinity
   const baseFov = config.camera.fov
   const maxFov = Math.max(baseFov, config.camera.maxFov ?? MAX_FOV)
 
@@ -120,21 +129,50 @@ export default function PresentationGestures({ config, controls, framing, roomBo
   }
 
   /**
-   * The distance to actually fly to, for a given zoom factor.
+   * How far back the camera may go: the room's bounds, the landscape ceiling,
+   * and whatever `camera.maxDistance` says on top.
    *
-   * The wall caps the *base* framing distance before zoom is applied, rather
-   * than capping the final number. Capping the result pins the camera to the
-   * wall and the dolly stops responding entirely — which is exactly what a
-   * flat `Math.min(framed * zoom, limit)` did. Scaling the base instead keeps
-   * the full zoom range usable inside whatever room there is: a piece that
-   * cannot be framed without backing through the wall simply gets cropped a
-   * little, which is the right trade.
+   * The room's bounds alone were not enough, and this is why: the clamp
+   * measures against the GLB's *bounding box*, and PresentationRoom's booth is
+   * authored front-facing only — no geometry behind the static camera, which is
+   * where its download saving comes from. The box therefore reaches past the
+   * built walls and over the ceiling, and a camera inside the box but outside
+   * the room looks exactly like one that flew out through the back of it. A
+   * phone reached that dead air and a desktop never did, because a portrait
+   * canvas asks for roughly twice the metres for the same shot.
    */
-  const solveDistance = (zoomFactor: number) => {
-    const limit = wallLimit()
-    const base = Math.min(framedDistance.current, limit)
-    return Math.min(base * zoomFactor, limit)
+  const pullBackLimit = () => Math.min(wallLimit(), maxDistance, distanceCeiling.current)
+
+  /**
+   * The shot for a given zoom — distance **and** lens, solved together.
+   *
+   * `zoom` means one thing only: the fraction of the framed band the piece
+   * covers. That is already device-independent, and it is the *metres* that are
+   * not — `fov` is vertical, so a portrait canvas needs roughly twice the
+   * pull-back for the same apparent size, and a booth modelled around the piece
+   * does not have twice the depth. Spending the difference on distance is what
+   * walked the camera out of the room on a phone, and capping the distance
+   * alone is what made the dolly stop responding there.
+   *
+   * So the residual is spent on the lens instead. Once the room runs out of
+   * metres the camera stops moving and the fov opens toward `camera.maxFov`,
+   * which shrinks the piece by exactly as much as the metres would have. The
+   * same `maxZoom` then means the same thing on a phone and a desktop, without
+   * a per-device override — and on a desktop, which never reaches the limit,
+   * nothing changes at all.
+   */
+  const solveShot = (zoomFactor: number) => {
+    const limit = pullBackLimit()
+    const wanted = (need.current / baseHalf.current) * zoomFactor
+    if (!(wanted > limit)) return { distance: wanted, half: baseHalf.current }
+    // Widen only as far as the cap allows; past that the room has nothing left
+    // to give and zoom-out simply stops, at the wall rather than through it.
+    const half = Math.min(capHalf.current, (need.current * zoomFactor) / limit)
+    return { distance: Math.min((need.current / half) * zoomFactor, limit), half }
   }
+
+  const solveDistance = (zoomFactor: number) => solveShot(zoomFactor).distance
+  const fovFor = (half: number) => 2 * THREE.MathUtils.radToDeg(Math.atan(half))
 
   // Framing is the fiddliest thing on this page — `?debug=1` prints the solve.
   const trace =
@@ -208,7 +246,6 @@ export default function PresentationGestures({ config, controls, framing, roomBo
       .normalize()
 
     const aspect = size.width / size.height
-    let halfFov = Math.tan(THREE.MathUtils.degToRad(baseFov) / 2)
 
     // Worst-case silhouette: the piece can be spun to any yaw.
     const radius = Math.hypot(frame.size.x, frame.size.z) / 2
@@ -217,36 +254,47 @@ export default function PresentationGestures({ config, controls, framing, roomBo
     // — the sheet's own max height is kept below this so the two agree.
     const coverage = Math.min(sheetCoverage, 0.62)
     const padding = config.camera.padding ?? 1.15
-    // Half-heights the piece must fit into at unit distance, so the same two
-    // constraints can be re-solved for the lens below.
-    const needV = frame.size.y / (1 - coverage) / 2
-    const needH = radius / aspect
-    const fit = (h: number) => (Math.max(needV, needH) / h) * padding
 
-    framedDistance.current = fit(halfFov)
+    // The two fit constraints, reduced to the one number `solveShot` needs.
+    const needV = frame.size.y / (1 - coverage) / 2
+    need.current = Math.max(needV, radius / aspect) * padding
+    baseHalf.current = Math.tan(THREE.MathUtils.degToRad(baseFov) / 2)
+    capHalf.current = Math.tan(THREE.MathUtils.degToRad(maxFov) / 2)
+    framedDistance.current = need.current / baseHalf.current
+
+    /**
+     * The same solve at a landscape aspect, and the furthest the camera may
+     * ever travel.
+     *
+     * `fov` is vertical, so the whole of the extra pull-back a portrait canvas
+     * asks for comes from `radius / aspect` — the horizontal fit — blowing up
+     * below 1:1. That extra is what walked the camera out of a booth that a
+     * desktop window never left, and it is why a per-device `maxZoom` seemed
+     * like the answer: it is the metres that differ, not the shot.
+     *
+     * So the metres are capped at the landscape figure and the difference is
+     * spent on the lens instead (see `solveShot`). A phone is then never
+     * further from the piece than a desktop would be, at any zoom, with no
+     * per-device override and no change to the desktop at all — its aspect is
+     * already ≥ 1, so this ceiling is exactly the distance it was using.
+     */
+    distanceCeiling.current =
+      ((Math.max(needV, radius / Math.max(aspect, 1)) * padding) / baseHalf.current) * maxZoom
 
     // The aim point rides up the piece by `camera.aimHeight`, so a close dolly
     // does not sink to the piece's own centre height. Still on the piece, so
-    // the wall limit is measured from inside the room whatever the sheet does.
+    // the pull-back limit is measured from inside the room whatever the sheet
+    // is doing.
     aimOffset.current = (aimHeight - 0.5) * frame.size.y
     desiredTarget.current.copy(frame.center).setY(frame.center.y + aimOffset.current)
 
-    // Too deep for the room? Widen the lens until the piece fits at the
-    // distance the room allows, rather than reversing into the wall for the
-    // distance it does not.
-    const limit = wallLimit()
-    if (framedDistance.current > limit && limit < Infinity) {
-      const needed = (Math.max(needV, needH) * padding) / limit
-      const cap = Math.tan(THREE.MathUtils.degToRad(maxFov) / 2)
-      halfFov = Math.min(needed, cap)
-      framedDistance.current = fit(halfFov)
-    }
-
-    const fov = 2 * THREE.MathUtils.radToDeg(Math.atan(halfFov))
-    if (Math.abs(camera.fov - fov) > 1e-3) camera.fov = fov
-
     bandCentre.current = coverage / 2 + (config.camera.screenLift ?? 0.02)
-    applyLens(solveDistance(zoom.current))
+
+    const limit = pullBackLimit()
+    const shot = solveShot(zoom.current)
+    targetHalf.current = shot.half
+    camera.fov = fovFor(shot.half)
+    applyLens(shot.distance)
 
     if (trace) {
       console.log(
@@ -260,28 +308,21 @@ export default function PresentationGestures({ config, controls, framing, roomBo
     if (process.env.NODE_ENV !== 'production' && !warnedTight.current && camera.fov > baseFov + 0.5) {
       warnedTight.current = true
       console.warn(
-        `[PresentationGestures] the room lets the camera back off only ${limit.toFixed(2)}m, so the` +
-          ` lens opened from ${baseFov}° to ${camera.fov.toFixed(1)}° to fit the piece` +
+        `[PresentationGestures] the camera may back off only ${limit.toFixed(2)}m` +
+          `${maxDistance < wallLimit() ? ' (camera.maxDistance)' : ' (the room bounds)'}, so the` +
+          ` lens opened from ${baseFov}° to ${camera.fov.toFixed(1)}° to keep the piece framed` +
           `${camera.fov >= maxFov - 0.5 ? ' — and hit camera.maxFov, so the view is still cropped' : ''}.` +
           ' Scale the room GLB up, or lower camera.padding, to shoot it at the intended focal length.'
       )
     }
 
-    // Opening zoom, on the first solve only. Expressed against how far the rig
-    // can *actually* pull back rather than against `maxZoom`, because the wall
-    // may cut that short — asking for 90% of the limit should mean 90% of the
-    // real one, not 90% of a number the room never lets you reach.
+    // Opening zoom, on the first solve only. A plain fraction of `maxZoom` now:
+    // zoom is a share of the framed band, and the room can no longer truncate
+    // that — it caps the metres, and `solveShot` pays the difference in lens.
+    // It used to be expressed against the achievable distance precisely because
+    // the room could cut the range short.
     if (!settled.current && config.camera.startZoom !== undefined) {
-      const limit = wallLimit()
-      const base = Math.min(framedDistance.current, limit)
-      const furthest = Math.min(base * maxZoom, limit)
-      if (base > 0) {
-        zoom.current = THREE.MathUtils.clamp(
-          (furthest * config.camera.startZoom) / base,
-          minZoom,
-          maxZoom
-        )
-      }
+      zoom.current = THREE.MathUtils.clamp(maxZoom * config.camera.startZoom, minZoom, maxZoom)
     }
 
     targetDistance.current = solveDistance(zoom.current)
@@ -334,7 +375,9 @@ export default function PresentationGestures({ config, controls, framing, roomBo
 
     const applyZoom = (factor: number) => {
       zoom.current = THREE.MathUtils.clamp(zoom.current * factor, minZoom, maxZoom)
-      targetDistance.current = solveDistance(zoom.current)
+      const shot = solveShot(zoom.current)
+      targetDistance.current = shot.distance
+      targetHalf.current = shot.half
     }
 
     const onPointerDown = (e: PointerEvent) => {
@@ -422,15 +465,28 @@ export default function PresentationGestures({ config, controls, framing, roomBo
   }, [gl, minZoom, maxZoom, tiltLimit, controls, invalidate, regress])
 
   useFrame((_, delta) => {
-    // Re-clamped every frame, not just on reframe: the room GLB usually
-    // resolves after the camera has already settled, and the walls have to
-    // pull it back in when they arrive.
-    const legal = solveDistance(zoom.current)
-    if (legal !== targetDistance.current) targetDistance.current = legal
+    // Re-solved every frame, not just on reframe: the room GLB usually resolves
+    // after the camera has already settled, and the walls have to pull it back
+    // in — and re-spend the difference on the lens — when they arrive.
+    const legal = solveShot(zoom.current)
+    if (legal.distance !== targetDistance.current) targetDistance.current = legal.distance
+    targetHalf.current = legal.half
 
+    const wantFov = fovFor(targetHalf.current)
     const distanceSettled = distance.current === targetDistance.current
     const targetSettled = target.current.distanceToSquared(desiredTarget.current) < 1e-8
-    if (distanceSettled && targetSettled) return
+    const fovSettled = Math.abs(camera.fov - wantFov) < 1e-3
+    if (distanceSettled && targetSettled && fovSettled) return
+
+    if (!fovSettled) {
+      // Damped on the same clock as the dolly, so a zoom-out that runs out of
+      // metres and continues on the lens reads as one continuous movement
+      // rather than a hand-off between two.
+      const next = THREE.MathUtils.damp(camera.fov, wantFov, 12, delta)
+      camera.fov = Math.abs(next - wantFov) < 1e-3 ? wantFov : next
+      camera.updateProjectionMatrix()
+      lensDistance.current = -1
+    }
 
     if (!distanceSettled) {
       const next = THREE.MathUtils.damp(distance.current, targetDistance.current, 12, delta)

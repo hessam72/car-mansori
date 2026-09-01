@@ -424,6 +424,19 @@ export interface PresentationConfig {
      */
     wallMargin?: number
     /**
+     * Hard cap on how far back the camera may travel, metres.
+     *
+     * The room clamp measures against the GLB's *bounding box*, and for a booth
+     * authored front-facing only — no geometry behind the static camera, which
+     * is where its download savings come from — the box reaches well past the
+     * built walls and ceiling. Inside the box and outside the room looks
+     * exactly like flying out through the back of it. The box cannot know
+     * where the modelled part ends; this is how you tell it.
+     *
+     * Zoom-out past this point is not lost, it is spent on `maxFov` instead.
+     */
+    maxDistance?: number
+    /**
      * Ceiling on the field of view the rig may open up to when the room is too
      * shallow to frame the piece from — a portrait phone needs roughly twice
      * the pull-back a desktop window does, and a booth rarely has it.

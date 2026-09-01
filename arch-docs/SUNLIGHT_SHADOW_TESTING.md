@@ -336,3 +336,44 @@ lifted in the room has moved, and a camera that ignored it would frame the empty
 space underneath.
 
 It adds to a stage's `liftPiece`, so a plinth and a manual nudge compose.
+
+---
+
+# Zoom-out: why the phone left the room and the desktop did not
+
+The camera never left the room's **bounding box** — the clamp works. The box is
+just a bad proxy for the room. `PresentationRoom`'s booth is authored
+front-facing only ("there is no geometry behind the static camera"), which is
+where its download saving comes from, so the box reaches past the built walls
+and over the ceiling. A camera inside the box but outside the modelled room
+looks exactly like one that flew out through the back of it. Add a `room.offset`
+that drops the GLB a metre or two and the box carries that dead air with it.
+
+A phone reached that dead air and a desktop never did, for one reason: **`fov`
+is vertical**, so on a portrait canvas the horizontal fit — `radius / aspect` —
+blows up, and the same shot costs roughly twice the metres. It is the metres
+that differ between the two devices, not the shot. Which is exactly why a
+per-device `maxZoom` looks like the answer and is not: it fixes the phone by
+making its zoom-out mean something different from the desktop's.
+
+## What it does instead
+
+`zoom` means one thing: the fraction of the framed band the piece covers. That
+is already device-independent. So the rig caps the *metres* and spends the
+remainder on the **lens** — `solveShot` returns a distance and a field of view
+together. Once the pull-back limit is reached the camera stops moving and the
+fov opens toward `camera.maxFov`, shrinking the piece by exactly as much as the
+metres would have. Both are damped on the same clock, so a zoom-out that runs
+out of room reads as one continuous movement rather than a hand-off.
+
+The limit is the tightest of three:
+
+| Source | What it is |
+|---|---|
+| room bounds | the ray-box exit less `camera.wallMargin` — a ceiling, not a fit |
+| **landscape ceiling** | what a landscape window would need at `maxZoom`, computed from the same solve with `aspect` floored at 1. **A phone is never further from the piece than a desktop would be.** Automatic; a desktop's aspect is already ≥ 1 so this is the distance it was already using, and nothing there changes |
+| `camera.maxDistance` | an explicit metre cap, for a trimmed booth whose box lies about where the room ends. Optional |
+
+`camera.startZoom` is now a plain fraction of `maxZoom`. It used to be expressed
+against the achievable distance precisely because the room could truncate the
+range; it no longer can.
