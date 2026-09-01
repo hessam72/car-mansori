@@ -7,7 +7,7 @@
       "imageDistance": 2,
       "imageOffsetY": 0,
       "pieceOffsetY": 0,
-      "pieceLift": 0,
+      "pieceLift": 0.01,
       "offset": [
         -0.12,
         -1.4,
@@ -182,7 +182,7 @@
     },
     "quality": {
       "preset": "high",
-      "mobile": "low"
+      "mobile": "high"
     },
     "floor": {
       "enabled": true,
