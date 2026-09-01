@@ -173,17 +173,21 @@
       "samples": 16,
       "focus": 0
     },
-    "shadow": {
-      "left": -7.306572541126144,
-      "right": 7.306572541126144,
-      "top": 6.443415717532126,
-      "bottom": -6.443415717532126,
-      "near": 1.2210115810532578,
-      "far": 17.34523005281967,
-      "bias": -0.0001,
-      "normalBias": 0.03
-    }
-  },
+    "floor": {
+      "enabled": true,
+      "opacity": 0.35,
+      "blend": "normal",
+      "offsetY": 0.004,
+      "mixStrength": 1,
+      "mixBlur": 1.4,
+      "mixContrast": 1,
+      "roughness": 0.6,
+      "metalness": 0.4,
+      "depthScale": 1.2,
+      "minDepthThreshold": 0.2,
+      "maxDepthThreshold": 1.4,
+      "color": "#ffffff"
+    },
     "explode": {
       "gap": 0.45,
       "durationMs": 700
@@ -192,4 +196,4 @@
       "durationMs": 900
     }
   }
-}
+  }}

@@ -89,3 +89,57 @@ furniture alike:
 | `glass` | never casts — the depth pass is alpha-blind, so a pane blacks out the whole sun patch. The frames around it cast, and that is what paints the window pattern on the floor |
 | `lamp` | never casts, so a glowing shade throws no hard sun shadow |
 | `ceiling` | already double-sided by PresentationRoom |
+
+---
+
+# Reflective floor on /product
+
+Not /store's `ReflectiveFloor` component. That one is an **opaque** plane
+carrying its own concrete texture — it *is* the salon floor. A room GLB already
+has a floor, so `PresentationFloor` ports the technique instead: the same drei
+planar reflector (scene re-rendered from a camera mirrored through the plane,
+obliquely clipped at it) on a **transparent plane with no map**, sitting 4mm
+above the real floor. What the reflection does not cover, the room's own texture
+shows through.
+
+- **Where:** `public/config/furniture-presentation.json`, per product, a `floor`
+  block beside `sun`. Absent, or `"enabled": false`, and no reflection pass runs.
+- **Also off** below the quality tier that affords it
+  (`settings.floorReflectionsEnabled` — low tier). Unlike /store there is no
+  matte stand-in to swap in: the real floor is already there, so it is simply
+  skipped.
+- **Tune it at** `http://localhost:3000/product/test?floordebug=1`:
+
+| Key | Effect |
+|---|---|
+| `[` / `]` | opacity — how much floor texture survives |
+| `-` / `+` | mix strength |
+| `,` / `.` | blur |
+| `b` | flip `normal` ⇄ `additive` |
+
+Each keypress logs a paste-ready `{ "floor": { ... } }` block.
+
+## opacity, and which blend
+
+`opacity` is the whole feature: 1 is a mirror with the texture gone, 0.35 (the
+default) leaves the tiles as the thing you read and the reflection as a sheen.
+
+`blend` decides what the reflection is allowed to do to it:
+
+- **`normal`** alpha-blends. Dark reflections darken the floor, which is what a
+  surface actually does as it turns mirror-like. The default.
+- **`additive`** only ever adds reflected light — nothing darkens, so the
+  texture survives at any opacity. Better over a dark floor; a bright
+  reflection can blow out.
+
+`size` and the plane's centre are fitted to the room's measured footprint, like
+the sun's frustum. Give `size` explicitly for a photographed backdrop, which has
+no room to measure.
+
+## Why it neither casts nor receives
+
+Casting would print a hard-edged rectangle of shade on the floor 4mm underneath
+it. Receiving would apply the sun's shadow a second time over a floor that has
+already taken it — and a shadow across a polished floor dims its diffuse, not
+what is reflected in it, so leaving the shadow to the real floor is also the
+truer answer.
