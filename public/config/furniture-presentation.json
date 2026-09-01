@@ -7,6 +7,7 @@
       "imageDistance": 2,
       "imageOffsetY": 0,
       "pieceOffsetY": 0,
+      "pieceLift": 0,
       "offset": [
         -0.12,
         -0.35,
@@ -137,6 +138,7 @@
       "maxZoom": 2.5,
       "startZoom": 0.9,
       "tiltLimitDeg": 0,
+      "aimHeight": 0.8,
       "screenLift": -0.05
     },
     "lighting": {

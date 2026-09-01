@@ -288,3 +288,51 @@ blind to.
 The stage shares the piece's Suspense boundary rather than taking one of its
 own, so the loading splash waits for it — the soft and cover layers get their
 own boundary precisely because they may arrive late, and the stage may not.
+
+---
+
+# Zoom target and furniture height
+
+## `camera.aimHeight` — where the dolly converges
+
+The camera rides a ray at a fixed elevation, so its height above the aim point
+is `sin(elevation) × distance`. Zoom in and that shrinks to nothing, leaving the
+camera at the aim point's own height:
+
+```
+camera.y = target.y + sin(8°) × distance
+far  (d=4m):  0.40 + 0.56 = 0.96m   → above the sofa
+near (d=1m):  0.40 + 0.14 = 0.54m   → below its top edge
+```
+
+Aimed at the piece's geometric centre — the old fixed behaviour — a close dolly
+therefore ends at seat level, looking at the sofa from underneath its top. It is
+not the zoom that is wrong, it is what the zoom converges on.
+
+`camera.aimHeight` is that point as a fraction of the piece's height: `0` its
+base, `0.5` its centre (the previous behaviour, still the default), `1` its top.
+The test product uses `0.8`.
+
+The piece does not move on screen as you change it. The lens shift that keeps
+the piece clear of the bottom sheet is now **re-solved per distance**, because
+the aim point sits `aimOffset` metres above the piece's centre and a metre
+covers a larger share of the screen the closer you get. A fixed shift would let
+the piece slide down the frame as the dolly came in; the correction has to track
+the perspective exactly. It is clamped to ±0.45 of the viewport, since a frustum
+skewed most of its own height off-axis is degenerate.
+
+## `room.pieceLift` — the furniture's height in the room
+
+```json
+"room": { "floorY": 0, "pieceLift": 0.25 }
+```
+
+Metres above `floorY`, and **the camera follows it**. This is the opposite of
+`room.pieceOffsetY` in the one way that matters: that one is a screen-space
+nudge the framing is deliberately blind to, for landing a piece on a
+photographed floor, while this is where the piece actually is — so everything
+that seats or measures it reads the raised height, framing included. A piece
+lifted in the room has moved, and a camera that ignored it would frame the empty
+space underneath.
+
+It adds to a stage's `liftPiece`, so a plinth and a manual nudge compose.

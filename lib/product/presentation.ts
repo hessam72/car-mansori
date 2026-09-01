@@ -146,6 +146,20 @@ export interface PresentationRoom {
    */
   floorY?: number
   /**
+   * Stands the piece this far above the floor, in metres — its height *in the
+   * room*, and the camera follows it there.
+   *
+   * The opposite of `pieceOffsetY` in the one way that matters. That one is a
+   * screen-space nudge the framing is deliberately blind to, for landing a
+   * piece on a photographed floor; this is where the piece actually is, so
+   * everything that seats or measures it reads the raised height — a piece
+   * lifted in the room has moved, and a camera that ignored it would frame the
+   * empty space underneath.
+   *
+   * Adds to a stage's `liftPiece`, if there is one.
+   */
+  pieceLift?: number
+  /**
    * Moves the piece up (positive) or down on screen, in metres.
    *
    * Deliberately excluded from the camera's framing, which is the whole point —
@@ -418,6 +432,22 @@ export interface PresentationConfig {
      * @see PresentationGestures
      */
     maxFov?: number
+    /**
+     * Where on the piece the dolly converges, as a fraction of its height —
+     * 0 its base, 0.5 its centre, 1 its top.
+     *
+     * The camera rides a ray at a fixed elevation, so its height above the aim
+     * point is `sin(elevation) × distance`: zoom in and that shrinks to nothing,
+     * leaving the camera at the aim point's own height. Aimed at the geometric
+     * centre, a close dolly therefore ends up at seat level, looking at a sofa
+     * from below its top edge. Aiming higher up the piece is what keeps the
+     * shot above it all the way in.
+     *
+     * The piece stays put on screen as this moves: the lens shift re-solves
+     * per distance to keep the piece's *centre* in the middle of the band the
+     * sheet leaves, whatever the camera is aimed at. @see PresentationGestures
+     */
+    aimHeight?: number
     /** Pushes the piece up-screen by this fraction of the *viewport height*,
      *  clearing the bottom sheet. Expressed against the viewport rather than
      *  the model so the same value frames a tall wardrobe and a low table

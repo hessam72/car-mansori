@@ -90,12 +90,18 @@ export default function PresentationGestures({ config, controls, framing, roomBo
   const zoom = useRef(1)
   const appliedVersion = useRef(-1)
   const settled = useRef(false)
+  /** Viewport fraction the piece's centre must sit above screen centre. */
+  const bandCentre = useRef(0)
+  /** How far the aim point sits above the piece's centre, in metres. */
+  const aimOffset = useRef(0)
+  const lensDistance = useRef(-1)
   const warnedTight = useRef(false)
 
   const minZoom = config.camera.minZoom ?? 0.6
   const maxZoom = config.camera.maxZoom ?? 1.8
   const tiltLimit = THREE.MathUtils.degToRad(config.camera.tiltLimitDeg ?? TILT_LIMIT_DEG)
   const wallMargin = config.camera.wallMargin ?? WALL_MARGIN
+  const aimHeight = THREE.MathUtils.clamp(config.camera.aimHeight ?? 0.5, 0, 1)
   const baseFov = config.camera.fov
   const maxFov = Math.max(baseFov, config.camera.maxFov ?? MAX_FOV)
 
@@ -133,6 +139,46 @@ export default function PresentationGestures({ config, controls, framing, roomBo
   // Framing is the fiddliest thing on this page — `?debug=1` prints the solve.
   const trace =
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug')
+
+  /**
+   * Put the piece's centre in the middle of the band the sheet leaves — as a
+   * lens shift, not by aiming the camera below it.
+   *
+   * Aiming low is what put the camera under the floor on a phone: the lift
+   * scales with the framed distance and with how much of the screen the sheet
+   * takes, and a phone maximises both — a ~2m dive on a sofa whose centre is
+   * 0.4m up, which the elevation angle could not climb back out of. Every metre
+   * of it also came off the pull-back the room could afford, since the wall
+   * limit was measured from that sunken point.
+   *
+   * `setViewOffset` renders a window offset within a virtual frame of the same
+   * size, which skews the frustum down in world space and moves the image up on
+   * screen — the identical result, from a camera that stays on the piece's own
+   * level and inside the room.
+   *
+   * Re-solved per distance rather than fixed, because the camera is aimed above
+   * the piece's centre by `aimOffset` metres and a *metre* covers a larger
+   * share of the screen the closer you get. Holding the shift constant would
+   * let the piece slide down the frame as the dolly came in — the framing has
+   * to compensate for exactly as much as the perspective changes.
+   */
+  const applyLens = (d: number) => {
+    if (!size.height || d <= 0) return
+    const viewHeight = 2 * d * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)
+    const shift = bandCentre.current + (viewHeight > 0 ? aimOffset.current / viewHeight : 0)
+    // Clamped: a frustum skewed most of its own height off-axis is degenerate,
+    // and at a hard zoom-in the correction term alone would ask for that.
+    camera.setViewOffset(
+      size.width,
+      size.height,
+      0,
+      THREE.MathUtils.clamp(shift, -0.45, 0.45) * size.height,
+      size.width,
+      size.height
+    )
+    camera.updateProjectionMatrix()
+    lensDistance.current = d
+  }
 
   /**
    * Distance at which the piece just fits, then padded.
@@ -179,9 +225,11 @@ export default function PresentationGestures({ config, controls, framing, roomBo
 
     framedDistance.current = fit(halfFov)
 
-    // The aim point stays on the piece — see the lens shift below — so the
-    // limit is measured from inside the room whatever the sheet is doing.
-    desiredTarget.current.copy(frame.center)
+    // The aim point rides up the piece by `camera.aimHeight`, so a close dolly
+    // does not sink to the piece's own centre height. Still on the piece, so
+    // the wall limit is measured from inside the room whatever the sheet does.
+    aimOffset.current = (aimHeight - 0.5) * frame.size.y
+    desiredTarget.current.copy(frame.center).setY(frame.center.y + aimOffset.current)
 
     // Too deep for the room? Widen the lens until the piece fits at the
     // distance the room allows, rather than reversing into the wall for the
@@ -197,25 +245,8 @@ export default function PresentationGestures({ config, controls, framing, roomBo
     const fov = 2 * THREE.MathUtils.radToDeg(Math.atan(halfFov))
     if (Math.abs(camera.fov - fov) > 1e-3) camera.fov = fov
 
-    /**
-     * Push the piece up-screen, clear of the sheet — as a lens shift, not by
-     * aiming the camera below it.
-     *
-     * Aiming low is what put the camera under the floor on a phone. The lift
-     * scales with the framed distance and with how much of the screen the
-     * sheet takes, and a phone maximises both: a ~2m dive on a sofa whose
-     * centre is 0.4m up, which the elevation angle could not climb back out
-     * of. Every metre of it also came off the pull-back the room could afford,
-     * because the limit was measured from that sunken point.
-     *
-     * `setViewOffset` renders a window offset within a virtual frame of the
-     * same size, which skews the frustum down in world space and moves the
-     * image up on screen — the identical result, from a camera that stays on
-     * the piece's own level and inside the room.
-     */
-    const lift = coverage / 2 + (config.camera.screenLift ?? 0.02)
-    camera.setViewOffset(size.width, size.height, 0, lift * size.height, size.width, size.height)
-    camera.updateProjectionMatrix()
+    bandCentre.current = coverage / 2 + (config.camera.screenLift ?? 0.02)
+    applyLens(solveDistance(zoom.current))
 
     if (trace) {
       console.log(
@@ -407,6 +438,10 @@ export default function PresentationGestures({ config, controls, framing, roomBo
     }
     if (targetSettled) target.current.copy(desiredTarget.current)
     else target.current.lerp(desiredTarget.current, 1 - Math.exp(-10 * delta))
+
+    // The shift depends on how far away we are — see applyLens. Only on a real
+    // change, so a settled camera is not re-projecting every frame.
+    if (Math.abs(distance.current - lensDistance.current) > 1e-4) applyLens(distance.current)
 
     camera.position.copy(target.current).addScaledVector(viewDir.current, distance.current)
     camera.lookAt(target.current)

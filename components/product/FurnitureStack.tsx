@@ -158,16 +158,19 @@ export default function FurnitureStack({ config, controls, framing, sources, deb
   const stageMeta = config.layers.stage
   const [stageHeight, setStageHeight] = useState(0)
   /**
-   * The surface the piece actually stands on — the room floor, or the top of
-   * the stage when it is asked to carry the piece.
+   * The height the piece actually stands at — the room floor, plus the stage
+   * when it is asked to carry the piece, plus whatever `room.pieceLift` adds.
    *
    * Everything that seats or measures the piece reads this instead of
-   * `room.floorY`, framing included: a piece raised onto a plinth has genuinely
-   * moved up in the room, and a camera that did not follow would frame the
-   * plinth and crop the piece. That is the opposite of `room.pieceOffsetY`,
-   * which is a screen-space nudge the camera is deliberately blind to.
+   * `room.floorY`, framing included: a piece raised in the room has genuinely
+   * moved, and a camera that did not follow would frame the empty space
+   * underneath it. That is the opposite of `room.pieceOffsetY`, which is a
+   * screen-space nudge the camera is deliberately blind to.
    */
-  const deckY = (config.room.floorY ?? 0) + (stageMeta?.liftPiece ? stageHeight : 0)
+  const deckY =
+    (config.room.floorY ?? 0) +
+    (stageMeta?.liftPiece ? stageHeight : 0) +
+    (config.room.pieceLift ?? 0)
 
   const gap = config.explode?.gap ?? 0.45
 
