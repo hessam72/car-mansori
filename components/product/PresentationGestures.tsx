@@ -103,6 +103,9 @@ export default function PresentationGestures({ config, controls, framing, roomBo
   const targetHalf = useRef(0)
   /** Furthest the camera may travel: what a landscape window would need. */
   const distanceCeiling = useRef(Infinity)
+  /** How much of the just-fits framing the *vertical* constraint accounts for:
+   *  1 in landscape, below it in portrait where the width binds instead. */
+  const verticalShare = useRef(1)
   const warnedTight = useRef(false)
 
   const minZoom = config.camera.minZoom ?? 0.6
@@ -281,6 +284,10 @@ export default function PresentationGestures({ config, controls, framing, roomBo
     distanceCeiling.current =
       ((Math.max(needV, radius / Math.max(aspect, 1)) * padding) / baseHalf.current) * maxZoom
 
+    // 1 wherever the piece's height is what sets the framing, below it once the
+    // width takes over — which is what portrait does. @see the opening zoom
+    verticalShare.current = need.current > 0 ? (needV * padding) / need.current : 1
+
     // The aim point rides up the piece by `camera.aimHeight`, so a close dolly
     // does not sink to the piece's own centre height. Still on the piece, so
     // the pull-back limit is measured from inside the room whatever the sheet
@@ -301,6 +308,7 @@ export default function PresentationGestures({ config, controls, framing, roomBo
         `[reframe] coverage ${coverage.toFixed(3)} aspect ${aspect.toFixed(3)}` +
           ` size ${frame.size.toArray().map((n) => +n.toFixed(2)).join('/')}` +
           ` fov ${camera.fov.toFixed(1)} framed ${framedDistance.current.toFixed(2)}` +
+          ` vShare ${verticalShare.current.toFixed(2)} zoom ${zoom.current.toFixed(2)}` +
           ` wall ${roomBounds?.current?.box ? wallLimit().toFixed(2) : 'none'}` +
           ` → dist ${solveDistance(zoom.current).toFixed(2)}`
       )
@@ -316,13 +324,32 @@ export default function PresentationGestures({ config, controls, framing, roomBo
       )
     }
 
-    // Opening zoom, on the first solve only. A plain fraction of `maxZoom` now:
-    // zoom is a share of the framed band, and the room can no longer truncate
-    // that — it caps the metres, and `solveShot` pays the difference in lens.
-    // It used to be expressed against the achievable distance precisely because
-    // the room could cut the range short.
+    /**
+     * Opening zoom, on the first solve only — a fraction of `maxZoom`, scaled
+     * by how much of the framing the piece's *height* accounts for.
+     *
+     * The bare fraction opens a phone much further out than it looks, and this
+     * is why: `zoom` is a share of the framed band, so the same number gives the
+     * same share on any screen — but in portrait the framing is set by the
+     * piece's *width*, and a shot that just fits a sofa across a narrow canvas
+     * leaves it small down the middle with the band half empty above and below.
+     * Identical by the numbers, much further away to look at.
+     *
+     * Scaling by the vertical share cancels exactly the part of the pull-back
+     * the width imposed, so the piece opens at the same on-screen height it
+     * does on a desktop, where the share is 1 and nothing changes.
+     *
+     * Floored at the just-fits shot so this can only ever bring the opening
+     * closer, never crop the piece — unless the configured value asked to open
+     * inside the framing in the first place, which stays honoured.
+     */
     if (!settled.current && config.camera.startZoom !== undefined) {
-      zoom.current = THREE.MathUtils.clamp(maxZoom * config.camera.startZoom, minZoom, maxZoom)
+      const configured = maxZoom * config.camera.startZoom
+      zoom.current = THREE.MathUtils.clamp(
+        Math.max(configured * verticalShare.current, Math.min(1, configured)),
+        minZoom,
+        maxZoom
+      )
     }
 
     targetDistance.current = solveDistance(zoom.current)

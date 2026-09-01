@@ -374,6 +374,24 @@ The limit is the tightest of three:
 | **landscape ceiling** | what a landscape window would need at `maxZoom`, computed from the same solve with `aspect` floored at 1. **A phone is never further from the piece than a desktop would be.** Automatic; a desktop's aspect is already ≥ 1 so this is the distance it was already using, and nothing there changes |
 | `camera.maxDistance` | an explicit metre cap, for a trimmed booth whose box lies about where the room ends. Optional |
 
-`camera.startZoom` is now a plain fraction of `maxZoom`. It used to be expressed
-against the achievable distance precisely because the room could truncate the
-range; it no longer can.
+## `camera.startZoom` and the opening shot
+
+It used to be expressed against the *achievable* distance, precisely because the
+room could truncate the range — which quietly pulled a phone in, since the room
+truncated it there and not on a desktop. The range is honest now, so the same
+`0.9 × maxZoom` opened both at the same zoom and the phone looked far out.
+
+It is a fraction of `maxZoom`, scaled by how much of the framing the piece's
+*height* accounts for. `zoom` is a share of the framed band, so the same number
+gives the same share on any screen — but in portrait the framing is set by the
+piece's **width**, and a shot that just fits a sofa across a narrow canvas
+leaves it small down the middle with the band half empty above and below.
+Identical by the numbers, much further away to look at.
+
+Scaling by the vertical share cancels exactly the part of the pull-back the
+width imposed, so the piece opens at the same on-screen height it does on a
+desktop — where the share is 1 and nothing changes. It is floored at the
+just-fits shot, so it can only bring the opening closer, never crop the piece,
+unless the configured value asked to open inside the framing to begin with.
+
+`?debug=1` prints `vShare` and the resolved opening `zoom`.
