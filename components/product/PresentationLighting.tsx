@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import * as THREE from 'three'
 import {
   galleryLighting,
@@ -198,7 +198,7 @@ function GalleryRig({
  * reflecting into the upholstery. A hemisphere is the right stand-in: it is
  * purely diffuse, so it lights without putting a highlight back on the fabric.
  */
-export default function PresentationLighting({
+function PresentationLighting({
   config,
   roomBox,
 }: {
@@ -279,3 +279,6 @@ export default function PresentationLighting({
     </>
   )
 }
+
+/** @see the note on the memo in PresentationScene. */
+export default memo(PresentationLighting)

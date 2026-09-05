@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { useThree } from '@react-three/fiber'
 import { MeshReflectorMaterial } from '@react-three/drei'
 import * as THREE from 'three'
@@ -10,6 +10,28 @@ import { floorReflection, type PresentationConfig, type PresentationFloorConfig 
 /** Fallback footprint when there is no modelled room to measure — a photographed
  *  backdrop has no floor to fit to, so the manifest has to say. */
 const FALLBACK_SIZE = 12
+
+/**
+ * Hoisted, and passed even though it is drei's own default — because the
+ * default is what breaks it.
+ *
+ * `MeshReflectorMaterial` allocates its render targets in a `useMemo` keyed on,
+ * among other things, `blur`. Its signature is `({ blur = [0, 0], ... })`, and a
+ * default parameter is evaluated per call: leave the prop off and every single
+ * render hands that memo a brand-new array, so it misses, and builds a fresh
+ * colour target, depth texture and BlurPass. drei never disposes the previous
+ * set — measured at 10MB of GPU memory per re-render at 1024², 40MB at ultra's
+ * 2048², none of it recoverable.
+ *
+ * The re-renders themselves are ordinary and unavoidable: PresentationScene
+ * re-renders whenever PerformanceMonitor steps its DPR scale, which is to say
+ * precisely when the device is already struggling. That closed the loop —
+ * slow frame → re-render → 10MB gone → slower.
+ *
+ * One module-level array breaks it: the memo holds, and the targets are built
+ * once per resolution.
+ */
+const NO_BLUR: [number, number] = [0, 0]
 
 const floorDebugRequested = () =>
   process.env.NODE_ENV === 'development' &&
@@ -52,7 +74,7 @@ const floorDebugRequested = () =>
  * `enabled: false`, or no `floor` block, is the only way off — and it leaves
  * the room's own floor, which is why nothing looks missing when it is.
  */
-export default function PresentationFloor({
+function PresentationFloor({
   config,
   roomBox,
 }: {
@@ -105,6 +127,7 @@ export default function PresentationFloor({
         <planeGeometry args={[size, size]} />
         <MeshReflectorMaterial
           resolution={cfg.resolution ?? settings.floorReflectionResolution}
+          blur={NO_BLUR}
           // `mirror` 1 makes the layer the reflection itself rather than a
           // surface tinted by it; the blend below is what holds it back, so
           // opacity stays the single dial for "how much floor is left".
@@ -131,6 +154,9 @@ export default function PresentationFloor({
     </>
   )
 }
+
+/** @see the note on the memo in PresentationScene. */
+export default memo(PresentationFloor)
 
 const STEP = 0.05
 

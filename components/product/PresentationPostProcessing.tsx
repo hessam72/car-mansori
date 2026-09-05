@@ -1,6 +1,6 @@
 'use client'
 
-import { type ReactElement } from 'react'
+import { memo, type ReactElement } from 'react'
 import { EffectComposer, Bloom, N8AO, SMAA, Vignette } from '@react-three/postprocessing'
 import { useState } from 'react'
 import { useQuality } from '@/contexts/QualityContext'
@@ -36,7 +36,7 @@ import { TOUCH_QUERY, type PresentationConfig } from '@/lib/product/presentation
  * or anisotropy this is not a knob the manifest gets to spend: it decides how
  * sharp the piece looks, not whether the tab survives being opened.
  */
-export function PresentationPostProcessing({ config }: { config: PresentationConfig }) {
+function PresentationPostProcessingImpl({ config }: { config: PresentationConfig }) {
   const { settings } = useQuality()
   // Read once, synchronously. This component only ever mounts inside a Canvas
   // that is `dynamic(..., { ssr: false })`, so there is no server HTML to
@@ -84,3 +84,12 @@ export function PresentationPostProcessing({ config }: { config: PresentationCon
 
   return <EffectComposer multisampling={multisampling}>{effects}</EffectComposer>
 }
+
+/**
+ * Memoised for a second reason on top of the one in PresentationScene: a
+ * re-render of this component re-enters EffectComposer, and that is the call
+ * that threw `Cannot read properties of null (reading 'alpha')` out of React
+ * and took the whole page down when the context had been lost. Fewer entries,
+ * fewer chances.
+ */
+export const PresentationPostProcessing = memo(PresentationPostProcessingImpl)

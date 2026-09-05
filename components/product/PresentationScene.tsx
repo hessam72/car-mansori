@@ -43,6 +43,28 @@ interface Props {
   sources?: React.MutableRefObject<ExportSources>
 }
 
+/**
+ * Why the static half of this tree is memoised.
+ *
+ * Everything below except the furniture is fixed for the life of the page: the
+ * room GLB, the environment, the rig, the sun and the reflective floor never
+ * change once they have loaded. Only the piece moves, and it moves through refs
+ * and per-frame damping rather than through React.
+ *
+ * This component, though, re-renders for reasons that have nothing to do with
+ * any of that — `perfScale` steps whenever PerformanceMonitor decides the frame
+ * rate has moved, and `roomBox` lands when the room resolves. Without memos
+ * every one of those walked the whole scene again. Two of the children pay real
+ * money for that: the floor rebuilds its reflection render targets (see the
+ * note on NO_BLUR in PresentationFloor — 10MB a time, undisposed), and the
+ * composer re-enters EffectComposer.
+ *
+ * So the props below are all stable by construction — `config` comes from the
+ * server payload, the refs and `setRoomBox` are identities React guarantees —
+ * and each child is wrapped in `memo`. The children still re-render for the
+ * things that genuinely concern them: a quality-tier change through
+ * `useQuality`, `roomBox` arriving, the store for the ones that read it.
+ */
 export default function PresentationScene({ config, onLayerError, onReady, onContextLost, sources }: Props) {
   const { settings } = useQuality()
   const backdrop = roomMode(config)

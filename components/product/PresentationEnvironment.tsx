@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { Environment } from '@react-three/drei'
 import { lightingMode, STORE_RENDER, type PresentationConfig } from '@/lib/product/presentation'
 
@@ -21,7 +22,7 @@ import { lightingMode, STORE_RENDER, type PresentationConfig } from '@/lib/produ
  * target, so on this path it was a dead knob that read like a working quality
  * tier. The PMREM comes from the EXR itself, the same on every tier.
  */
-export default function PresentationEnvironment({ config }: { config: PresentationConfig }) {
+function PresentationEnvironment({ config }: { config: PresentationConfig }) {
   // `hdr` is optional now that matte is the default — without one there is
   // nothing to load, and drei would throw on an undefined url.
   if (!config.room.hdr) return null
@@ -38,3 +39,6 @@ export default function PresentationEnvironment({ config }: { config: Presentati
     />
   )
 }
+
+/** @see the note on the memo in PresentationScene. */
+export default memo(PresentationEnvironment)
