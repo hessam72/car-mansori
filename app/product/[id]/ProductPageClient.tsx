@@ -235,27 +235,52 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
   }, [state, assets, config])
 
   const retry = useCallback(() => {
-    assets.filter((path) => path.endsWith('.glb')).forEach((path) => useGLTF.clear(path))
+    // Purge the cache only when the *files* are the problem — a 404, or a GLB
+    // that would not parse. A lost context is the opposite case: the files are
+    // fine and only the GPU's copy of them is gone, so a remount re-uploads
+    // them. Clearing there re-suspends every layer and the stack never
+    // republishes `framing`, which leaves the camera rig with nothing to solve
+    // from — an unsolved camera and a black stage.
+    if (!contextLost) {
+      assets.filter((path) => path.endsWith('.glb')).forEach((path) => useGLTF.clear(path))
+      setProbeKey((n) => n + 1)
+    }
     setLayerError(null)
-    setProbeKey((n) => n + 1)
     setContextLost(false)
-    setSceneReady(false)
     setCanvasKey((n) => n + 1)
-  }, [assets])
+    // `sceneReady` is deliberately left true. The splash exists to hide the
+    // first load's pop-in; here the assets are warm and the error notice was
+    // already covering the canvas. Clearing it made the page wait on a fresh
+    // SceneReady signal that a rebuilt scene does not always send, which parked
+    // the splash until the 20s failsafe.
+  }, [assets, contextLost])
 
   const handleLayerError = useCallback((category: string, error: Error) => {
     setLayerError(`${category}: ${error.message}`)
   }, [])
 
-  /** The scene is about to remount and take its context back, so the exported
-   *  blob is dead weight on exactly the devices that cannot spare it. */
+  /**
+   * Leaving AR is a fresh start on the piece.
+   *
+   * The Canvas is gated on `!showAR`, so this remount is unavoidable — and the
+   * store is not, since `reset()` is bound to the page's unmount, which does not
+   * happen. Re-running `initProduct` puts the scene back at the manifest's
+   * defaults *and* sets `coverPhase: 'wipeIn'`, so the return plays the same
+   * bottom-up reveal a first load does rather than snapping into place. Both
+   * updates land in one batch, so the scene mounts already knowing to wipe in.
+   *
+   * The exported blob goes too on a phone: the scene is about to take its
+   * context back, and holding it is dead weight on the devices that can least
+   * spare it.
+   */
   const closeAR = useCallback(() => {
     setShowAR(false)
+    initProduct(key, defaultPaint(config), config.layers.cover.default, config.layers.startStep ?? 1)
     if (!phone) return
     if (arCache.current) URL.revokeObjectURL(arCache.current.url)
     arCache.current = null
     setArUrl(null)
-  }, [phone])
+  }, [phone, initProduct, key, config])
 
   /**
    * A lost context is not a React error, so no error boundary sees it — and

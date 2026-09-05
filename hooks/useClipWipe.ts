@@ -56,6 +56,8 @@ export function useClipWipe({
 
   const progressRef = useRef(0)
   const directionRef = useRef<WipeDirection>(null)
+  /** The plane the effect below has already set an initial constant on. */
+  const initialised = useRef<THREE.Plane | null>(null)
   const completeRef = useRef(onComplete)
   completeRef.current = onComplete
 
@@ -81,15 +83,34 @@ export function useClipWipe({
 
   // A direction change restarts the sweep. Reversing mid-flight keeps the
   // progress already covered so a fast double-tap does not jump.
+  //
+  // The park below must also run for a plane this effect has not set a constant
+  // on yet — a mount, or a bounds change that rebuilt it. `directionRef` starts
+  // null, so a layer mounted with no wipe in flight matched the change guard and
+  // returned before parking, leaving the plane at the closed constant it was
+  // constructed with, forever. Harmless while every cover mounts behind a
+  // `wipeIn`, and fatal the moment the scene remounts at rest — returning from
+  // AR, or rebuilding after a lost context.
   useLayoutEffect(() => {
-    if (direction === directionRef.current) return
-    if (direction && directionRef.current) progressRef.current = 1 - progressRef.current
-    else progressRef.current = 0
-    directionRef.current = direction
+    const changed = direction !== directionRef.current
+    const fresh = initialised.current !== localPlane
+    if (!changed && !fresh) return
+    initialised.current = localPlane
 
-    if (!direction) localPlane.constant = PARKED_CONSTANT
+    if (changed) {
+      if (direction && directionRef.current) progressRef.current = 1 - progressRef.current
+      else progressRef.current = 0
+      directionRef.current = direction
+    }
+
+    if (!direction) {
+      localPlane.constant = PARKED_CONSTANT
+      // Projected here rather than left to useFrame, so the first drawn frame is
+      // already open — the attach effect above ran with the closed value.
+      if (groupRef.current) syncPlaneToWorld(localPlane, worldPlane, groupRef.current)
+    }
     invalidate()
-  }, [direction, localPlane, invalidate])
+  }, [direction, localPlane, worldPlane, groupRef, invalidate])
 
   useFrame((_, delta) => {
     const group = groupRef.current
