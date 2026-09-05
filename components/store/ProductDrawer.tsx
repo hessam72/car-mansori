@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { motion, PanInfo } from 'framer-motion'
 import { X, ChevronDown, ShoppingBag, Sparkles } from 'lucide-react'
-// import { hasPresentation } from '@/lib/product/presentation'
+import { hasPresentation } from '@/lib/product/presentation'
 import { useFurnitureConfig } from '@/stores/furnitureConfigStore'
 import { faPrice } from '@/lib/store/catalog'
 import type { ProductData } from './ProductInteraction'
@@ -53,8 +53,7 @@ export default function ProductDrawer({
 
   // Pieces without their own manifest fall back to the reference presentation,
   // so the drawer always offers a way into the dedicated product page.
-  // const detailHref = hasPresentation(productKey) ? `/product/${productKey}` : '/product/test'
-  const detailHref ='/product/test'
+  const detailHref = hasPresentation(productKey) ? `/product/${productKey}` : '/product/test'
 
   return (
     <motion.div
@@ -78,7 +77,6 @@ export default function ProductDrawer({
         className="pointer-events-none absolute inset-x-0 top-0 h-px
                    bg-gradient-to-l from-transparent via-[var(--gold-line-hi)] to-transparent"
       />
-      <h1>test</h1>
 
       {/* Grab handle — doubles as the expand/collapse toggle */}
       <button
