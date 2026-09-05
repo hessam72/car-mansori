@@ -1,7 +1,6 @@
 'use client'
 
 import { Environment } from '@react-three/drei'
-import { useQuality } from '@/contexts/QualityContext'
 import { lightingMode, STORE_RENDER, type PresentationConfig } from '@/lib/product/presentation'
 
 /**
@@ -17,10 +16,12 @@ import { lightingMode, STORE_RENDER, type PresentationConfig } from '@/lib/produ
  * against the store scene — has nothing left to reflect if that bake is empty.
  * /store renders the same HDR through the childless path and has never had the
  * problem, so this now matches it exactly.
+ *
+ * A corollary: no `resolution` prop. It only sizes the portal's cube render
+ * target, so on this path it was a dead knob that read like a working quality
+ * tier. The PMREM comes from the EXR itself, the same on every tier.
  */
 export default function PresentationEnvironment({ config }: { config: PresentationConfig }) {
-  const { settings } = useQuality()
-
   // `hdr` is optional now that matte is the default — without one there is
   // nothing to load, and drei would throw on an undefined url.
   if (!config.room.hdr) return null
@@ -34,7 +35,6 @@ export default function PresentationEnvironment({ config }: { config: Presentati
       files={config.room.hdr}
       background={false}
       environmentIntensity={intensity}
-      resolution={settings.envResolution}
     />
   )
 }

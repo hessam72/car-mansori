@@ -10,18 +10,25 @@ const QUALITY_LABELS: Record<QualityPreset, string> = {
   ultra: 'Ultra',
 }
 
+interface Props {
+  /** Override the tier names and heading. English by default, so /car and
+   *  /store are unchanged; /product is a Persian page and passes its own. */
+  labels?: Record<QualityPreset, string>
+  heading?: string
+}
+
 /**
  * Graphics-quality picker. Pure popover content — positioning and the
  * open/close trigger live in TopBar.
  */
-export default function QualitySelector() {
+export default function QualitySelector({ labels = QUALITY_LABELS, heading = 'Graphics Quality' }: Props = {}) {
   const { preset, setPreset, settings, ssgiEnabled, setSsgiEnabled } = useQuality()
 
   return (
     <div className="flex flex-col gap-3">
-      <span className="text-[10px] uppercase tracking-[0.3em] text-white/45">Graphics Quality</span>
+      <span className="text-[10px] uppercase tracking-[0.3em] text-white/45">{heading}</span>
 
-      <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Graphics quality">
+      <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label={heading}>
         {(Object.keys(QUALITY_LABELS) as QualityPreset[]).map((quality) => (
           <button
             key={quality}
@@ -34,7 +41,7 @@ export default function QualitySelector() {
                 : 'border-white/10 bg-white/5 text-white/60 hover:border-white/25 hover:text-white'
             }`}
           >
-            {QUALITY_LABELS[quality]}
+            {labels[quality]}
           </button>
         ))}
       </div>

@@ -82,6 +82,12 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
   const [arError, setArError] = useState(false)
   const [arUrl, setArUrl] = useState<string | null>(null)
   const [probeKey, setProbeKey] = useState(0)
+  /** Bumped by `retry` to force a fresh WebGL context — a Canvas whose context
+   *  died has to be remounted, not re-rendered. */
+  const [canvasKey, setCanvasKey] = useState(0)
+  /** Set the instant the GPU drops the context; gates the Canvas out of the
+   *  tree. @see handleContextLost */
+  const [contextLost, setContextLost] = useState(false)
   /** A GLB that exists but fails to parse never reaches the probe — the error
    *  boundaries in the scene report it here so it still gets a way out. */
   const [layerError, setLayerError] = useState<string | null>(null)
@@ -232,10 +238,37 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
     assets.filter((path) => path.endsWith('.glb')).forEach((path) => useGLTF.clear(path))
     setLayerError(null)
     setProbeKey((n) => n + 1)
+    setContextLost(false)
+    setSceneReady(false)
+    setCanvasKey((n) => n + 1)
   }, [assets])
 
   const handleLayerError = useCallback((category: string, error: Error) => {
     setLayerError(`${category}: ${error.message}`)
+  }, [])
+
+  /** The scene is about to remount and take its context back, so the exported
+   *  blob is dead weight on exactly the devices that cannot spare it. */
+  const closeAR = useCallback(() => {
+    setShowAR(false)
+    if (!phone) return
+    if (arCache.current) URL.revokeObjectURL(arCache.current.url)
+    arCache.current = null
+    setArUrl(null)
+  }, [phone])
+
+  /**
+   * A lost context is not a React error, so no error boundary sees it — and
+   * drawing a notice over the live Canvas is not enough. The next render of the
+   * R3F tree calls into EffectComposer against the dead context, which throws
+   * out of React and replaces the whole page with "Application error: a
+   * client-side exception". That was the visible crash. Unmounting the Canvas
+   * in the same state update means React tears the subtree down instead of
+   * re-rendering it, and `retry` builds a new one.
+   */
+  const handleContextLost = useCallback(() => {
+    setContextLost(true)
+    setLayerError('نمایش سه‌بعدی متوقف شد — حافظه گرافیکی دستگاه پر شد')
   }, [])
 
   // Failsafe. The splash is dismissed by the scene reporting itself drawn, and
@@ -254,11 +287,16 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
   return (
     <QualityProvider preset={qualityPreset}>
       <div className="relative h-screen w-screen overflow-hidden bg-[var(--surface-0)]">
-        {state === 'ready' && (
+        {/* Unmounted while AR is open: model-viewer takes a WebGL context of
+            its own, and two live contexts plus the exported GLB is what tips a
+            phone over. Remounting is cheap — the GLBs stay in drei's cache. */}
+        {state === 'ready' && !showAR && !contextLost && (
           <PresentationScene
+            key={canvasKey}
             config={config}
             onLayerError={handleLayerError}
             onReady={() => setSceneReady(true)}
+            onContextLost={handleContextLost}
             sources={sources}
           />
         )}
@@ -311,7 +349,7 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
             arModes={arUrl ? 'webxr quick-look scene-viewer' : undefined}
             arScale="fixed"
             productName={product.name}
-            onClose={() => setShowAR(false)}
+            onClose={closeAR}
           />
         )}
       </div>

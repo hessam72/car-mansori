@@ -258,6 +258,17 @@ export function presentationQuality(config: PresentationConfig, phone: boolean):
  */
 export const PHONE_QUERY = '(pointer: coarse) and ((max-width: 767px) or (max-height: 767px))'
 
+/**
+ * Touch hardware of any size, phone or tablet.
+ *
+ * Deliberately wider than PHONE_QUERY. That one picks which *tier* a product is
+ * authored for, and a tablet can honestly take the desktop one. This picks
+ * whether the composer may allocate a 4x-multisampled RGBA16F buffer, and no
+ * mobile GPU can — an iPad at the `high` tier's DPR is ~3MP, which is ~97MB for
+ * that one target. @see PresentationPostProcessing
+ */
+export const TOUCH_QUERY = '(pointer: coarse)'
+
 export function lightingMode(config: PresentationConfig): RoomLighting {
   return config.room.lightingMode ?? 'studio'
 }

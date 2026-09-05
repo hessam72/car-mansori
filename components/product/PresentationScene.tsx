@@ -1,7 +1,7 @@
 'use client'
 
-import { Suspense, useMemo, useRef, useState } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Canvas, type RootState } from '@react-three/fiber'
 import { ACESFilmicToneMapping, NeutralToneMapping, type Box3 } from 'three'
 import { PerfLadder } from '@/components/three/PerfLadder'
 import { PartErrorBoundary } from '@/components/car/PartErrorBoundary'
@@ -34,12 +34,16 @@ interface Props {
   /** Raised once the piece is measured, the room is in, and the programs are
    *  compiled — the page holds its splash until then. @see SceneReady */
   onReady?: () => void
+  /** The GPU dropped the drawing buffer. Not a React error, so no error
+   *  boundary can see it — the page has to be told. @see the handler on
+   *  ProductPageClient for why it must unmount this Canvas. */
+  onContextLost?: () => void
   /** Owned by the page so the AR export, which lives outside the Canvas, can
    *  reach the loaded GLTFs. Same ref-passing idiom as `controls`/`framing`. */
   sources?: React.MutableRefObject<ExportSources>
 }
 
-export default function PresentationScene({ config, onLayerError, onReady, sources }: Props) {
+export default function PresentationScene({ config, onLayerError, onReady, onContextLost, sources }: Props) {
   const { settings } = useQuality()
   const backdrop = roomMode(config)
   const needsIBL = needsEnvironment(config)
@@ -64,6 +68,40 @@ export default function PresentationScene({ config, onLayerError, onReady, sourc
   // The same box again, as state: the gallery rig is JSX and has to re-render
   // when the room resolves. The ref stays because the camera polls it per frame.
   const [roomBox, setRoomBox] = useState<Box3 | null>(null)
+
+  // Registered in onCreated; R3F disposes the renderer on unmount but leaves
+  // listeners we added to its canvas.
+  const cleanupRef = useRef<(() => void) | null>(null)
+  useEffect(() => () => cleanupRef.current?.(), [])
+
+  /**
+   * Context loss is what is left once the memory budget is under control: a
+   * backgrounded tab, another page taking a context, a driver reset.
+   * `preventDefault()` is what makes it recoverable at all — without it the
+   * browser never fires `restored`.
+   */
+  const handleCreated = useCallback(
+    ({ gl, invalidate }: RootState) => {
+      gl.localClippingEnabled = true
+
+      const canvas = gl.domElement
+      const lost = (event: Event) => {
+        event.preventDefault()
+        onContextLost?.()
+      }
+      // Repaints where the browser gives us a restore; the page's retry covers
+      // the browsers that never do.
+      const restored = () => invalidate()
+
+      canvas.addEventListener('webglcontextlost', lost, false)
+      canvas.addEventListener('webglcontextrestored', restored, false)
+      cleanupRef.current = () => {
+        canvas.removeEventListener('webglcontextlost', lost)
+        canvas.removeEventListener('webglcontextrestored', restored)
+      }
+    },
+    [onContextLost]
+  )
 
   const dpr = useMemo<[number, number]>(() => {
     const [min, max] = clampDprToBudget(settings.dpr)
@@ -98,9 +136,7 @@ export default function PresentationScene({ config, onLayerError, onReady, sourc
           // tight, which is what N8AO reads from.
           far: config.camera.far ?? 40,
         }}
-        onCreated={({ gl }) => {
-          gl.localClippingEnabled = true
-        }}
+        onCreated={handleCreated}
       >
         <PerfLadder onScale={setPerfScale} adaptive={settings.adaptiveDpr} />
 
