@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuality } from '@/contexts/QualityContext'
+import { useLightingStore } from '@/stores/lightingStore'
 
 interface LightFlickerData {
   intensities: {
@@ -17,26 +18,26 @@ interface CarLightingProps {
   flickerData?: LightFlickerData
 }
 
-// Base intensities (stable state)
-const BASE_INTENSITIES = {
-  key: 70,
-  fill: 40,
-  rim: 80,
-  bounce: 40,
-}
-
 export default function CarLighting({ flickerData }: CarLightingProps) {
   // Use provided flicker data or default to full brightness
   const data = flickerData ?? { intensities: { key: 1, fill: 1, rim: 1, bounce: 1, ambient: 0.3 }, isComplete: true }
   const flickerMultipliers = data.intensities
   const { settings } = useQuality()
 
+  // Get lighting intensities from store
+  const keyIntensity = useLightingStore((s) => s.keyIntensity)
+  const fillIntensity = useLightingStore((s) => s.fillIntensity)
+  const rimIntensity = useLightingStore((s) => s.rimIntensity)
+
+  // Bounce light is not user-controllable
+  const BOUNCE_INTENSITY = 40
+
   return (
     <>
       {/* Key Light - Main illumination from front-right */}
       <spotLight
         position={[5, 8, 5]}
-        intensity={BASE_INTENSITIES.key * flickerMultipliers.key}
+        intensity={keyIntensity * flickerMultipliers.key}
         angle={0.5}
         penumbra={0.5}
         castShadow
@@ -51,7 +52,7 @@ export default function CarLighting({ flickerData }: CarLightingProps) {
       {/* Fill Light - Soften shadows from left */}
       <spotLight
         position={[-5, 5, 3]}
-        intensity={BASE_INTENSITIES.fill * flickerMultipliers.fill}
+        intensity={fillIntensity * flickerMultipliers.fill}
         angle={0.6}
         penumbra={0.7}
       />
@@ -59,7 +60,7 @@ export default function CarLighting({ flickerData }: CarLightingProps) {
       {/* Rim Light - Edge highlight from back */}
       <spotLight
         position={[0, 4, -6]}
-        intensity={BASE_INTENSITIES.rim * flickerMultipliers.rim}
+        intensity={rimIntensity * flickerMultipliers.rim}
         angle={0.4}
         penumbra={0.6}
         color="#88aaff"
@@ -68,7 +69,7 @@ export default function CarLighting({ flickerData }: CarLightingProps) {
       {/* Ground bounce light - realistic reflected light from floor */}
       <pointLight
         position={[0, 0.5, 0]}
-        intensity={BASE_INTENSITIES.bounce * flickerMultipliers.bounce}
+        intensity={BOUNCE_INTENSITY * flickerMultipliers.bounce}
         distance={6}
         decay={2}
         color="#ffeedd"

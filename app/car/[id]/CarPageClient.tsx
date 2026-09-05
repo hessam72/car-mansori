@@ -4,12 +4,14 @@ import { useCallback, useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useGLTF, useEnvironment } from '@react-three/drei'
 import CustomizationPanel from '@/components/car/CustomizationPanel'
+import ComparisonSlider from '@/components/car/ComparisonSlider'
 import PhotoModeUI from '@/components/car/PhotoModeUI'
 import TopBar from '@/components/car/TopBar'
 import ViewDock from '@/components/car/ViewDock'
 import CarLoadingOverlay from '@/components/car/CarLoadingOverlay'
 import partsConfig from '@/public/config/car-parts.json'
 import { useCarConfig, DEFAULT_PARTS } from '@/stores/carConfigStore'
+import { useComparisonStore } from '@/stores/comparisonStore'
 import { isARCapable } from '@/lib/device-utils'
 import { QualityProvider } from '@/contexts/QualityContext'
 
@@ -29,7 +31,6 @@ const ARCarViewer = dynamic(() => import('@/components/car/ARCarViewer'), {
 export interface Car {
   id: string
   name: string
-  name_fa: string
   model_path: string
   usdz_path: string
   specs: {
@@ -49,6 +50,8 @@ export default function CarPageClient({ car }: { car: Car }) {
   const [sceneKey, setSceneKey] = useState(0)
   const [baseCarError, setBaseCarError] = useState<string | null>(null)
   const resetConfig = useCarConfig((s) => s.resetConfig)
+  const setCurrentCarId = useCarConfig((s) => s.setCurrentCarId)
+  const compareMode = useComparisonStore((s) => s.compareMode)
 
   useEffect(() => {
     setArSupported(isARCapable())
@@ -57,6 +60,7 @@ export default function CarPageClient({ car }: { car: Car }) {
   }, [])
 
   useEffect(() => {
+    setCurrentCarId(car.id)
     resetConfig(DEFAULT_PARTS)
 
     // Warm the drei cache: base car + the stock parts the scene renders first,
@@ -68,7 +72,7 @@ export default function CarPageClient({ car }: { car: Car }) {
       if (part?.model_path) useGLTF.preload(part.model_path)
     })
     useEnvironment.preload({ files: STUDIO_HDR })
-  }, [car, resetConfig])
+  }, [car, resetConfig, setCurrentCarId])
 
   const handleBaseCarError = useCallback((_category: string, error: Error) => {
     setBaseCarError(error.message || 'Failed to load the 3D model')
@@ -91,7 +95,6 @@ export default function CarPageClient({ car }: { car: Car }) {
 
         <TopBar
           carName={car.name}
-          carNameFa={car.name_fa}
           arSupported={arSupported}
           onOpenAR={() => setShowAR(true)}
           panelOpen={panelOpen}
@@ -104,13 +107,15 @@ export default function CarPageClient({ car }: { car: Car }) {
 
         <CustomizationPanel open={panelOpen} onOpenChange={setPanelOpen} />
 
+        {/* Comparison Slider - Before/After view */}
+        {compareMode && <ComparisonSlider />}
+
         {/* AR Viewer Modal */}
         {showAR && (
           <ARCarViewer
             glbPath={car.model_path}
             usdzPath={car.usdz_path}
             carName={car.name}
-            carNameFa={car.name_fa}
             onClose={() => setShowAR(false)}
           />
         )}
@@ -132,7 +137,7 @@ export default function CarPageClient({ car }: { car: Car }) {
           </div>
         )}
 
-        <CarLoadingOverlay carName={car.name} carNameFa={car.name_fa} />
+        <CarLoadingOverlay carName={car.name} />
       </div>
     </QualityProvider>
   )

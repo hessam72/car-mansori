@@ -1,9 +1,9 @@
 module.exports = {
   apps: [
     {
-      name: "car-mansori",
+      name: "furncher-app",
       script: "node_modules/next/dist/bin/next",
-      args: "start -p 3020",
+      args: "start -p 3040",
       exec_mode: "fork",
       instances: 1,
       env: {

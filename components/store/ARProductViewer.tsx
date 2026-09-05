@@ -1,20 +1,32 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { isARCapable, getARModeName } from '@/lib/device-utils'
+import { getARModeName } from '@/lib/device-utils'
+import "@google/model-viewer/dist/model-viewer.min.js"
 
 interface ARProductViewerProps {
   glbPath: string
-  usdzPath: string
+  /** Omit for a runtime-generated GLB: with no `ios-src`, model-viewer builds
+   *  the USDZ from the loaded model, so Quick Look shows the live config. An
+   *  empty string would defeat that, so the attribute is dropped entirely. */
+  usdzPath?: string
   productName: string
   poster?: string
+  /** 'fixed' pins the model to its authored real-world size — right for
+   *  furniture. Defaults to 'auto' so existing callers are unchanged. */
+  arScale?: 'auto' | 'fixed'
+  arModes?: string
+  onClose?: () => void
 }
 
 export default function ARProductViewer({
   glbPath,
   usdzPath,
   productName,
-  poster
+  poster,
+  arScale = 'auto',
+  arModes = 'webxr scene-viewer quick-look',
+  onClose
 }: ARProductViewerProps) {
   const modelViewerRef = useRef<HTMLElement & ModelViewerElement>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -22,14 +34,17 @@ export default function ARProductViewer({
   const [arSupported, setArSupported] = useState(false)
 
   useEffect(() => {
-    setArSupported(isARCapable())
-
     const mv = modelViewerRef.current
     if (!mv) return
 
+    // model-viewer resolves real AR support (WebXR / Scene Viewer / Quick Look)
+    // once the model is loaded. That is the honest signal — a UA sniff calls
+    // every desktop incapable and, worse, reads iPadOS 13+ as a Mac.
+    const syncARSupport = () => setArSupported(mv.canActivateAR)
+
     const handleLoadEvent = () => {
       setIsLoading(false)
-      console.log('✅ AR Model loaded:', productName)
+      syncARSupport()
     }
 
     const handleErrorEvent = () => {
@@ -40,15 +55,30 @@ export default function ARProductViewer({
 
     mv.addEventListener('load', handleLoadEvent)
     mv.addEventListener('error', handleErrorEvent)
+    mv.addEventListener('ar-status', syncARSupport)
 
     return () => {
       mv.removeEventListener('load', handleLoadEvent)
       mv.removeEventListener('error', handleErrorEvent)
+      mv.removeEventListener('ar-status', syncARSupport)
     }
   }, [productName])
 
   return (
-    <div className="relative w-full h-full min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-900">
+    // Above the presentation page's top bar (z-100) and bottom sheet (z-99):
+    // a full-screen AR overlay must not have page chrome floating over it.
+    <div className="fixed inset-0 z-[200] w-full h-full min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-900">
+      {/* Close button */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="fixed top-18 right-6 z-[999999999] px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-[family-name:var(--font-vazir)] transition-colors"
+          dir="rtl"
+        >
+          بستن
+        </button>
+      )}
+
       {/* Loading indicator */}
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/50">
@@ -78,7 +108,7 @@ export default function ARProductViewer({
       <model-viewer
         ref={modelViewerRef}
         src={glbPath}
-        ios-src={usdzPath}
+        {...(usdzPath ? { 'ios-src': usdzPath } : {})}
         alt={productName}
         poster={poster}
         seamless-poster
@@ -87,8 +117,8 @@ export default function ARProductViewer({
 
         // AR Configuration
         ar
-        ar-modes="webxr scene-viewer quick-look"
-        ar-scale="fixed"
+        ar-modes={arModes}
+        ar-scale={arScale}
         ar-placement="floor"
         xr-environment
 
@@ -102,10 +132,10 @@ export default function ARProductViewer({
         exposure={1}
 
         // Camera settings
-        camera-orbit="0deg 75deg 0.5m"
+        camera-orbit="0deg 75deg 3m"
         min-camera-orbit="auto auto 0.1m"
-        max-camera-orbit="auto auto 2m"
-        field-of-view="30deg"
+        max-camera-orbit="auto auto 10m"
+        field-of-view="40deg"
 
         // Interaction
         interaction-prompt="auto"
@@ -124,7 +154,7 @@ export default function ARProductViewer({
         {arSupported && (
           <button
             slot="ar-button"
-            className="absolute top-6 left-6 px-6 py-3 bg-white hover:bg-gray-100 active:bg-gray-200 text-black font-semibold rounded-xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 z-30 font-[family-name:var(--font-vazir)]"
+            className="absolute top-18 left-6 px-6 py-3 bg-white hover:bg-gray-100 active:bg-gray-200 text-black font-semibold rounded-xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 z-30 font-[family-name:var(--font-vazir)]"
             dir="rtl"
           >
             <svg

@@ -3,17 +3,25 @@
 import { useState, useEffect } from 'react'
 import { useGLTF } from '@react-three/drei'
 import PaintControls from './PaintControls'
+import SuspensionControls from './SuspensionControls'
+import LightingControls from './LightingControls'
 import PartsGrid from './PartsGrid'
 import partsConfig from '@/public/config/car-parts.json'
 import { useCarConfig } from '@/stores/carConfigStore'
+import { useComparisonStore } from '@/stores/comparisonStore'
 import './CustomizationPanel.css'
 import { IoColorPalette, IoCarSport, IoClose, IoChevronBack } from 'react-icons/io5'
 import {
   GiCarWheel, GiWingCloak, GiCarDoor,
   GiMirrorMirror,
-  GiSmokingPipe
+  GiSmokingPipe,
+  GiSteeringWheel,
+  GiCarSeat,
+  GiSpring
 } from 'react-icons/gi'
 import { TbCarSuv } from 'react-icons/tb'
+import { MdLightbulb, MdLightbulbOutline } from 'react-icons/md'
+import { FaCog } from 'react-icons/fa'
 
 // Preload all parts in a category into the same drei cache the scene reads from
 function preloadCategory(categoryId: string) {
@@ -31,6 +39,8 @@ function preloadCategory(categoryId: string) {
 
 const CATEGORIES = [
   { id: 'paint', name: 'Paint', icon: IoColorPalette },
+  { id: 'suspension', name: 'Suspension', icon: GiSpring },
+  { id: 'lighting', name: 'Lighting', icon: MdLightbulbOutline },
   { id: 'wheels', name: 'Wheels', icon: GiCarWheel },
   { id: 'spoilers', name: 'Spoilers', icon: GiWingCloak },
   { id: 'hoods', name: 'Hoods', icon: IoCarSport },
@@ -38,6 +48,10 @@ const CATEGORIES = [
   { id: 'mirrors', name: 'Mirrors', icon: GiMirrorMirror },
   { id: 'exhaust', name: 'Exhaust', icon: GiSmokingPipe },
   { id: 'side-skirts', name: 'Side Skirts', icon: TbCarSuv },
+  { id: 'seats', name: 'Seats', icon: GiCarSeat },
+  { id: 'steering-wheels', name: 'Steering', icon: GiSteeringWheel },
+  { id: 'brake-calipers', name: 'Calipers', icon: FaCog },
+  { id: 'headlights', name: 'Headlights', icon: MdLightbulb },
 ]
 
 interface CustomizationPanelProps {
@@ -54,9 +68,18 @@ export default function CustomizationPanel({ open, onOpenChange }: Customization
   const [activeTab, setActiveTab] = useState('paint')
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const selectedParts = useCarConfig((s) => s.selectedParts)
+  const paintConfig = useCarConfig((s) => s.paintConfig)
+  const suspensionHeight = useCarConfig((s) => s.suspensionHeight)
   const loadingParts = useCarConfig((s) => s.loadingParts)
   const partLoadErrors = useCarConfig((s) => s.partLoadErrors)
   const setPartError = useCarConfig((s) => s.setPartError)
+
+  const compareMode = useComparisonStore((s) => s.compareMode)
+  const enableCompareMode = useComparisonStore((s) => s.enableCompareMode)
+
+  const handleCompare = () => {
+    enableCompareMode()
+  }
 
   // Calculate total price
   const totalPrice = Object.entries(selectedParts).reduce((total, [category, partId]) => {
@@ -67,16 +90,16 @@ export default function CustomizationPanel({ open, onOpenChange }: Customization
 
   // Preload current category parts immediately on tab change
   useEffect(() => {
-    if (activeTab !== 'paint') {
+    if (activeTab !== 'paint' && activeTab !== 'suspension' && activeTab !== 'lighting') {
       preloadCategory(activeTab)
     }
   }, [activeTab])
 
   // Prefetch adjacent categories during idle time
   useEffect(() => {
-    const categories = CATEGORIES.filter((c) => c.id !== 'paint' && c.id !== activeTab).map(
-      (c) => c.id
-    )
+    const categories = CATEGORIES.filter(
+      (c) => c.id !== 'paint' && c.id !== 'suspension' && c.id !== 'lighting' && c.id !== activeTab
+    ).map((c) => c.id)
 
     if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
       const idleCallback = window.requestIdleCallback(
@@ -254,11 +277,19 @@ export default function CustomizationPanel({ open, onOpenChange }: Customization
                   </div>
                 )}
 
-                {activeTab === 'paint' ? <PaintControls /> : <PartsGrid category={activeTab} />}
+                {activeTab === 'paint' ? (
+                  <PaintControls />
+                ) : activeTab === 'suspension' ? (
+                  <SuspensionControls />
+                ) : activeTab === 'lighting' ? (
+                  <LightingControls />
+                ) : (
+                  <PartsGrid category={activeTab} />
+                )}
               </div>
             </div>
 
-            {/* Footer: price + reset */}
+            {/* Footer: price + actions */}
             <div className="flex shrink-0 items-center justify-between border-t border-white/10 px-5 py-4 md:px-6">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.3em] text-white/40">Total</p>
@@ -266,12 +297,22 @@ export default function CustomizationPanel({ open, onOpenChange }: Customization
                   ${totalPrice.toLocaleString()}
                 </p>
               </div>
-              <button
-                onClick={() => setShowResetConfirm(true)}
-                className="text-[11px] uppercase tracking-[0.2em] text-white/50 transition-colors hover:text-white"
-              >
-                Reset
-              </button>
+              <div className="flex items-center gap-4">
+                {!compareMode && (
+                  <button
+                    onClick={handleCompare}
+                    className="text-[11px] uppercase tracking-[0.2em] text-[#d4af37]/70 transition-colors hover:text-[#d4af37]"
+                  >
+                    Compare
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowResetConfirm(true)}
+                  className="text-[11px] uppercase tracking-[0.2em] text-white/50 transition-colors hover:text-white"
+                >
+                  Reset
+                </button>
+              </div>
             </div>
           </>
         )}

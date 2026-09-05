@@ -1,6 +1,6 @@
 'use client'
 
-import { useCarConfig, type PaintZone, type PaintConfig } from '@/stores/carConfigStore'
+import { useCarConfig, type PaintZone, type PaintConfig, FACTORY_PALETTES } from '@/stores/carConfigStore'
 
 const ZONES: { id: PaintZone; name: string }[] = [
   { id: 'body', name: 'Body' },
@@ -31,6 +31,7 @@ export default function PaintControls() {
   const setActiveZone = useCarConfig((s) => s.setActiveZone)
   const setPaintConfig = useCarConfig((s) => s.setPaintConfig)
   const copyZoneToAll = useCarConfig((s) => s.copyZoneToAll)
+  const applyPalettePreset = useCarConfig((s) => s.applyPalettePreset)
   const initializePaint = useCarConfig((s) => s.initializePaint)
 
   // Get active zone config
@@ -47,8 +48,49 @@ export default function PaintControls() {
     copyZoneToAll(zone)
   }
 
+  const handleApplyPalette = (paletteId: string) => {
+    initializePaint()
+    applyPalettePreset(paletteId)
+  }
+
   return (
     <div className="space-y-6">
+      {/* Factory Palettes */}
+      <div>
+        <span className={`${MICRO_LABEL} mb-3`}>Factory Palettes</span>
+        <div className="grid grid-cols-2 gap-2.5">
+          {FACTORY_PALETTES.map((palette) => (
+            <button
+              key={palette.id}
+              onClick={() => handleApplyPalette(palette.id)}
+              className="group flex items-center gap-2.5 rounded-lg border border-white/10 bg-white/5 p-2.5 text-left transition-all hover:border-[#d4af37]/50 hover:bg-white/10"
+              aria-label={`Apply ${palette.name} palette`}
+            >
+              <div className="flex shrink-0 gap-1">
+                <span
+                  className="h-7 w-2.5 rounded-sm border border-white/10"
+                  style={{ backgroundColor: palette.zones.body.color }}
+                  title="Body"
+                />
+                <span
+                  className="h-7 w-2.5 rounded-sm border border-white/10"
+                  style={{ backgroundColor: palette.zones.trim.color }}
+                  title="Trim"
+                />
+                <span
+                  className="h-7 w-2.5 rounded-sm border border-white/10"
+                  style={{ backgroundColor: palette.zones.interior.color }}
+                  title="Interior"
+                />
+              </div>
+              <span className="text-[11px] font-medium leading-tight text-white/70 transition-colors group-hover:text-white">
+                {palette.name}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Zone Selector */}
       <div>
         <span id="paint-zone-label" className={`${MICRO_LABEL} mb-3`}>Paint Zone</span>

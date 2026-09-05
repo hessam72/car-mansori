@@ -6,12 +6,18 @@ import * as THREE from 'three'
 interface CameraTransitionProps {
   isTransitioning: boolean
   targetPosition: [number, number, number]
+  startPosition?: [number, number, number]
+  lookAtStart?: [number, number, number]
+  lookAtEnd?: [number, number, number]
   duration?: number
 }
 
 export function CameraTransition({
   isTransitioning,
   targetPosition,
+  startPosition,
+  lookAtStart,
+  lookAtEnd,
   duration = 3400
 }: CameraTransitionProps) {
   const startPos = useRef<THREE.Vector3 | null>(null)
@@ -29,14 +35,18 @@ export function CameraTransition({
 
     // Store initial position
     if (!startPos.current) {
-      startPos.current = new THREE.Vector3(
+      const defaultStart: [number, number, number] = [
         targetPosition[0],
         targetPosition[1] + 7,
         targetPosition[2] + 40
-      )
+      ]
+      const start = startPosition ?? defaultStart
+      startPos.current = new THREE.Vector3(...start)
       camera.position.copy(startPos.current)
       // Look at target from above
-      camera.lookAt(targetPosition[0], targetPosition[1], targetPosition[2])
+      const defaultLookStart: [number, number, number] = [20, 3, -2]
+      const lookStart = lookAtStart ?? defaultLookStart
+      camera.lookAt(...lookStart)
       return
     }
 
@@ -55,8 +65,10 @@ export function CameraTransition({
     camera.position.z = THREE.MathUtils.lerp(startPos.current.z, targetPos.z, eased)
 
     // Animate rotation: start looking down at target, end looking forward
-    const startLookAt = new THREE.Vector3(...targetPosition)
-    const endLookAt = new THREE.Vector3(targetPosition[0], targetPosition[1], targetPosition[2] - 5)
+    const defaultLookStart: [number, number, number] = [20, 3, -2]
+    const defaultLookEnd: [number, number, number] = [targetPosition[0], targetPosition[1], targetPosition[2] - 5]
+    const startLookAt = new THREE.Vector3(...(lookAtStart ?? defaultLookStart))
+    const endLookAt = new THREE.Vector3(...(lookAtEnd ?? defaultLookEnd))
     const currentLookAt = new THREE.Vector3().lerpVectors(startLookAt, endLookAt, eased)
     camera.lookAt(currentLookAt)
 

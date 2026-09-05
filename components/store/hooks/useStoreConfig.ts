@@ -44,6 +44,11 @@ export type SunConfig = {
   shadow: SunShadowConfig
 }
 
+/** A manifest's `sun` block: any subset of SunConfig, merged over DEFAULT_SUN.
+ *  Exported because /product's presentation page reads the identical block, so a
+ *  `?sundebug=1` printout pastes into either manifest unchanged. */
+export type PartialSun = DeepPartial<SunConfig>
+
 /** Per-store lamps: meshes named *lamp* become real point lights + emissive glow */
 export type LampConfig = {
   /** Master on/off for the whole lamp feature (per store) */
@@ -65,6 +70,16 @@ export type LampConfig = {
   normalBias: number
 }
 
+/** Camera positioning and transition config */
+export type CameraConfig = {
+  playerStart: [number, number, number]
+  cameraHeight?: number
+  transitionTarget: [number, number, number]
+  transitionStart: [number, number, number]
+  lookAtStart: [number, number, number]
+  lookAtEnd: [number, number, number]
+}
+
 export type StoreConfig = {
   id: string
   files: ModelFile[]
@@ -72,6 +87,8 @@ export type StoreConfig = {
   sun?: DeepPartial<SunConfig>
   /** Optional lamp config; missing → feature off. Merged over DEFAULT_LAMP. */
   lamps?: DeepPartial<LampConfig>
+  /** Optional camera config; missing → defaults. */
+  camera?: CameraConfig
 }
 
 export type StoresData = {

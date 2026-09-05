@@ -1,12 +1,13 @@
 'use client'
 
-import { useRef, useMemo, useEffect, Suspense } from 'react'
+import { useRef, useMemo, useEffect, useState, Suspense } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { useThree, useFrame } from '@react-three/fiber'
-import { useCarConfig, PaintZone } from '@/stores/carConfigStore'
+import { useCarConfig, PaintZone, type MultiZonePaintConfig } from '@/stores/carConfigStore'
 import { DynamicPart } from './DynamicPart'
 import { PartErrorBoundary } from './PartErrorBoundary'
 import { DoorController } from '@/lib/DoorController'
+import { SuspensionController } from '@/lib/SuspensionController'
 import { useQuality } from '@/contexts/QualityContext'
 import { prepareCarObject } from '@/lib/three/prepareCarMaterial'
 import { useCubeReflections } from '@/lib/three/useCubeReflections'
@@ -15,8 +16,23 @@ import * as THREE from 'three'
 // Use the local DRACO decoder instead of drei's default CDN
 useGLTF.setDecoderPath('/draco/')
 
+// Helper: Find node by name (case-insensitive, recursive)
+function findNodeByName(parent: THREE.Object3D, name: string): THREE.Object3D | null {
+  if (parent.name.toLowerCase() === name.toLowerCase()) {
+    return parent
+  }
+  for (const child of parent.children) {
+    const found = findNodeByName(child, name)
+    if (found) return found
+  }
+  return null
+}
+
 interface ConfigurableCarProps {
   modelPath: string
+  overrideSelectedParts?: Record<string, string>
+  overridePaintConfig?: MultiZonePaintConfig
+  overrideSuspensionHeight?: number
 }
 
 interface PaintTarget {
@@ -24,17 +40,30 @@ interface PaintTarget {
   zone: PaintZone
 }
 
-export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
+export default function ConfigurableCar({
+  modelPath,
+  overrideSelectedParts,
+  overridePaintConfig,
+  overrideSuspensionHeight,
+}: ConfigurableCarProps) {
   const groupRef = useRef<THREE.Group>(null!)
   const invalidate = useThree((s) => s.invalidate)
   const doorControllerRef = useRef<DoorController | null>(null)
+  const suspensionControllerRef = useRef<SuspensionController | null>(null)
+  const [wheelRefs, setWheelRefs] = useState<THREE.Object3D[]>([])
 
-  const paintConfig = useCarConfig((s) => s.paintConfig)
+  const storePaintConfig = useCarConfig((s) => s.paintConfig)
   const paintInitialized = useCarConfig((s) => s.paintInitialized)
   const setPartError = useCarConfig((s) => s.setPartError)
   const openParts = useCarConfig((s) => s.openParts)
-  const selectedParts = useCarConfig((s) => s.selectedParts)
+  const storeSelectedParts = useCarConfig((s) => s.selectedParts)
+  const storeSuspensionHeight = useCarConfig((s) => s.suspensionHeight)
   const { settings } = useQuality()
+
+  // Use overrides when provided, otherwise fallback to store values
+  const paintConfig = overridePaintConfig ?? storePaintConfig
+  const selectedParts = overrideSelectedParts ?? storeSelectedParts
+  const suspensionHeight = overrideSuspensionHeight ?? storeSuspensionHeight
 
   const handlePartError = (category: string, error: Error) => {
     setPartError(category, error.message)
@@ -81,6 +110,29 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
 
     return { carModel: clone, paintTargets: targets }
   }, [gltf.scene])
+
+  // Discover base wheels from the car model on initial load
+  useEffect(() => {
+    if (!carModel) return
+
+    const baseWheelNames = ['Wheel_FL', 'Wheel_FR', 'Wheel_RL', 'Wheel_RR']
+    const foundWheels: THREE.Object3D[] = []
+
+    baseWheelNames.forEach((wheelName) => {
+      const wheel = findNodeByName(carModel, wheelName)
+      if (wheel) {
+        console.log('[ConfigurableCar] Found base wheel:', wheelName)
+        foundWheels.push(wheel)
+      } else {
+        console.warn('[ConfigurableCar] Base wheel not found:', wheelName)
+      }
+    })
+
+    if (foundWheels.length > 0) {
+      console.log('[ConfigurableCar] Initializing wheelRefs with', foundWheels.length, 'base wheels')
+      setWheelRefs(foundWheels)
+    }
+  }, [carModel])
 
   // Paint transitions: first application is instant, later changes blend
   // smoothly (~400ms) in useFrame instead of snapping
@@ -218,6 +270,20 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
     // Don't cleanup - keep controller alive for entire component lifecycle
   }, [carModel])
 
+  // Initialize SuspensionController after group ref is ready
+  useEffect(() => {
+    if (!groupRef.current) return
+
+    try {
+      const controller = new SuspensionController(groupRef.current, invalidate, wheelRefs)
+      suspensionControllerRef.current = controller
+    } catch (error) {
+      console.error('[ConfigurableCar] SuspensionController initialization failed:', error)
+    }
+
+    // Don't cleanup - keep controller alive for entire component lifecycle
+  }, [groupRef.current])
+
   // React to openParts state changes
   useEffect(() => {
     if (!doorControllerRef.current) return
@@ -232,6 +298,47 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
     controller.openTrunk(openParts.car_trunk)
   }, [openParts])
 
+  // React to suspension height changes
+  useEffect(() => {
+    if (!suspensionControllerRef.current) return
+    suspensionControllerRef.current.setHeight(suspensionHeight)
+  }, [suspensionHeight])
+
+  // Update excluded nodes when wheel refs change
+  useEffect(() => {
+    if (!suspensionControllerRef.current) return
+    console.log('[ConfigurableCar] Updating suspension excluded nodes with', wheelRefs.length, 'wheels')
+    suspensionControllerRef.current.updateExcludedNodes(wheelRefs)
+  }, [wheelRefs])
+
+  // Reset to base wheels when "none" or hideNodes-only wheel selected
+  useEffect(() => {
+    const wheelPartId = selectedParts.wheels
+    if (!carModel || !wheelPartId) return
+
+    // If wheel part uses hideNodes only (like "wheel-none"), reset to base wheels
+    if (wheelPartId.includes('none') || wheelPartId === '') {
+      const baseWheelNames = ['Wheel_FL', 'Wheel_FR', 'Wheel_RL', 'Wheel_RR']
+      const foundWheels: THREE.Object3D[] = []
+
+      baseWheelNames.forEach((wheelName) => {
+        const wheel = findNodeByName(carModel, wheelName)
+        if (wheel) foundWheels.push(wheel)
+      })
+
+      if (foundWheels.length > 0) {
+        console.log('[ConfigurableCar] Reset to base wheels:', foundWheels.length)
+        setWheelRefs(foundWheels)
+      }
+    }
+  }, [selectedParts.wheels, carModel])
+
+  // Callback for when wheel parts are mounted
+  const handleWheelMounted = (clones: THREE.Object3D[]) => {
+    console.log('[ConfigurableCar] Wheel mounted callback received', clones.length, 'wheel clones')
+    setWheelRefs(clones)
+  }
+
   // Part categories to render
   const partCategories = [
     'wheels',
@@ -241,6 +348,10 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
     'mirrors',
     'exhaust',
     'side-skirts',
+    'seats',
+    'steering-wheels',
+    'brake-calipers',
+    'headlights',
   ]
 
   return (
@@ -254,6 +365,7 @@ export default function ConfigurableCar({ modelPath }: ConfigurableCarProps) {
             <DynamicPart
               category={category}
               baseCarScene={carModel}
+              onMounted={category === 'wheels' ? handleWheelMounted : undefined}
             />
           </PartErrorBoundary>
         </Suspense>

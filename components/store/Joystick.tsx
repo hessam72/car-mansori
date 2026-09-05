@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import nipplejs from 'nipplejs'
@@ -30,10 +30,6 @@ export function useJoystickControls(playerVelocity: React.RefObject<THREE.Vector
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
     }
-  }, [])
-
-  const setJoystickInput = useCallback((x: number, y: number) => {
-    joystickInput.current = { x, y }
   }, [])
 
   /** Applies input to playerVelocity; returns whether any input is active */
@@ -72,19 +68,30 @@ export function useJoystickControls(playerVelocity: React.RefObject<THREE.Vector
     return hasInput
   }
 
-  return { updateMovement, setJoystickInput }
+  return { updateMovement, joystickInput }
 }
 
-// Virtual joystick component for mobile
-export function VirtualJoystick({ onMove }: { onMove: (x: number, y: number) => void }) {
-  const zoneRef = useRef<HTMLDivElement>(null)
-  const onMoveRef = useRef(onMove)
-  const isTouchActiveRef = useRef(false)
+/** Shared by the CSS transition and the reposition timeout that follows it */
+const LIFT_TRANSITION_MS = 320
 
-  // Update ref when callback changes without recreating manager
-  useEffect(() => {
-    onMoveRef.current = onMove
-  }, [onMove])
+// Virtual joystick component for mobile
+export function VirtualJoystick({
+  joystickInput,
+  onActivity,
+  hidden,
+  liftPx = 0
+}: {
+  joystickInput: React.RefObject<{ x: number; y: number }>
+  onActivity?: () => void
+  hidden?: boolean
+  /** Raises the zone so the stick clears the product sheet. Any change here
+   *  must be followed by manager.reposition() — see the effect below. */
+  liftPx?: number
+}) {
+  const zoneRef = useRef<HTMLDivElement>(null)
+  const isTouchActiveRef = useRef(false)
+  const lastActivityRef = useRef(0)
+  const managerRef = useRef<ReturnType<typeof nipplejs.create> | null>(null)
 
   useEffect(() => {
     if (!zoneRef.current) return
@@ -94,11 +101,15 @@ export function VirtualJoystick({ onMove }: { onMove: (x: number, y: number) => 
       mode: 'static',
       position: { left: '80px', bottom: '80px' },
       color: '#2a2a2a',
-      size: 120,
+      size: 100,
     })
+    managerRef.current = manager
 
     manager.on('start', () => {
       isTouchActiveRef.current = true
+      // Trigger activity on touch start
+      onActivity?.()
+      lastActivityRef.current = Date.now()
     })
 
     manager.on('move', (evt) => {
@@ -107,15 +118,32 @@ export function VirtualJoystick({ onMove }: { onMove: (x: number, y: number) => 
       const force = Math.min(evt.data.force, 2) / 2
       const x = Math.cos(angle) * force
       const y = Math.sin(angle) * force
-      onMoveRef.current(x, y)
+
+      // Write directly to ref (same as WASD keyboard input)
+      if (joystickInput.current) {
+        joystickInput.current.x = x
+        joystickInput.current.y = y
+      }
+
+      // Throttle activity marks to ~10Hz instead of 60Hz
+      const now = Date.now()
+      if (now - lastActivityRef.current > 100) {
+        onActivity?.()
+        lastActivityRef.current = now
+      }
     })
 
     manager.on('end', () => {
-      onMoveRef.current(0, 0)
+      // Reset to zero (same as WASD key release)
+      if (joystickInput.current) {
+        joystickInput.current.x = 0
+        joystickInput.current.y = 0
+      }
       isTouchActiveRef.current = false
     })
 
     return () => {
+      managerRef.current = null
       // Wait for touch to end before destroying
       if (isTouchActiveRef.current) {
         manager.on('end', () => manager.destroy())
@@ -123,13 +151,37 @@ export function VirtualJoystick({ onMove }: { onMove: (x: number, y: number) => 
         manager.destroy()
       }
     }
-  }, [])
+  }, [joystickInput, onActivity])
+
+  // nipplejs caches the stick's centre as a *page coordinate* at creation, and
+  // measures every touch against it — a stale centre 168px away reports full
+  // deflection from a finger that never moved. It only refreshes that cache on
+  // its zone ResizeObserver (size changes) or a window resize, so lifting the
+  // zone with `bottom` slips past it entirely. reposition() is nipplejs's own
+  // remedy, and the light one: `dynamicPage: true` fixes it too but re-measures
+  // on every move event, which is a forced layout read per pointermove.
+  //
+  // Twice: once now for changes that don't animate (the `display` toggle), and
+  // once after the slide settles, since an immediate call would measure the
+  // start of the transition rather than its end.
+  useEffect(() => {
+    const manager = managerRef.current
+    if (!manager) return
+    manager.reposition()
+    const id = setTimeout(() => managerRef.current?.reposition(), LIFT_TRANSITION_MS + 60)
+    return () => clearTimeout(id)
+  }, [liftPx, hidden])
 
   return (
     <div
       ref={zoneRef}
-      className="fixed bottom-0 right-0 w-40 h-40 pointer-events-auto z-50"
-      style={{ touchAction: 'none' }}
+      className="fixed right-0 w-40 h-40 pointer-events-auto z-[60]"
+      style={{
+        touchAction: 'none',
+        display: hidden ? 'none' : 'block',
+        bottom: liftPx,
+        transition: `bottom ${LIFT_TRANSITION_MS}ms var(--ease-cinematic)`
+      }}
     >
       <style jsx>{`
         div :global(.back) {

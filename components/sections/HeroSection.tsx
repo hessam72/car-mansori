@@ -38,8 +38,8 @@ function ShahrOmidLogo() {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src="/images/shahr-omid-logo.png"
-        alt="شهر امید"
+        src="/images/Furnitures OC LOGO.png"
+        alt="Lumina Museum"
         style={{
           width: '13rem',
           height: 'auto',
@@ -81,7 +81,7 @@ function ShahrOmidLogo() {
         backgroundClip: "text",
         filter: "drop-shadow(0 0 15px rgba(255, 215, 0, 0.4))",
       }}>
-        شهر امید
+        LUMINA
       </span>
     </div>
   );
@@ -166,8 +166,8 @@ export default function HeroSection() {
       */}
       <div
         ref={stickyFrameRef}
-        dir="rtl"
-        aria-label="صفحه اصلی شهر امید"
+        dir="ltr"
+        aria-label="Lumina Museum Homepage"
         className="sticky top-0 w-full overflow-hidden bg-[#060606]"
         style={{ height: "100svh", minHeight: "100vh" }}
       >
@@ -302,6 +302,7 @@ export default function HeroSection() {
               <HomeReflectiveFloor resolution={512} />
 
               <Suspense fallback={null}>
+              
                 <ConfigurableCar modelPath="/models/car/car.glb" />
                 <ScrollChapters3D scrollProgress={scrollYProgress} />
               </Suspense>
