@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState, useEffect, ReactNode } from 'react';
 import { QualityPreset, QualitySettings, QUALITY_PRESETS, DEFAULT_QUALITY } from '@/lib/config/quality';
 
 interface QualityContextType {
@@ -62,22 +62,33 @@ export function QualityProvider({
     }
   }, [pinned]);
 
-  const setPreset = (newPreset: QualityPreset) => {
+  const setPreset = useCallback((newPreset: QualityPreset) => {
     setPresetState(newPreset);
     setSettings(QUALITY_PRESETS[newPreset]);
     localStorage.setItem(STORAGE_KEY, newPreset);
-  };
+  }, []);
 
-  const setSsgiEnabled = (enabled: boolean) => {
+  const setSsgiEnabled = useCallback((enabled: boolean) => {
     setSsgiEnabledState(enabled);
     localStorage.setItem(SSGI_STORAGE_KEY, enabled ? '1' : '0');
-  };
+  }, []);
 
-  return (
-    <QualityContext.Provider value={{ preset, settings, setPreset, ssgiEnabled, setSsgiEnabled }}>
-      {children}
-    </QualityContext.Provider>
+  /**
+   * Memoised, because a context value is a dependency of every consumer.
+   *
+   * The providers all wrap a page component that holds its own state — /product
+   * keeps AR, splash and error flags right alongside this — so an object
+   * literal here re-rendered every `useQuality()` consumer in the canvas on an
+   * unrelated setState, several of which own GPU allocations that are rebuilt
+   * on a prop-identity change. With this the tier is what re-renders them, and
+   * a tier change is exactly when they should rebuild.
+   */
+  const value = useMemo(
+    () => ({ preset, settings, setPreset, ssgiEnabled, setSsgiEnabled }),
+    [preset, settings, setPreset, ssgiEnabled, setSsgiEnabled]
   );
+
+  return <QualityContext.Provider value={value}>{children}</QualityContext.Provider>;
 }
 
 // Read-only defaults for consumers rendered outside a provider (e.g. the

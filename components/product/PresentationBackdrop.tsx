@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useTexture } from '@react-three/drei'
 import { usePresentation } from '@/stores/presentationStore'
@@ -26,7 +26,7 @@ interface Props {
  * frame is pinned to the screen and looks like a sticker; a fixed one grows and
  * shrinks under the pinch the way a real wall does.
  */
-export default function PresentationBackdrop({ config, framing }: Props) {
+function PresentationBackdrop({ config, framing }: Props) {
   const size = useThree((s) => s.size)
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   // Same input the camera rig frames from, so the two cannot disagree and
@@ -150,3 +150,6 @@ export default function PresentationBackdrop({ config, framing }: Props) {
     </mesh>
   )
 }
+
+/** @see the note on the memo in PresentationScene. */
+export default memo(PresentationBackdrop)

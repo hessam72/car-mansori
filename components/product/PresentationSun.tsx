@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import * as THREE from 'three'
 import { ShadowSystem } from '@/components/store/ShadowSystem'
 import { SunLight, DEFAULT_SUN } from '@/components/store/SunLight'
@@ -78,7 +78,7 @@ function fitToBox(box: THREE.Box3, position: THREE.Vector3, target: THREE.Vector
  * names the four bounds itself still wins, and a product with no modelled room
  * falls back to /store's defaults.
  */
-export default function PresentationSun({
+function PresentationSun({
   sun,
   roomBox,
   device = 'desktop',
@@ -125,3 +125,6 @@ export default function PresentationSun({
     </>
   )
 }
+
+/** @see the note on the memo in PresentationScene. */
+export default memo(PresentationSun)

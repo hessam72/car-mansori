@@ -2,7 +2,7 @@ import presentationConfig from '@/public/config/furniture-presentation.json'
 import productsConfig from '@/public/config/products.json'
 import type { ProductData } from '@/components/store/ProductInteraction'
 import type { PartialSun } from '@/components/store/hooks/useStoreConfig'
-import { DEFAULT_QUALITY, type QualityPreset } from '@/lib/config/quality'
+import { type QualityPreset } from '@/lib/config/quality'
 
 /** The three independently colourable parts of a piece. Unlike the showroom's
  *  keyword matching, the zone is implied by which layer GLB a mesh came from —
@@ -227,6 +227,14 @@ export function floorReflection(config: PresentationConfig): PresentationFloorCo
 }
 
 /**
+ * This page's own fallback, deliberately not `DEFAULT_QUALITY` — that one is
+ * shared with /car and /store, whose costs scale with what the player walks
+ * into. A manifest that names a tier still wins outright, up to the device
+ * ceiling below.
+ */
+export const PRESENTATION_DEFAULT_QUALITY: QualityPreset = 'medium'
+
+/**
  * Media query for "a phone", as opposed to a tablet or a small window.
  *
  * Two conditions, and both are load-bearing. `pointer: coarse` separates touch
@@ -341,7 +349,7 @@ export function lowerTier(tier: QualityPreset, steps: number): QualityPreset {
  */
 export function presentationQuality(config: PresentationConfig, device: DeviceClass): QualityPreset {
   const q = config.quality
-  const base = q?.preset ?? DEFAULT_QUALITY
+  const base = q?.preset ?? PRESENTATION_DEFAULT_QUALITY
   const asked = device === 'phone' ? q?.mobile ?? base : base
   return capTier(asked, DEVICE_TIER_CEILING[device])
 }

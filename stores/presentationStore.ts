@@ -82,15 +82,24 @@ export const usePresentation = create<PresentationState>()(
       // came to see, and the frame is the thing you step *back* to. `wipeIn`
       // rather than `idle` so it reveals on load the same way a swap does,
       // instead of appearing between frames.
+      //
+      // Safe to call again on a live page — /product re-runs it to return from
+      // AR — with one exception carried through by hand. `sheetCoverage`
+      // measures the viewport, not the product: ProductSheet reports it on
+      // mount and then only from a ResizeObserver, and the sheet survives an AR
+      // round trip untouched (its `hidden` state animates a transform, which
+      // changes no box). Zeroing it here would leave nothing to restore it, and
+      // the camera would frame the piece behind the drawer.
       initProduct: (key, paint, coverId, startStep = 1) =>
-        set({
+        set((state) => ({
           ...INITIAL,
+          sheetCoverage: state.sheetCoverage,
           productKey: key,
           paint,
           coverId,
           layerStep: startStep,
           coverPhase: startStep === 1 ? 'wipeIn' : 'hidden',
-        }),
+        })),
 
       setPaint: (partial, zone) => {
         const target = zone ?? get().activeZone

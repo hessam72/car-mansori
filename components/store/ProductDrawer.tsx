@@ -51,6 +51,10 @@ export default function ProductDrawer({
 
   const activeColorName = product.colors?.find((c) => c.hex === currentColor)?.name
 
+  // Pieces without their own manifest fall back to the reference presentation,
+  // so the drawer always offers a way into the dedicated product page.
+  const detailHref = hasPresentation(productKey) ? `/product/${productKey}` : '/product/test'
+
   return (
     <motion.div
       dir="rtl"
@@ -144,6 +148,20 @@ export default function ProductDrawer({
           </div>
         )}
 
+        {/* Into the dedicated product page — visible whether or not the sheet is expanded */}
+        <Link
+          href={detailHref}
+          /* Don't pull the heavy 3D chunk while the user is still browsing */
+          prefetch={false}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border
+                     border-[var(--gold-primary)]/40 py-2.5 text-[13px]
+                     text-[var(--gold-primary)] transition-colors
+                     hover:bg-[var(--gold-primary)]/10"
+        >
+          <Sparkles className="h-4 w-4" />
+          مشاهده با جزییات
+        </Link>
+
         {/* Expanded detail pane */}
         <motion.div
           initial={false}
@@ -181,21 +199,6 @@ export default function ProductDrawer({
               {activeTab === 'fabric' && <SpecFabric product={product} />}
               {activeTab === 'dimensions' && <SpecDimensions product={product} />}
             </div>
-
-            {hasPresentation(productKey) && (
-              <Link
-                href={`/product/${productKey}`}
-                /* Don't pull the heavy 3D chunk while the user is still browsing */
-                prefetch={false}
-                className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border
-                           border-[var(--gold-primary)]/40 py-2.5 text-[13px]
-                           text-[var(--gold-primary)] transition-colors
-                           hover:bg-[var(--gold-primary)]/10"
-              >
-                <Sparkles className="h-4 w-4" />
-                نمای ویژه محصول
-              </Link>
-            )}
 
             {onViewAR && (
               <button

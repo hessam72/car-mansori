@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
@@ -25,7 +25,7 @@ export interface RoomBounds {
 /** Headroom over the room's own reach before the far plane clips it. */
 const FAR_MARGIN = 5
 
-export default function PresentationRoom({
+function PresentationRoom({
   config,
   bounds,
   onBounds,
@@ -186,3 +186,6 @@ export default function PresentationRoom({
 
   return <primitive object={scene} name="presentation-room" />
 }
+
+/** @see the note on the memo in PresentationScene. */
+export default memo(PresentationRoom)
