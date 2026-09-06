@@ -2,7 +2,7 @@ import presentationConfig from '@/public/config/furniture-presentation.json'
 import productsConfig from '@/public/config/products.json'
 import type { ProductData } from '@/components/store/ProductInteraction'
 import type { PartialSun } from '@/components/store/hooks/useStoreConfig'
-import { DEFAULT_QUALITY, type QualityPreset } from '@/lib/config/quality'
+import { type QualityPreset } from '@/lib/config/quality'
 
 /** The three independently colourable parts of a piece. Unlike the showroom's
  *  keyword matching, the zone is implied by which layer GLB a mesh came from —
@@ -240,9 +240,16 @@ export function floorReflection(config: PresentationConfig): PresentationFloorCo
  * browser in a short window is not a phone and must not be served the mobile
  * one. @see isPhoneViewport
  */
+/**
+ * This page's own fallback, deliberately not `DEFAULT_QUALITY` — that one is
+ * shared with /car and /store, whose costs scale with what the player walks
+ * into. A manifest that names a tier still wins outright.
+ */
+export const PRESENTATION_DEFAULT_QUALITY: QualityPreset = 'medium'
+
 export function presentationQuality(config: PresentationConfig, phone: boolean): QualityPreset {
   const q = config.quality
-  const base = q?.preset ?? DEFAULT_QUALITY
+  const base = q?.preset ?? PRESENTATION_DEFAULT_QUALITY
   return phone ? q?.mobile ?? base : base
 }
 
