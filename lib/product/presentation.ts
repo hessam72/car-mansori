@@ -2,6 +2,7 @@ import presentationConfig from '@/public/config/furniture-presentation.json'
 import productsConfig from '@/public/config/products.json'
 import type { ProductData } from '@/components/store/ProductInteraction'
 import type { PartialSun } from '@/components/store/hooks/useStoreConfig'
+import type { ZonePaintConfig } from '@/stores/presentationStore'
 import { type QualityPreset } from '@/lib/config/quality'
 
 /** The three independently colourable parts of a piece. Unlike the showroom's
@@ -266,8 +267,8 @@ const TIER_LADDER: QualityPreset[] = ['low', 'medium', 'high', 'ultra']
  *
  *  - DPR 1.75 instead of 1 — 3x the pixels, and every full-screen pass with them
  *  - a 2048² shadow map instead of 512² — 16x the texels, ~32MB on its own
- *  - the floor's planar reflection, which `low` switches off, re-rendering the
- *    whole room from a mirrored camera on every drawn frame
+ *  - the floor's planar reflection — since dropped from the page outright —
+ *    re-rendering the whole room from a mirrored camera on every drawn frame
  *  - an RGBA16F composer chain sized to those 3x pixels
  *
  * Sum it and the tab is past what iOS Safari will let a WebGL page hold, so the
@@ -328,6 +329,66 @@ export function presentationQuality(config: PresentationConfig, device: DeviceCl
   const base = q?.preset ?? PRESENTATION_DEFAULT_QUALITY
   const asked = device === 'phone' ? q?.mobile ?? base : base
   return capTier(asked, DEVICE_TIER_CEILING[device])
+}
+
+/**
+ * The tier the plain viewer at /product/[id]/simple opens on.
+ *
+ * Deliberately not `presentationQuality`. That one is a memory budget for a
+ * page carrying a room GLB, a 2048² shadow map and an RGBA16F composer chain —
+ * none of which exist here. The tier on the simple viewer
+ * buys DPR and anisotropy and nothing else, so a phone can honestly hold more
+ * than `low`, and a desktop should not inherit a `preset` that was dialled down
+ * to keep phones alive on the heavy page. The picker overrides all of it.
+ */
+export const SIMPLE_VIEWER_QUALITY: Record<DeviceClass, QualityPreset> = {
+  phone: 'medium',
+  tablet: 'high',
+  desktop: 'high',
+}
+
+/**
+ * The one GLB a plain viewer shows.
+ *
+ * The cover variant *is* the finished piece — the layer ladder on the full page
+ * hides the frame at step 1 and shows the cover alone — so a viewer that wants
+ * "the product" wants this file. A product that ships no cover variants falls
+ * back to the frame, which is then all there is of it.
+ */
+export function finishedPiecePath(config: PresentationConfig): string {
+  return findCoverVariant(config, config.layers.cover.default)?.path ?? config.layers.frame.path
+}
+
+/**
+ * Seeds every zone from the first swatch of its palette, so the piece opens in
+ * a real, sellable finish rather than whatever the GLB happened to ship with.
+ *
+ * Shared by the full presentation and the plain viewer: both put the same piece
+ * on screen in the same opening colours, and a swatch picked on one page means
+ * the same thing on the other.
+ */
+export function defaultPaint(config: PresentationConfig): ZonePaintConfig {
+  const cover = findCoverVariant(config, config.layers.cover.default)
+  // Same helper selectCover uses, so the opening finish and every later swap
+  // are described the same way.
+  const surface = coverSurface(config, cover)
+  const first = (zone: PresentationZone) => config.palettes[zone]?.[0]
+
+  return {
+    wood: {
+      color: first('wood')?.hex ?? '#c8a06a',
+      roughness: first('wood')?.roughness ?? 0.55,
+      metalness: 0,
+      clearcoat: 0,
+    },
+    cover: { color: first('cover')?.hex ?? '#36454f', ...surface },
+    cushion: {
+      color: first('cushion')?.hex ?? '#e8e0d2',
+      roughness: 0.8,
+      metalness: 0,
+      clearcoat: 0,
+    },
+  }
 }
 
 export function lightingMode(config: PresentationConfig): RoomLighting {

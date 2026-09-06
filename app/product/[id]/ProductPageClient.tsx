@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { useEnvironment, useGLTF, useTexture } from '@react-three/drei'
 import { QualityProvider } from '@/contexts/QualityContext'
 import { useAssetProbe } from '@/hooks/useAssetProbe'
-import { usePresentation, type ZonePaintConfig } from '@/stores/presentationStore'
+import { usePresentation } from '@/stores/presentationStore'
 import { useShop } from '@/stores/storeShopStore'
 import { findCatalogItemBySceneObject } from '@/lib/store/catalog'
 import catalog from '@/public/config/catalog.json'
@@ -17,7 +17,7 @@ import {
   type ExportSources,
 } from '@/lib/three/exportConfigured'
 import {
-  coverSurface,
+  defaultPaint,
   findCoverVariant,
   isMatte,
   lowerTier,
@@ -48,32 +48,6 @@ const PresentationScene = dynamic(() => import('@/components/product/Presentatio
 })
 
 const ARProductViewer = dynamic(() => import('@/components/store/ARProductViewer'), { ssr: false })
-
-/** Seeds every zone from the first swatch of its palette, so the piece opens in
- *  a real, sellable finish rather than whatever the GLB happened to ship with. */
-function defaultPaint(config: PresentationConfig): ZonePaintConfig {
-  const cover = findCoverVariant(config, config.layers.cover.default)
-  // Same helper selectCover uses, so the opening finish and every later swap
-  // are described the same way.
-  const surface = coverSurface(config, cover)
-  const first = (zone: 'wood' | 'cover' | 'cushion') => config.palettes[zone]?.[0]
-
-  return {
-    wood: {
-      color: first('wood')?.hex ?? '#c8a06a',
-      roughness: first('wood')?.roughness ?? 0.55,
-      metalness: 0,
-      clearcoat: 0,
-    },
-    cover: { color: first('cover')?.hex ?? '#36454f', ...surface },
-    cushion: {
-      color: first('cushion')?.hex ?? '#e8e0d2',
-      roughness: 0.8,
-      metalness: 0,
-      clearcoat: 0,
-    },
-  }
-}
 
 export default function ProductPageClient({ presentation }: { presentation: ResolvedPresentation }) {
   const { key, product, config } = presentation
