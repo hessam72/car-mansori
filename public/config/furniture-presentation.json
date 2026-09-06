@@ -184,6 +184,25 @@
       "preset": "low",
       "mobile": "low"
     },
+    "simple": {
+      "model": "/models/presentation/test/final curve-optimized.glb",
+      "hdr": "/hdr/main_hdr.exr",
+      "envIntensity": 1,
+      "background": "#ffffff",
+      "fov": 35,
+      "padding": 1.1,
+      "minZoom": 0.35,
+      "maxZoom": 2.6,
+      "lighting": {
+        "ambient": 0.35,
+        "key": 1.1,
+        "fill": 0.35
+      },
+      "quality": {
+        "preset": "high",
+        "mobile": "medium"
+      }
+    },
     "explode": {
       "gap": 0.45,
       "durationMs": 700

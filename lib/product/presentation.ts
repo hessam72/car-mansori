@@ -348,7 +348,7 @@ export const SIMPLE_VIEWER_QUALITY: Record<DeviceClass, QualityPreset> = {
 }
 
 /**
- * The one GLB a plain viewer shows.
+ * The one GLB a plain viewer shows, when the manifest does not name one.
  *
  * The cover variant *is* the finished piece — the layer ladder on the full page
  * hides the frame at step 1 and shows the cover alone — so a viewer that wants
@@ -357,6 +357,115 @@ export const SIMPLE_VIEWER_QUALITY: Record<DeviceClass, QualityPreset> = {
  */
 export function finishedPiecePath(config: PresentationConfig): string {
   return findCoverVariant(config, config.layers.cover.default)?.path ?? config.layers.frame.path
+}
+
+/**
+ * The `simple` block: everything /product/[id]/simple draws, as a manifest.
+ *
+ * Every field is optional and every default is the value the page shipped with,
+ * so a product with no `simple` block renders exactly as before. What the block
+ * buys is a product presented on its own terms — a piece photographed against
+ * warm grey rather than white, a longer lens for a wardrobe, its own HDR — with
+ * none of it touching the full presentation page, which reads a different part
+ * of the same manifest.
+ */
+export interface SimpleViewerMeta {
+  /** The GLB to show. Omitted → the finished piece. @see finishedPiecePath */
+  model?: string
+  /** Image-based light. Omitted → `room.hdr`; `null` to render with the studio
+   *  fill alone, for a product whose materials are meant to be read flat. */
+  hdr?: string | null
+  /** Strength of the environment. Omitted → `room.envIntensity`, then the tier's. */
+  envIntensity?: number
+  /** Backdrop, and the canvas clear colour with it. Meant for a studio ground —
+   *  white, off-white, a warm grey; the page's own chrome is light-themed and
+   *  would not read over a dark one. */
+  background?: string
+  /**
+   * Vertical field of view.
+   *
+   * Long by default. A wide lens bows straight edges, which is the first thing
+   * a buyer notices on a piece of furniture and the last thing you want on a
+   * product shot — so this goes *up* only for a piece that has to be shot from
+   * close in.
+   */
+  fov?: number
+  /**
+   * Breathing room around the fitted piece, as a multiple of the just-fits
+   * distance.
+   *
+   * Small by default, because the fit is solved against the piece's bounding
+   * *sphere* — the only measure that cannot clip at some angle of a free orbit —
+   * and a sphere is a generous bound for anything that is not round, so most
+   * pieces already carry margin this number never sees. Raise it for a piece
+   * that reads cramped, which usually means a genuinely round one.
+   */
+  padding?: number
+  /** Dolly clamps, as multiples of the framed distance. */
+  minZoom?: number
+  maxZoom?: number
+  /**
+   * The studio fill over the top of the HDR. Not a sun: nothing here casts, so
+   * there is still no shadow pass and no shadow map.
+   *
+   * `key` gives the piece its form where an interior HDR alone would leave it
+   * flat, `fill` opens the shaded side, and `ambient` keeps that side off pure
+   * black against a white ground. Zero any of them for a piece that should be
+   * read by the environment alone.
+   */
+  lighting?: { ambient?: number; key?: number; fill?: number }
+  /** Opening tier, per device. The on-screen picker overrides it either way.
+   *  @see SIMPLE_VIEWER_QUALITY */
+  quality?: { preset?: QualityPreset; mobile?: QualityPreset }
+}
+
+export interface ResolvedSimpleViewer {
+  model: string
+  hdr: string | null
+  envIntensity?: number
+  background: string
+  fov: number
+  padding: number
+  minZoom: number
+  maxZoom: number
+  lighting: { ambient: number; key: number; fill: number }
+}
+
+/** The `simple` block with every default filled in, in the shape of
+ *  `floorReflection` and `galleryLighting`. */
+export function simpleViewer(config: PresentationConfig): ResolvedSimpleViewer {
+  const s = config.simple ?? {}
+  return {
+    model: s.model ?? finishedPiecePath(config),
+    // `null` is a deliberate "no environment", so only `undefined` falls through.
+    hdr: s.hdr === null ? null : s.hdr ?? config.room.hdr ?? null,
+    // Left undefined so the viewer can fall back to the quality tier's value,
+    // which the manifest has no business knowing.
+    envIntensity: s.envIntensity ?? config.room.envIntensity,
+    background: s.background ?? '#ffffff',
+    fov: s.fov ?? 35,
+    padding: s.padding ?? 1.1,
+    minZoom: s.minZoom ?? 0.35,
+    maxZoom: s.maxZoom ?? 2.6,
+    lighting: {
+      ambient: s.lighting?.ambient ?? 0.35,
+      key: s.lighting?.key ?? 1.1,
+      fill: s.lighting?.fill ?? 0.35,
+    },
+  }
+}
+
+/**
+ * The tier the plain viewer opens on: the manifest's, else the device default.
+ *
+ * Uncapped, unlike `presentationQuality`. There is no ceiling to enforce
+ * because there is nothing here to overrun one — no shadow map, no composer,
+ * no second scene render — so the tier moves DPR and anisotropy and stops.
+ */
+export function simpleViewerQuality(config: PresentationConfig, device: DeviceClass): QualityPreset {
+  const q = config.simple?.quality
+  const base = q?.preset ?? SIMPLE_VIEWER_QUALITY[device]
+  return device === 'phone' ? q?.mobile ?? base : base
 }
 
 /**
@@ -577,6 +686,9 @@ export interface PresentationConfig {
      */
     ao?: boolean
   }
+  /** Everything /product/[id]/simple draws. Read by that page alone — the full
+   *  presentation ignores it entirely. @see SimpleViewerMeta */
+  simple?: SimpleViewerMeta
   explode?: { gap: number; durationMs: number }
   wipe?: { durationMs: number }
 }

@@ -723,3 +723,23 @@ html.viewport-locked body {
   overflow: hidden;
   overscroll-behavior: none;
 }
+
+/*
+ * Full height, measured the way iOS actually means it.
+ *
+ * `100vh` on iOS Safari is the *large* viewport — the height the page would
+ * have if the address bar were retracted — so a full-screen container is taller
+ * than the screen and anything anchored to its bottom sits behind the bar. That
+ * is what was cropping the quality picker.
+ *
+ * `100svh` is the small viewport: the height with the bar showing, which is the
+ * only height that is always visible. It is normally the wrong choice for a
+ * scrolling page, because the bar retracts as you scroll and leaves a band of
+ * dead space — but these pages set `.viewport-locked` above, so there is no
+ * scrolling, the bar never retracts, and the small viewport *is* the viewport.
+ * The `100vh` line stays as the fallback for browsers that do not know `svh`.
+ */
+.viewport-fill {
+  height: 100vh;
+  height: 100svh;
+}

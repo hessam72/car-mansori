@@ -319,7 +319,12 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
 
   return (
     <QualityProvider preset={qualityPreset}>
-      <div className="relative h-screen w-screen overflow-hidden bg-[var(--surface-0)]">
+      {/* `viewport-fill`, not `h-screen`: iOS reads `100vh` as the height with
+          the address bar retracted, so a full-screen container is taller than
+          the screen. Here that only cost the canvas ~13% of its pixels to draw
+          behind the bar, but it is the same bug that cropped the simple
+          viewer's controls. */}
+      <div className="viewport-fill relative w-screen overflow-hidden bg-[var(--surface-0)]">
         {/* Unmounted while AR is open: model-viewer takes a WebGL context of
             its own, and two live contexts plus the exported GLB is what tips a
             phone over. Remounting is cheap — the GLBs stay in drei's cache. */}

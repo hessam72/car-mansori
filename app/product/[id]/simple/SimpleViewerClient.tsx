@@ -10,10 +10,10 @@ import { usePresentation } from '@/stores/presentationStore'
 import { QUALITY_PRESETS, type QualityPreset } from '@/lib/config/quality'
 import {
   defaultPaint,
-  finishedPiecePath,
   PHONE_QUERY,
   readDeviceClass,
-  SIMPLE_VIEWER_QUALITY,
+  simpleViewer,
+  simpleViewerQuality,
   TOUCH_QUERY,
   type DeviceClass,
   type ResolvedPresentation,
@@ -60,7 +60,7 @@ export default function SimpleViewerClient({ presentation }: { presentation: Res
   }, [])
 
   return (
-    <QualityProvider preset={SIMPLE_VIEWER_QUALITY[device]}>
+    <QualityProvider preset={simpleViewerQuality(config, device)}>
       <Viewer presentation={presentation} productKey={key} productName={product.name} config={config} />
     </QualityProvider>
   )
@@ -86,20 +86,31 @@ function Viewer({
    * Measured rather than assumed: the panel's height moves with the number of
    * swatches, the font the browser actually loaded, and the safe-area inset on
    * a notched phone. Quantised, because this drives a re-frame.
+   *
+   * Taken against the page's own root rather than `window.innerHeight` — the
+   * root is what the canvas fills, and on iOS those two are different numbers.
+   * @see .viewport-fill
    */
+  const rootRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const [coverage, setCoverage] = useState(0)
   useEffect(() => {
-    const el = panelRef.current
-    if (!el) return
-    const observer = new ResizeObserver(([entry]) => {
-      const fraction = (entry.contentRect.height + 32) / window.innerHeight
+    const panel = panelRef.current
+    const root = rootRef.current
+    if (!panel || !root) return
+    const measure = () => {
+      const height = root.clientHeight
+      if (!height) return
+      // Plus the wrapper's padding, which the panel's own box does not carry.
+      const fraction = (panel.getBoundingClientRect().height + 32) / height
       setCoverage((previous) => {
         const next = Math.round(Math.min(fraction, 0.6) * 40) / 40
         return next === previous ? previous : next
       })
-    })
-    observer.observe(el)
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(panel)
+    observer.observe(root)
     return () => observer.disconnect()
   }, [ready])
 
@@ -111,9 +122,10 @@ function Viewer({
   // The two files this page needs. `public/models` is gitignored, so without
   // the probe a mis-typed manifest path white-screens behind a Suspense
   // fallback that never resolves.
+  const view = useMemo(() => simpleViewer(config), [config])
   const assets = useMemo(
-    () => [finishedPiecePath(config), config.room.hdr].filter((p): p is string => !!p),
-    [config]
+    () => [view.model, view.hdr].filter((p): p is string => !!p),
+    [view]
   )
   const { state, missing } = useAssetProbe(assets)
 
@@ -144,7 +156,15 @@ function Viewer({
   const swatches = config.palettes.cover ?? []
 
   return (
-    <div dir="rtl" className="font-persian relative h-screen w-screen overflow-hidden bg-white">
+    // `viewport-fill`, not `h-screen`: on iOS `100vh` is the height with the
+    // address bar retracted, so a container that tall puts everything anchored
+    // to its bottom — the whole control panel — behind the bar.
+    <div
+      ref={rootRef}
+      dir="rtl"
+      className="font-persian viewport-fill relative w-screen overflow-hidden"
+      style={{ background: view.background }}
+    >
       {state === 'ready' && !error && (
         <SimpleViewer
           config={config}
@@ -197,8 +217,12 @@ function Viewer({
       {!error && state !== 'missing' && (
         <div
           aria-hidden={ready}
-          className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-white transition-opacity duration-500"
-          style={{ opacity: ready ? 0 : 1, visibility: ready ? 'hidden' : 'visible' }}
+          className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center transition-opacity duration-500"
+          style={{
+            background: view.background,
+            opacity: ready ? 0 : 1,
+            visibility: ready ? 'hidden' : 'visible',
+          }}
         >
           <span className="text-[11px] tracking-[0.4em] text-neutral-400">در حال بارگذاری</span>
         </div>
@@ -288,8 +312,9 @@ function Notice({
   detail: string
   productKey: string
 }) {
+  // Transparent: the page root behind it already carries the ground colour.
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-white p-6">
+    <div className="absolute inset-0 z-40 flex items-center justify-center p-6">
       <div className="max-w-sm space-y-3 text-center">
         <h2 className="text-[15px] font-semibold text-neutral-900">{productName}</h2>
         <p className="text-[13px] leading-7 text-neutral-500">نمایش سه‌بعدی این محصول در دسترس نیست.</p>

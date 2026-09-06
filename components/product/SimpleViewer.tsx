@@ -13,30 +13,15 @@ import { useQuality } from '@/contexts/QualityContext'
 import { collectZoneTargets, disposeTargets, preparePresentationObject } from '@/lib/three/layerMaterials'
 import { applyFirstCoat, useZonePaint } from '@/hooks/useZonePaint'
 import { usePresentation } from '@/stores/presentationStore'
-import { finishedPiecePath, type PresentationConfig } from '@/lib/product/presentation'
+import {
+  simpleViewer,
+  type PresentationConfig,
+  type ResolvedSimpleViewer,
+} from '@/lib/product/presentation'
 
 // Must run before any preload in this chunk — drei otherwise reaches for its
 // CDN decoder. Same reason CarPageClient and ProductPageClient set it.
 useGLTF.setDecoderPath('/draco/')
-
-/** The studio's ground colour, and the canvas clear colour with it. */
-const BACKDROP = '#ffffff'
-
-/** Vertical field of view. Long enough to keep perspective distortion off a
- *  piece of furniture — a wide lens bows straight edges, which is the first
- *  thing a buyer notices and the last thing you want on a product shot. */
-const FOV = 35
-
-/**
- * Breathing room around the fitted piece, as a multiple of the just-fits
- * distance.
- *
- * Small on purpose. The fit is solved against the piece's bounding *sphere* —
- * the only measure that cannot clip at some angle of a free orbit — and a
- * sphere is a generous bound for anything that is not round, so most pieces
- * already carry margin the number never sees.
- */
-const PADDING = 1.1
 
 /** Never let the control panel claim more than this much of the height, however
  *  tall it measures — past it the piece has no frame left to be judged in. */
@@ -129,11 +114,13 @@ function Piece({
 function Frame({
   radius,
   coverage,
+  view,
   controls,
 }: {
   radius: number
   /** Fraction of the viewport height the control panel covers. */
   coverage: number
+  view: ResolvedSimpleViewer
   controls: React.MutableRefObject<OrbitControlsImpl | null>
 }) {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
@@ -150,7 +137,7 @@ function Frame({
     // horizontal opened by the aspect.
     const vHalf = Math.atan(halfFov * (1 - hidden))
     const hHalf = Math.atan(halfFov * (size.width / size.height))
-    const distance = (radius / Math.sin(Math.min(vHalf, hHalf))) * PADDING
+    const distance = (radius / Math.sin(Math.min(vHalf, hHalf))) * view.padding
 
     const previous = fitted.current
     fitted.current = distance
@@ -175,12 +162,12 @@ function Frame({
     const orbit = controls.current
     if (orbit) {
       orbit.target.set(0, 0, 0)
-      orbit.minDistance = distance * 0.35
-      orbit.maxDistance = distance * 2.6
+      orbit.minDistance = distance * view.minZoom
+      orbit.maxDistance = distance * view.maxZoom
       orbit.update()
     }
     invalidate()
-  }, [radius, coverage, size.width, size.height, camera, controls, invalidate])
+  }, [radius, coverage, view, size.width, size.height, camera, controls, invalidate])
 
   return null
 }
@@ -196,7 +183,7 @@ interface Props {
 }
 
 /**
- * A plain product viewer: one GLB, one HDR, on white.
+ * A plain product viewer: one GLB, one HDR, on a flat ground.
  *
  * The full presentation page is a room — a modelled booth, a window sun with a
  * PCSS shadow map, a post chain and a layer ladder. None of that is here, and
@@ -212,6 +199,9 @@ interface Props {
  *  - **A demand loop that genuinely parks.** Nothing here animates on its own.
  *    OrbitControls invalidates while it is damping and stops when it settles,
  *    so a viewer who is not touching the screen costs zero frames.
+ *
+ * Everything it draws comes from the manifest's `simple` block, defaults filled
+ * in. @see SimpleViewerMeta
  */
 export default function SimpleViewer({ config, coverage, onReady, onError }: Props) {
   const { settings } = useQuality()
@@ -219,8 +209,8 @@ export default function SimpleViewer({ config, coverage, onReady, onError }: Pro
   const [radius, setRadius] = useState(0)
   const controls = useRef<OrbitControlsImpl | null>(null)
 
-  const path = useMemo(() => finishedPiecePath(config), [config])
-  const envIntensity = config.room.envIntensity ?? settings.envIntensity
+  const view = useMemo(() => simpleViewer(config), [config])
+  const envIntensity = view.envIntensity ?? settings.envIntensity
 
   const dpr = useMemo<[number, number]>(() => {
     const [min, max] = clampDprToBudget(settings.dpr)
@@ -250,7 +240,7 @@ export default function SimpleViewer({ config, coverage, onReady, onError }: Pro
       shadows={false}
       frameloop="demand"
       dpr={dpr}
-      style={{ touchAction: 'none', background: BACKDROP }}
+      style={{ touchAction: 'none', background: view.background }}
       gl={{
         // Live, unlike every other scene in the app: those route their output
         // through an EffectComposer, which renders past the canvas's own
@@ -261,10 +251,10 @@ export default function SimpleViewer({ config, coverage, onReady, onError }: Pro
         toneMapping: NeutralToneMapping,
         toneMappingExposure: 1,
       }}
-      camera={{ position: [0, 0, 4], fov: FOV, near: 0.1, far: 100 }}
+      camera={{ position: [0, 0, 4], fov: view.fov, near: 0.1, far: 100 }}
       onCreated={handleCreated}
     >
-      <color attach="background" args={[BACKDROP]} />
+      <color attach="background" args={[view.background]} />
 
       {/* Sustained-FPS ladder only. AdaptiveDpr is deliberately left off: it
           drops resolution while the camera moves, and on a page whose whole
@@ -277,26 +267,26 @@ export default function SimpleViewer({ config, coverage, onReady, onError }: Pro
           suspends while the HDR downloads, and without one that would unmount
           the piece until it lands. */}
       <Suspense fallback={null}>
-        {config.room.hdr && (
-          <Environment files={config.room.hdr} background={false} environmentIntensity={envIntensity} />
+        {view.hdr && (
+          <Environment files={view.hdr} background={false} environmentIntensity={envIntensity} />
         )}
       </Suspense>
 
       {/* A studio fill over the top of the HDR, not a sun — no `castShadow`
           anywhere, so there is still no shadow pass. The key gives the piece
           its form where an interior HDR alone would leave it flat; the low
-          ambient keeps the shaded side off pure black against white. */}
-      <ambientLight intensity={0.35} />
-      <directionalLight position={[4, 6, 5]} intensity={1.1} />
-      <directionalLight position={[-5, 2, -3]} intensity={0.35} />
+          ambient keeps the shaded side off pure black against the ground. */}
+      <ambientLight intensity={view.lighting.ambient} />
+      <directionalLight position={[4, 6, 5]} intensity={view.lighting.key} />
+      <directionalLight position={[-5, 2, -3]} intensity={view.lighting.fill} />
 
       <Suspense fallback={null}>
         <PartErrorBoundary category="piece" onError={onError}>
-          <Piece path={path} envIntensity={envIntensity} onRadius={handleRadius} />
+          <Piece path={view.model} envIntensity={envIntensity} onRadius={handleRadius} />
         </PartErrorBoundary>
       </Suspense>
 
-      <Frame radius={radius} coverage={coverage} controls={controls} />
+      <Frame radius={radius} coverage={coverage} view={view} controls={controls} />
 
       {/* Rotate and dolly, nothing else. Panning would slide the piece off the
           pivot the orbit turns about, which is the one thing this camera must
