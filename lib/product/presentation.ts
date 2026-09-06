@@ -227,26 +227,6 @@ export function floorReflection(config: PresentationConfig): PresentationFloorCo
 }
 
 /**
- * The tier this product renders at.
- *
- * The app-wide provider drops to `low` under 768px and otherwise restores
- * whatever /car's quality selector last stored — right for a scene you walk
- * around, wrong here. A presentation is one piece in a booth under a camera
- * that only dollies: the frame cost is known up front, so the manifest names
- * the tier and the device only decides which of the two it gets.
- *
- * `phone` is deliberately not "narrow". A phone held sideways is wider than a
- * 768px breakpoint and would have been served the desktop tier; a desktop
- * browser in a short window is not a phone and must not be served the mobile
- * one. @see isPhoneViewport
- */
-export function presentationQuality(config: PresentationConfig, phone: boolean): QualityPreset {
-  const q = config.quality
-  const base = q?.preset ?? DEFAULT_QUALITY
-  return phone ? q?.mobile ?? base : base
-}
-
-/**
  * Media query for "a phone", as opposed to a tablet or a small window.
  *
  * Two conditions, and both are load-bearing. `pointer: coarse` separates touch
@@ -268,6 +248,117 @@ export const PHONE_QUERY = '(pointer: coarse) and ((max-width: 767px) or (max-he
  * that one target. @see PresentationPostProcessing
  */
 export const TOUCH_QUERY = '(pointer: coarse)'
+
+/** What class of hardware is drawing this page. @see readDeviceClass */
+export type DeviceClass = 'desktop' | 'tablet' | 'phone'
+
+/**
+ * Resolve the device class from the two queries above.
+ *
+ * Safe to call during a server render — it answers `desktop`, which is what the
+ * page's first (server) paint is anyway, and the client settles it before the
+ * canvas mounts. Inside the Canvas, which is `dynamic(..., { ssr: false })`, it
+ * can be read synchronously in a `useState` initialiser.
+ */
+export function readDeviceClass(): DeviceClass {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'desktop'
+  if (window.matchMedia(PHONE_QUERY).matches) return 'phone'
+  if (window.matchMedia(TOUCH_QUERY).matches) return 'tablet'
+  return 'desktop'
+}
+
+/** Cheapest first — the ladder the ceilings and the downgrade below walk. */
+const TIER_LADDER: QualityPreset[] = ['low', 'medium', 'high', 'ultra']
+
+/**
+ * The highest tier each class of hardware may be handed, whatever the manifest
+ * asks for.
+ *
+ * This is not a taste setting, it is the page's memory budget, and it is the
+ * fix for /product killing iPhones while /store — a far bigger scene — did not.
+ * /store runs under the app-wide provider, which drops a phone to `low`; this
+ * page pins its tier from the manifest and so *bypassed* that downgrade, and the
+ * manifest asked for `high` on mobile. On an iPhone that meant, all at once:
+ *
+ *  - DPR 1.75 instead of 1 — 3x the pixels, and every full-screen pass with them
+ *  - a 2048² shadow map instead of 512² — 16x the texels, ~32MB on its own
+ *  - the floor's planar reflection, which `low` switches off, re-rendering the
+ *    whole room from a mirrored camera on every drawn frame
+ *  - an RGBA16F composer chain sized to those 3x pixels
+ *
+ * Sum it and the tab is past what iOS Safari will let a WebGL page hold, so the
+ * context is dropped and the tab reloaded — repeatedly, since the retry came
+ * back at the same tier. A phone therefore gets what /store proves a phone can
+ * hold, a tablet stops one rung short of the desktop render, and the manifest
+ * keeps its say anywhere below the ceiling.
+ */
+export const DEVICE_TIER_CEILING: Record<DeviceClass, QualityPreset> = {
+  phone: 'low',
+  tablet: 'medium',
+  desktop: 'ultra',
+}
+
+/**
+ * Shadow work a device may be asked for, independent of the tier.
+ *
+ * Separate from the ceiling above because it is the one cost the tier does not
+ * describe honestly: drei's PCSS patch bakes `samples` into the global shadow
+ * chunk, so every shadow-receiving fragment in the room pays a blocker search
+ * *plus* a PCF loop of that many taps. The manifest asks for 16, which is a
+ * desktop number — on a phone it is the single most expensive thing on screen.
+ */
+export const SHADOW_BUDGET: Record<DeviceClass, { resolution: number; samples: number }> = {
+  phone: { resolution: 512, samples: 8 },
+  tablet: { resolution: 1024, samples: 12 },
+  desktop: { resolution: Infinity, samples: Infinity },
+}
+
+/** Clamp a tier to a ceiling, on the ladder above. */
+function capTier(tier: QualityPreset, ceiling: QualityPreset): QualityPreset {
+  const at = TIER_LADDER.indexOf(tier)
+  const max = TIER_LADDER.indexOf(ceiling)
+  return at > max ? ceiling : tier
+}
+
+/** Step a tier down the ladder, never below `low`. @see the context-loss
+ *  downgrade in ProductPageClient. */
+export function lowerTier(tier: QualityPreset, steps: number): QualityPreset {
+  if (steps <= 0) return tier
+  return TIER_LADDER[Math.max(0, TIER_LADDER.indexOf(tier) - steps)]
+}
+
+/**
+ * The tier this product renders at.
+ *
+ * The app-wide provider drops to `low` under 768px and otherwise restores
+ * whatever /car's quality selector last stored — right for a scene you walk
+ * around, wrong here. A presentation is one piece in a booth under a camera
+ * that only dollies: the frame cost is known up front, so the manifest names
+ * the tier and the device only decides which of the two it gets.
+ *
+ * What it does *not* get to do is name a tier the device cannot hold — the
+ * manifest is authored on a desktop and cannot know. @see DEVICE_TIER_CEILING
+ */
+export function presentationQuality(config: PresentationConfig, device: DeviceClass): QualityPreset {
+  const q = config.quality
+  const base = q?.preset ?? DEFAULT_QUALITY
+  const asked = device === 'phone' ? q?.mobile ?? base : base
+  return capTier(asked, DEVICE_TIER_CEILING[device])
+}
+
+/**
+ * Whether the floor's planar reflection may be drawn on this device.
+ *
+ * Off on phones, and this is the one place the tier flag is not enough:
+ * PresentationFloor deliberately ignores `floorReflectionsEnabled` so the
+ * reflection survives a low tier on desktop. The reason /store's low tier turns
+ * it off still stands on a phone — the reflector re-renders the entire room
+ * from a mirrored camera into its own FBO on every drawn frame, which doubles
+ * the scene cost of a spin — so the device gets the final say.
+ */
+export function floorReflectionAllowed(device: DeviceClass): boolean {
+  return device !== 'phone'
+}
 
 export function lightingMode(config: PresentationConfig): RoomLighting {
   return config.room.lightingMode ?? 'studio'

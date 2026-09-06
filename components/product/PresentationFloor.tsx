@@ -5,7 +5,13 @@ import { useThree } from '@react-three/fiber'
 import { MeshReflectorMaterial } from '@react-three/drei'
 import * as THREE from 'three'
 import { useQuality } from '@/contexts/QualityContext'
-import { floorReflection, type PresentationConfig, type PresentationFloorConfig } from '@/lib/product/presentation'
+import {
+  floorReflection,
+  floorReflectionAllowed,
+  type DeviceClass,
+  type PresentationConfig,
+  type PresentationFloorConfig,
+} from '@/lib/product/presentation'
 
 /** Fallback footprint when there is no modelled room to measure — a photographed
  *  backdrop has no floor to fit to, so the manifest has to say. */
@@ -55,10 +61,14 @@ const floorDebugRequested = () =>
 export default function PresentationFloor({
   config,
   roomBox,
+  device = 'desktop',
 }: {
   config: PresentationConfig
   /** The measured room, once PresentationRoom has loaded it. */
   roomBox?: THREE.Box3 | null
+  /** Phones do not draw the reflection at all, and touch hardware does not get
+   *  to spend the manifest's resolution override. @see floorReflectionAllowed */
+  device?: DeviceClass
 }) {
   const { settings } = useQuality()
   const invalidate = useThree((s) => s.invalidate)
@@ -86,11 +96,22 @@ export default function PresentationFloor({
 
   const y = (config.room.floorY ?? 0) + cfg.offsetY
 
+  /**
+   * The manifest may name a resolution — but only a desktop gets to spend it.
+   * On touch hardware the tier's value wins, because the tier is what the
+   * device budget was set from and this FBO is re-filled from a full scene
+   * re-render on every drawn frame.
+   */
+  const resolution =
+    device === 'desktop'
+      ? cfg.resolution ?? settings.floorReflectionResolution
+      : settings.floorReflectionResolution
+
   // Demand loop: the reflector fills its FBO from useFrame, so without a frame
   // it mounts and never draws.
   useEffect(() => invalidate(), [invalidate, cfg, size, centre, y])
 
-  if (!cfg.enabled) return null
+  if (!cfg.enabled || !floorReflectionAllowed(device)) return null
 
   return (
     <>
@@ -104,7 +125,7 @@ export default function PresentationFloor({
       >
         <planeGeometry args={[size, size]} />
         <MeshReflectorMaterial
-          resolution={cfg.resolution ?? settings.floorReflectionResolution}
+          resolution={resolution}
           // `mirror` 1 makes the layer the reflection itself rather than a
           // surface tinted by it; the blend below is what holds it back, so
           // opacity stays the single dial for "how much floor is left".

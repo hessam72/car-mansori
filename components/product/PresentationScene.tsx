@@ -10,6 +10,7 @@ import { useQuality } from '@/contexts/QualityContext'
 import {
   lightingMode,
   needsEnvironment,
+  readDeviceClass,
   roomMode,
   STORE_RENDER,
   sunEnabled,
@@ -55,6 +56,15 @@ export default function PresentationScene({ config, onLayerError, onReady, onCon
   const sun = sunEnabled(config)
   const debug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug')
   const [perfScale, setPerfScale] = useState(1)
+  /**
+   * Read once, synchronously, and handed down rather than re-queried per
+   * component: the passes below have to agree about what they are drawing on,
+   * and a composer or a shadow map that starts at the wrong size has already
+   * made the allocation by the time an effect could correct it. This component
+   * only ever mounts inside `dynamic(..., { ssr: false })`, so there is no
+   * server HTML for the synchronous read to disagree with.
+   */
+  const [device] = useState(readDeviceClass)
 
   // Spin/tilt targets live in a ref shared with the gesture layer — writing
   // them to zustand at 60Hz would re-render the bottom sheet every frame.
@@ -159,12 +169,12 @@ export default function PresentationScene({ config, onLayerError, onReady, onCon
         {/* Sun through the room's window + PCSS soft shadows. Its frustum is
             fitted to `roomBox`, so it mounts before the room and re-solves once
             the bounds arrive. */}
-        {sun && <PresentationSun sun={config.sun!} roomBox={roomBox} />}
+        {sun && <PresentationSun sun={config.sun!} roomBox={roomBox} device={device} />}
 
         {/* Reflection laid over the room's own floor, sized from the same
             bounds. After the room in the tree only for readability — it draws
             in the transparent pass regardless. */}
-        <PresentationFloor config={config} roomBox={roomBox} />
+        <PresentationFloor config={config} roomBox={roomBox} device={device} />
 
         <Suspense fallback={null}>
           <PartErrorBoundary category="room" onError={onLayerError}>
@@ -207,7 +217,7 @@ export default function PresentationScene({ config, onLayerError, onReady, onCon
           />
         )}
 
-        <PresentationPostProcessing config={config} />
+        <PresentationPostProcessing config={config} device={device} />
 
         {debug && <PresentationDiagnostics />}
       </Canvas>

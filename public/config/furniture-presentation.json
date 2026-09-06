@@ -182,7 +182,7 @@
     },
     "quality": {
       "preset": "high",
-      "mobile": "high"
+      "mobile": "low"
     },
     "floor": {
       "enabled": true,
