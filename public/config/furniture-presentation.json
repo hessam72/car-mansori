@@ -1,22 +1,27 @@
 {
   "test": {
     "room": {
-      "path": "/models/presentation/test/room.glb",
-      "hdr": "/hdr/main_hdr.exr",
-      "envIntensity": 1.0,
-      "floorY": 0
+      "mode": "model",
+      "image": "/models/presentation/test/backdrop.jpeg",
+      "path": "/models/presentation/test/final-scene.glb",
+      "imageDistance": 2,
+      "imageOffsetY": 0,
+      "pieceOffsetY": 0 ,
+      "pieceLift": 0.08,
+      "offset": [
+        -0.12,
+        -1.4,
+        3.3
+      ],
+      "floorY": 0,
+      "lightingMode": "store",
+      "hdr": "/hdr/main_hdr.exr"
     },
     "layers": {
       "frame": {
         "path": "/models/presentation/test/frame.glb",
         "label": "اسکلت چوبی",
         "desc": "چوب راش خشک‌شده با اتصالات فاق و زبانه"
-      },
-      "soft": {
-        "path": "/models/presentation/test/soft.glb",
-        "label": "الیاف و نشیمن",
-        "desc": "فوم سرد با تراکم ۳۵ و الیاف سیلیکونی",
-        "zoneMatch": "cushion"
       },
       "cover": {
         "label": "رویه",
@@ -26,13 +31,13 @@
           {
             "id": "leather",
             "name": "چرم طبیعی",
-            "path": "/models/presentation/test/cover-leather.glb",
+            "path": "/models/presentation/test/final curve-optimized.glb",
             "thumbnail": "/images/covers/leather.png",
             "priceDelta": 4500000,
             "material": {
-              "roughness": 0.45,
+              "roughness": 0.8,
               "metalness": 0,
-              "clearcoat": 0.15
+              "clearcoat": 0
             }
           },
           {
@@ -42,24 +47,16 @@
             "thumbnail": "/images/covers/velvet.jpeg",
             "priceDelta": 0,
             "material": {
-              "roughness": 0.88,
+              "roughness": 0.95,
               "metalness": 0,
               "clearcoat": 0
             }
-          },
-          {
-            "id": "plastic",
-            "name": "پلی‌اورتان",
-            "path": "/models/presentation/test/cover-plastic.glb",
-            "thumbnail": "/images/covers/plastic.jpg",
-            "priceDelta": -1200000,
-            "material": {
-              "roughness": 0.25,
-              "metalness": 0,
-              "clearcoat": 0.6
-            }
           }
         ]
+      },
+      "stage": {
+        "path": "/models/presentation/test/stage.glb",
+        "liftPiece": true
       }
     },
     "palettes": {
@@ -135,22 +132,73 @@
       ]
     },
     "camera": {
-      "azimuthDeg": 18,
-      "elevationDeg": 10,
-      "fov": 35,
+      "azimuthDeg": 0,
+      "elevationDeg": 8,
+      "fov": 50,
       "near": 0.1,
-      "far": 40,
+      "far": 150,
       "padding": 1.55,
-      "minZoom": 0.6,
-      "maxZoom": 1.8,
-      "screenLift": 0
+      "minZoom": 0.3,
+      "maxZoom": 2.3,
+      "startZoom": 0.9,
+      "tiltLimitDeg": 0,
+      "aimHeight": 0.8,
+      "screenLift": -0.05
     },
     "lighting": {
       "key": 120,
-      "fill": 45,
+      "fill": 70,
       "rim": 60,
       "bounce": 6,
-      "ambient": 0.35
+      "ambient": 1.1,
+      "hemi": 0.8,
+      "gallery": {
+        "spots": 3,
+        "track": 1,
+        "wash": 1,
+        "angle": 0.6,
+        "color": "#fff2df"
+      }
+    },
+    "sun": {
+      "enabled": true,
+      "position": [
+        -1,
+        2,
+        1.5
+      ],
+      "target": [
+        0.007048580466527676,
+        1.496530166182611,
+        0.7229428589840117
+      ],
+      "intensity": 6,
+      "color": "#ffe3c2",
+      "soft": {
+        "size": 20,
+        "samples": 16,
+        "focus": 0
+      }
+    },
+    "quality": {
+      "preset": "high",
+      "mobile": "high"
+    },
+    "floor": {
+      "enabled": true,
+      "opacity": 0.35,
+      "blend": "normal",
+      "offsetY": 0.1,
+      "resolution": 512,
+      "mixStrength": 1,
+      "mixBlur": 1.4,
+      "mixContrast": 1,
+      "roughness": 0.6,
+      "metalness": 0.4,
+      "depthScale": 1.2,
+      "minDepthThreshold": 0.2,
+      "maxDepthThreshold": 1.4,
+      "color": "#ffffff"
     },
     "explode": {
       "gap": 0.45,

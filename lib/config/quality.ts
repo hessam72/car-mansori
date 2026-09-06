@@ -18,8 +18,16 @@ export interface QualitySettings {
   multisampling: number;
   /** Edge AA via SMAA pass — every tier has AA (SMAA or MSAA or both) */
   enableSMAA: boolean;
-  /** Ambient occlusion effect (half-res with depth-aware upsampling) */
-  enableN8AO: boolean; // causing ghost error 
+  /**
+   * Ambient occlusion effect (half-res with depth-aware upsampling).
+   *
+   * Off below ultra on purpose: N8AO haloes off a large silhouette and the
+   * halo reads as a soft shadow floating in the air behind the object — the
+   * "ghost" this comment used to name without saying where it came from.
+   * Anything that turns AO on over the top of this flag is a bug; /product
+   * did exactly that on `high` and produced the ghost on that tier alone.
+   */
+  enableN8AO: boolean; 
   /** N8AO quality mode — performance/medium/high */
   n8aoQuality: N8AOQuality;
   /** Texture anisotropy — always applied, nearly free on modern GPUs */

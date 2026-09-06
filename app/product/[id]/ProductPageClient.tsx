@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { useEnvironment, useGLTF } from '@react-three/drei'
+import { useEnvironment, useGLTF, useTexture } from '@react-three/drei'
 import { QualityProvider } from '@/contexts/QualityContext'
 import { useAssetProbe } from '@/hooks/useAssetProbe'
 import { usePresentation, type ZonePaintConfig } from '@/stores/presentationStore'
@@ -17,14 +17,21 @@ import {
   type ExportSources,
 } from '@/lib/three/exportConfigured'
 import {
+  coverSurface,
   findCoverVariant,
+  isMatte,
+  needsEnvironment,
+  PHONE_QUERY,
+  presentationQuality,
   requiredAssets,
+  roomMode,
   type PresentationConfig,
   type ResolvedPresentation,
 } from '@/lib/product/presentation'
 import ProductSheet from '@/components/product/ProductSheet'
 import PresentationTopBar from '@/components/product/PresentationTopBar'
 import MissingAssetsNotice from '@/components/product/MissingAssetsNotice'
+import PresentationLoading from '@/components/product/PresentationLoading'
 import type { Catalog } from '@/lib/store/catalog'
 
 // Must run before any preload in this chunk — drei otherwise reaches for its
@@ -41,8 +48,10 @@ const ARProductViewer = dynamic(() => import('@/components/store/ARProductViewer
 /** Seeds every zone from the first swatch of its palette, so the piece opens in
  *  a real, sellable finish rather than whatever the GLB happened to ship with. */
 function defaultPaint(config: PresentationConfig): ZonePaintConfig {
-  const cover = config.layers.cover.variants.find((v) => v.id === config.layers.cover.default)
-  const surface = { metalness: cover?.material?.metalness ?? 0, clearcoat: cover?.material?.clearcoat ?? 0 }
+  const cover = findCoverVariant(config, config.layers.cover.default)
+  // Same helper selectCover uses, so the opening finish and every later swap
+  // are described the same way.
+  const surface = coverSurface(config, cover)
   const first = (zone: 'wood' | 'cover' | 'cushion') => config.palettes[zone]?.[0]
 
   return {
@@ -52,11 +61,7 @@ function defaultPaint(config: PresentationConfig): ZonePaintConfig {
       metalness: 0,
       clearcoat: 0,
     },
-    cover: {
-      color: first('cover')?.hex ?? '#36454f',
-      roughness: cover?.material?.roughness ?? 0.6,
-      ...surface,
-    },
+    cover: { color: first('cover')?.hex ?? '#36454f', ...surface },
     cushion: {
       color: first('cushion')?.hex ?? '#e8e0d2',
       roughness: 0.8,
@@ -77,13 +82,44 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
   const [arError, setArError] = useState(false)
   const [arUrl, setArUrl] = useState<string | null>(null)
   const [probeKey, setProbeKey] = useState(0)
+  /** Bumped by `retry` to force a fresh WebGL context — a Canvas whose context
+   *  died has to be remounted, not re-rendered. */
+  const [canvasKey, setCanvasKey] = useState(0)
+  /** Set the instant the GPU drops the context; gates the Canvas out of the
+   *  tree. @see handleContextLost */
+  const [contextLost, setContextLost] = useState(false)
   /** A GLB that exists but fails to parse never reaches the probe — the error
    *  boundaries in the scene report it here so it still gets a way out. */
   const [layerError, setLayerError] = useState<string | null>(null)
+  /** Raised by the scene once the piece and room are actually drawn — the probe
+   *  below only proves the files exist. */
+  const [sceneReady, setSceneReady] = useState(false)
 
   const initProduct = usePresentation((s) => s.initProduct)
   const reset = usePresentation((s) => s.reset)
   const addToCart = useShop((s) => s.addToCart)
+
+  /**
+   * Tier, pinned from the manifest instead of guessed from the viewport.
+   *
+   * Resolved on the client only — reading `innerWidth` during render would
+   * disagree with the server's HTML — so the first paint uses the manifest's
+   * desktop tier and a phone with a `quality.mobile` override settles onto it
+   * before the canvas mounts behind the splash.
+   */
+  const [phone, setPhone] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia(PHONE_QUERY)
+    const apply = () => setPhone(mq.matches)
+    apply()
+    // matchMedia rather than a resize listener: this only ever needs to know
+    // which side of the query we are on, and a resize handler would re-render
+    // the page on every frame of a window drag. It also keeps up with a phone
+    // being turned, which the query is written to answer either way round.
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
+  const qualityPreset = useMemo(() => presentationQuality(config, phone), [config, phone])
 
   const assets = useMemo(() => requiredAssets(config), [config])
   const { state, missing } = useAssetProbe(useMemo(() => assets, [assets, probeKey]))
@@ -141,7 +177,7 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
         sources.current,
         paint,
         findCoverVariant(config, coverId),
-        { softMatch: config.layers.soft.zoneMatch }
+        { softMatch: config.layers.soft?.zoneMatch, matte: isMatte(config) }
       )
       const url = URL.createObjectURL(blob)
       if (arCache.current) URL.revokeObjectURL(arCache.current.url)
@@ -164,7 +200,7 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
   }, [config, liveARPossible])
 
   useEffect(() => {
-    initProduct(key, defaultPaint(config), config.layers.cover.default)
+    initProduct(key, defaultPaint(config), config.layers.cover.default, config.layers.startStep ?? 1)
     return () => reset()
   }, [key, config, initProduct, reset])
 
@@ -172,8 +208,17 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
   // variants on idle so a swap never suspends mid-wipe.
   useEffect(() => {
     if (state !== 'ready') return
-    assets.forEach((path) => useGLTF.preload(path))
-    useEnvironment.preload({ files: config.room.hdr })
+    // Only the GLBs go through drei's loader cache; the backdrop image is a
+    // plain texture and the HDR has its own loader.
+    assets
+      .filter((path) => path.endsWith('.glb'))
+      .forEach((path) => useGLTF.preload(path))
+    if (needsEnvironment(config) && config.room.hdr) {
+      useEnvironment.preload({ files: config.room.hdr })
+    }
+    // Only the backdrop actually in use — a manifest can carry both an image
+    // and a room GLB so `room.mode` can switch between them.
+    if (roomMode(config) === 'image' && config.room.image) useTexture.preload(config.room.image)
 
     const rest = config.layers.cover.variants
       .filter((v) => v.id !== config.layers.cover.default)
@@ -190,35 +235,109 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
   }, [state, assets, config])
 
   const retry = useCallback(() => {
-    assets.forEach((path) => useGLTF.clear(path))
+    // Purge the cache only when the *files* are the problem — a 404, or a GLB
+    // that would not parse. A lost context is the opposite case: the files are
+    // fine and only the GPU's copy of them is gone, so a remount re-uploads
+    // them. Clearing there re-suspends every layer and the stack never
+    // republishes `framing`, which leaves the camera rig with nothing to solve
+    // from — an unsolved camera and a black stage.
+    if (!contextLost) {
+      assets.filter((path) => path.endsWith('.glb')).forEach((path) => useGLTF.clear(path))
+      setProbeKey((n) => n + 1)
+    }
     setLayerError(null)
-    setProbeKey((n) => n + 1)
-  }, [assets])
+    setContextLost(false)
+    setCanvasKey((n) => n + 1)
+    // `sceneReady` is deliberately left true. The splash exists to hide the
+    // first load's pop-in; here the assets are warm and the error notice was
+    // already covering the canvas. Clearing it made the page wait on a fresh
+    // SceneReady signal that a rebuilt scene does not always send, which parked
+    // the splash until the 20s failsafe.
+  }, [assets, contextLost])
 
   const handleLayerError = useCallback((category: string, error: Error) => {
     setLayerError(`${category}: ${error.message}`)
   }, [])
 
+  /**
+   * Leaving AR is a fresh start on the piece.
+   *
+   * The Canvas is gated on `!showAR`, so this remount is unavoidable — and the
+   * store is not, since `reset()` is bound to the page's unmount, which does not
+   * happen. Re-running `initProduct` puts the scene back at the manifest's
+   * defaults *and* sets `coverPhase: 'wipeIn'`, so the return plays the same
+   * bottom-up reveal a first load does rather than snapping into place. Both
+   * updates land in one batch, so the scene mounts already knowing to wipe in.
+   *
+   * The exported blob goes too on a phone: the scene is about to take its
+   * context back, and holding it is dead weight on the devices that can least
+   * spare it.
+   */
+  const closeAR = useCallback(() => {
+    setShowAR(false)
+    initProduct(key, defaultPaint(config), config.layers.cover.default, config.layers.startStep ?? 1)
+    if (!phone) return
+    if (arCache.current) URL.revokeObjectURL(arCache.current.url)
+    arCache.current = null
+    setArUrl(null)
+  }, [phone, initProduct, key, config])
+
+  /**
+   * A lost context is not a React error, so no error boundary sees it — and
+   * drawing a notice over the live Canvas is not enough. The next render of the
+   * R3F tree calls into EffectComposer against the dead context, which throws
+   * out of React and replaces the whole page with "Application error: a
+   * client-side exception". That was the visible crash. Unmounting the Canvas
+   * in the same state update means React tears the subtree down instead of
+   * re-rendering it, and `retry` builds a new one.
+   */
+  const handleContextLost = useCallback(() => {
+    setContextLost(true)
+    setLayerError('نمایش سه‌بعدی متوقف شد — حافظه گرافیکی دستگاه پر شد')
+  }, [])
+
+  // Failsafe. The splash is dismissed by the scene reporting itself drawn, and
+  // an asset that resolves but never measures — a frame GLB with no geometry,
+  // say — would otherwise leave it up for good. A half-dressed scene beats a
+  // splash that never lifts.
+  useEffect(() => {
+    if (state !== 'ready' || sceneReady) return
+    const t = window.setTimeout(() => {
+      console.warn('[presentation] scene never reported ready — revealing anyway')
+      setSceneReady(true)
+    }, 20000)
+    return () => window.clearTimeout(t)
+  }, [state, sceneReady])
+
   return (
-    <QualityProvider>
+    <QualityProvider preset={qualityPreset}>
       <div className="relative h-screen w-screen overflow-hidden bg-[var(--surface-0)]">
-        {state === 'ready' && (
-          <PresentationScene config={config} onLayerError={handleLayerError} sources={sources} />
+        {/* Unmounted while AR is open: model-viewer takes a WebGL context of
+            its own, and two live contexts plus the exported GLB is what tips a
+            phone over. Remounting is cheap — the GLBs stay in drei's cache. */}
+        {state === 'ready' && !showAR && !contextLost && (
+          <PresentationScene
+            key={canvasKey}
+            config={config}
+            onLayerError={handleLayerError}
+            onReady={() => setSceneReady(true)}
+            onContextLost={handleContextLost}
+            sources={sources}
+          />
         )}
 
-        {state === 'checking' && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="font-persian text-[11px] tracking-[0.4em] text-[var(--gold-primary)]/60">
-              در حال آماده‌سازی نما
-            </span>
-          </div>
+        {/* Covers the probe *and* the streaming behind it. The canvas has to be
+            mounted and rendering to load its own assets, so the splash is held
+            over it and faded, rather than shown in its place. */}
+        {!layerError && state !== 'missing' && (
+          <PresentationLoading productName={product.name} ready={state === 'ready' && sceneReady} />
         )}
 
         {/* The AR overlay owns the screen and carries its own close button —
             the back link here would leave the page outright. */}
         {!showAR && <PresentationTopBar productName={product.name} catalogId={catalogId} />}
 
-        {state === 'ready' && (
+        {state === 'ready' && sceneReady && (
           <ProductSheet
             presentation={presentation}
             // Not gated on the device: the viewer is a 3D preview of the
@@ -255,7 +374,7 @@ export default function ProductPageClient({ presentation }: { presentation: Reso
             arModes={arUrl ? 'webxr quick-look scene-viewer' : undefined}
             arScale="fixed"
             productName={product.name}
-            onClose={() => setShowAR(false)}
+            onClose={closeAR}
           />
         )}
       </div>

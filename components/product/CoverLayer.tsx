@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { collectZoneTargets, disposeTargets, preparePresentationObject } from '@/lib/three/layerMaterials'
+import { applyMatte, collectZoneTargets, disposeTargets, preparePresentationObject } from '@/lib/three/layerMaterials'
 import { localBoundsY } from '@/lib/three/clipWipe'
 import { useClipWipe, type WipeDirection } from '@/hooks/useClipWipe'
 import { applyFirstCoat, useZonePaint } from '@/hooks/useZonePaint'
@@ -15,6 +15,11 @@ interface CoverLayerProps {
   variant: CoverVariant
   direction: WipeDirection
   durationMs: number
+  /** Strip reflections. This layer is the one the buyer is actually judging,
+   *  so it was the worst place to have missed it. */
+  matte: boolean
+  /** Enrol in the sun's shadow pass — see `sunEnabled`. */
+  shadows: boolean
   onWipeComplete: () => void
 }
 
@@ -23,7 +28,7 @@ interface CoverLayerProps {
  * a fresh instance whose clip plane starts fully closed — the incoming cover
  * never flashes at full size before its reveal begins.
  */
-export default function CoverLayer({ variant, direction, durationMs, onWipeComplete }: CoverLayerProps) {
+export default function CoverLayer({ variant, direction, durationMs, matte, shadows, onWipeComplete }: CoverLayerProps) {
   const gltf = useGLTF(variant.path)
   const groupRef = useRef<THREE.Group>(null)
   const { settings } = useQuality()
@@ -31,8 +36,9 @@ export default function CoverLayer({ variant, direction, durationMs, onWipeCompl
   const { scene, targets, bounds } = useMemo(() => {
     const clone = gltf.scene.clone(true)
     preparePresentationObject(clone, {
-      envMapIntensity: settings.envIntensity,
+      envMapIntensity: matte ? 0 : settings.envIntensity,
       anisotropy: settings.anisotropyLevel,
+      shadows,
     })
 
     // The whole layer is clipped, so every material must be cloned — not just
@@ -50,9 +56,11 @@ export default function CoverLayer({ variant, direction, durationMs, onWipeCompl
       }
     })
 
+    if (matte) applyMatte(collected)
+
     return { scene: clone, targets: collected, bounds: localBoundsY(clone) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gltf.scene, variant.path])
+  }, [gltf.scene, variant.path, matte, shadows])
 
   useZonePaint(targets)
   useClipWipe({ groupRef, targets, bounds, direction, durationMs, onComplete: onWipeComplete })

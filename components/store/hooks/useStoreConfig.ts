@@ -44,6 +44,11 @@ export type SunConfig = {
   shadow: SunShadowConfig
 }
 
+/** A manifest's `sun` block: any subset of SunConfig, merged over DEFAULT_SUN.
+ *  Exported because /product's presentation page reads the identical block, so a
+ *  `?sundebug=1` printout pastes into either manifest unchanged. */
+export type PartialSun = DeepPartial<SunConfig>
+
 /** Per-store lamps: meshes named *lamp* become real point lights + emissive glow */
 export type LampConfig = {
   /** Master on/off for the whole lamp feature (per store) */

@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, type PanInfo } from 'framer-motion'
 import { Box, ChevronDown, Loader2, ShoppingBag, Smartphone } from 'lucide-react'
 import { faPrice } from '@/lib/store/catalog'
 import { SpecDetails, SpecDimensions, SpecFabric } from '@/components/store/productSpecTabs'
 import { usePresentation } from '@/stores/presentationStore'
 import {
+  coverSurface,
   findCoverVariant,
   totalPrice,
   type PresentationZone,
@@ -63,6 +64,12 @@ export default function ProductSheet({
   hidden = false,
 }: Props) {
   const { product, config } = presentation
+
+  // No cushion row without a soft layer — the swatches would paint nothing.
+  const zones = useMemo<PresentationZone[]>(
+    () => (config.layers.soft ? ['wood', 'cover', 'cushion'] : ['wood', 'cover']),
+    [config.layers.soft]
+  )
   const [activeTab, setActiveTab] = useState<Tab>('specs')
   // Opens collapsed: the piece is the hero, details are one tap away.
   const [expanded, setExpanded] = useState(false)
@@ -77,6 +84,16 @@ export default function ProductSheet({
   const exploded = usePresentation((s) => s.exploded)
   const setSheetCoverage = usePresentation((s) => s.setSheetCoverage)
 
+  // Push the chosen variant's surface into the paint state as well as the id —
+  // see the note in selectCover.
+  const pickCover = useCallback(
+    (id: string) => {
+      selectCover(id, coverSurface(config, findCoverVariant(config, id)))
+    },
+    [config, selectCover]
+  )
+
+
   // Exploding is a look-at-the-piece gesture — get out of its way.
   useEffect(() => {
     if (exploded) setExpanded(false)
@@ -84,14 +101,25 @@ export default function ProductSheet({
 
   // Report how much of the screen this sheet hides so the camera rig can frame
   // the piece in the band that is actually visible.
+  //
+  // Only its *resting* height counts — the sheet minus the panel that expands.
+  // Reporting the live height re-framed the camera every time a tab opened, so
+  // the whole scene slid up the screen and back down again; expanding is meant
+  // to draw the panel over the viewport, not move what is behind it.
   const sheetRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const el = sheetRef.current
     if (!el) return
-    const report = () => setSheetCoverage(el.getBoundingClientRect().height / window.innerHeight)
+    const report = () => {
+      const panel = panelRef.current?.getBoundingClientRect().height ?? 0
+      const resting = el.getBoundingClientRect().height - panel
+      setSheetCoverage(resting / window.innerHeight)
+    }
     report()
     const observer = new ResizeObserver(report)
     observer.observe(el)
+    if (panelRef.current) observer.observe(panelRef.current)
     window.addEventListener('resize', report)
     return () => {
       observer.disconnect()
@@ -198,6 +226,7 @@ export default function ProductSheet({
         </div>
 
         <motion.div
+          ref={panelRef}
           initial={false}
           animate={{ height: expanded ? 'auto' : 0, opacity: expanded ? 1 : 0 }}
           transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
@@ -215,7 +244,7 @@ export default function ProductSheet({
 
               {activeTab === 'colors' && (
                 <div className="space-y-5">
-                  {(['wood', 'cover', 'cushion'] as PresentationZone[]).map((zone) => (
+                  {zones.map((zone) => (
                     <SwatchRow
                       key={zone}
                       zone={zone}
@@ -235,16 +264,13 @@ export default function ProductSheet({
                     <span className="text-[12px] text-[var(--text-muted)]">جنس رویه</span>
                     <CoverVariantGrid
                       variants={config.layers.cover.variants}
-                      activeId={coverId}
-                      disabled={layerStep < 2}
+                      activeId={layerStep === 1 ? coverId : null}
                       errors={layerErrors}
-                      onSelect={selectCover}
+                      onSelect={pickCover}
                     />
-                    {layerStep < 2 && (
-                      <p className="text-[11px] text-[var(--text-muted)]">
-                        برای انتخاب جنس رویه، ابتدا لایه رویه را نمایش دهید.
-                      </p>
-                    )}
+                    <p className="text-[11px] text-[var(--text-muted)]">
+                      با انتخاب جنس رویه، اسکلت چوبی پنهان می‌شود.
+                    </p>
                   </div>
                 </div>
               )}
