@@ -21,7 +21,6 @@ import PresentationEnvironment from './PresentationEnvironment'
 import PresentationLighting from './PresentationLighting'
 import PresentationRoom, { type RoomBounds } from './PresentationRoom'
 import PresentationSun from './PresentationSun'
-import PresentationFloor from './PresentationFloor'
 import PresentationBackdrop from './PresentationBackdrop'
 import PresentationGestures from './PresentationGestures'
 import { PresentationPostProcessing } from './PresentationPostProcessing'
@@ -55,10 +54,8 @@ interface Props {
  * This component, though, re-renders for reasons that have nothing to do with
  * any of that — `perfScale` steps whenever PerformanceMonitor decides the frame
  * rate has moved, and `roomBox` lands when the room resolves. Without memos
- * every one of those walked the whole scene again. Two of the children pay real
- * money for that: the floor rebuilds its reflection render targets (see the
- * note on NO_BLUR in PresentationFloor — 10MB a time, undisposed), and the
- * composer re-enters EffectComposer.
+ * every one of those walked the whole scene again, and the composer re-entered
+ * EffectComposer each time.
  *
  * So the props below are all stable by construction — `config` comes from the
  * server payload, the refs and `setRoomBox` are identities React guarantees —
@@ -192,11 +189,6 @@ export default function PresentationScene({ config, onLayerError, onReady, onCon
             fitted to `roomBox`, so it mounts before the room and re-solves once
             the bounds arrive. */}
         {sun && <PresentationSun sun={config.sun!} roomBox={roomBox} device={device} />}
-
-        {/* Reflection laid over the room's own floor, sized from the same
-            bounds. After the room in the tree only for readability — it draws
-            in the transparent pass regardless. */}
-        <PresentationFloor config={config} roomBox={roomBox} device={device} />
 
         <Suspense fallback={null}>
           <PartErrorBoundary category="room" onError={onLayerError}>
