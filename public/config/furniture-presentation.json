@@ -186,7 +186,7 @@
     },
     "simple": {
       "model": "/models/presentation/test/final curve-optimized.glb",
-      "hdr": "/hdr/main_hdr.exr",
+      "hdr": "/hdr/simple_hdr.exr",
       "envIntensity": 1,
       "background": "#ffffff",
       "fov": 35,
