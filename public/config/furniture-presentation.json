@@ -181,8 +181,8 @@
       }
     },
     "quality": {
-      "preset": "medium",
-      "mobile": "medium"
+      "preset": "low",
+      "mobile": "low"
     },
     "floor": {
       "enabled": true,
